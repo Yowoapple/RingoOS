@@ -105,6 +105,22 @@ describe('createMotion', () => {
     expect(Animator.activeCount).toBe(0);
   });
 
+  it('supports per-key rest thresholds so pixel values settle as early as unit values', () => {
+    const coarse = createMotion({ p: 0, px: 0 }, { response: 0.35, damping: 1, restDelta: { p: 0.0002, px: 0.05 } });
+    const strict = createMotion({ p: 0, px: 0 }, { response: 0.35, damping: 1, restDelta: 0.0002 });
+    coarse.to({ p: 1, px: 400 });
+    strict.to({ p: 1, px: 400 });
+    let coarseFrames = null;
+    let strictFrames = null;
+    for (let frame = 1; frame <= 500 && (coarseFrames === null || strictFrames === null); frame += 1) {
+      Animator.step(16);
+      if (coarseFrames === null && !coarse.isAnimating) coarseFrames = frame;
+      if (strictFrames === null && !strict.isAnimating) strictFrames = frame;
+    }
+    expect(coarse.values).toEqual({ p: 1, px: 400 });
+    expect(coarseFrames).toBeLessThan(strictFrames);
+  });
+
   it('notifies listeners on every frame', () => {
     const motion = createMotion({ x: 0 });
     const seen = [];

@@ -123,7 +123,7 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
       iconEl: el.querySelector('.wm-window__icon'),
       titlebar: el.querySelector('.wm-titlebar'),
       homebar: el.querySelector('[data-wm-homebar]'),
-      morph: createMotion({ p: 0, ox: 0, oy: 0, fade: 1 }, { response: 0.42, damping: 0.86, restDelta: 0.0002 }),
+      morph: createMotion({ p: 0, ox: 0, oy: 0, fade: 1 }, { response: 0.42, damping: 0.86, restDelta: { p: 0.0002, ox: 0.05, oy: 0.05, fade: 0.001 } }),
       frame: createMotion({ x: 0, y: 0, w: app.frame.w, h: app.frame.h }, { response: 0.4, damping: 0.9, restDelta: 0.05 }),
       pulse: createMotion({ s: 1 }, { response: 0.3, damping: 1, restDelta: 0.0001 }),
       applied: { w: -1, h: -1, rest: null },

@@ -40,8 +40,17 @@ export function createMotion(initial, defaults = {}) {
   const updateListeners = new Set();
   let pending = [];
 
+  function restDeltaFor(key) {
+    const option = defaults.restDelta;
+    return option !== null && typeof option === 'object' ? option[key] : option;
+  }
+
+  function makeSpring(key, value) {
+    return createSpring({ value, response: defaults.response, damping: defaults.damping, restDelta: restDeltaFor(key) });
+  }
+
   Object.entries(initial).forEach(([key, value]) => {
-    springs.set(key, createSpring({ value, response: defaults.response, damping: defaults.damping, restDelta: defaults.restDelta }));
+    springs.set(key, makeSpring(key, value));
   });
 
   function snapshot() {
@@ -80,7 +89,7 @@ export function createMotion(initial, defaults = {}) {
       Object.entries(targets).forEach(([key, target]) => {
         let spring = springs.get(key);
         if (!spring) {
-          spring = createSpring({ value: target, response: defaults.response, damping: defaults.damping, restDelta: defaults.restDelta });
+          spring = makeSpring(key, target);
           springs.set(key, spring);
         }
         spring.setParams({ response: config.response ?? spring.response, damping: config.damping ?? spring.damping });
@@ -102,7 +111,7 @@ export function createMotion(initial, defaults = {}) {
       Object.entries(values).forEach(([key, value]) => {
         const spring = springs.get(key);
         if (spring) spring.snap(value);
-        else springs.set(key, createSpring({ value, response: defaults.response, damping: defaults.damping, restDelta: defaults.restDelta }));
+        else springs.set(key, makeSpring(key, value));
       });
       if (allSettled()) active.delete(motion);
       emit();
