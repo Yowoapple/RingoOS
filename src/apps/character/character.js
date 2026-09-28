@@ -7,6 +7,8 @@ const ENABLED_KEY = 'yoworingo.character-enabled';
 const POSITION_KEY = 'yoworingo.character-position';
 const MENUBAR_HEIGHT = 34;
 const DOCK_CLEARANCE = 110;
+const PHONE_DOCK_CLEARANCE = 200;
+const PHONE_BREAKPOINT = 768;
 
 const IDLE_MAP = {
   empty: ['trashtuber_idle.webp'],
@@ -237,7 +239,8 @@ function initCharacter() {
       if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) return saved;
     } catch (err) {}
     const b = bounds();
-    return { x: b.maxX - 40, y: b.maxY - DOCK_CLEARANCE };
+    const clearance = window.innerWidth < PHONE_BREAKPOINT ? PHONE_DOCK_CLEARANCE : DOCK_CLEARANCE;
+    return { x: b.maxX - 40, y: b.maxY - clearance };
   }
 
   const start = initialPosition();

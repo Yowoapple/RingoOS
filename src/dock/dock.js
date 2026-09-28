@@ -3,7 +3,7 @@ import { MotionSettings } from '../motion/presets.js';
 
 const LAYOUTS = {
   desktop: { size: 54, gap: 10, pad: 10, magnify: 1.55, range: 170 },
-  phone: { size: 58, gap: 20, pad: 14, magnify: 1, range: 0 },
+  phone: { size: 58, gap: 22, pad: 14, magnify: 1, range: 0, columns: 4, rowGap: 18 },
 };
 
 export function createDock({ root, apps, store, renderIcon, onActivate }) {
@@ -79,7 +79,34 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
     return record && record.state === 'open' ? 0 : 1;
   }
 
+  function computeGrid(values) {
+    const { size, gap, pad, columns, rowGap } = layout;
+    const present = items.filter((item) => values[`${item.app.id}.p`] > 0.01);
+    const rows = Math.max(1, Math.ceil(present.length / columns));
+    const cols = Math.min(columns, Math.max(1, present.length));
+    const slots = items.map((item) => {
+      const index = present.indexOf(item);
+      const p = Math.max(0, values[`${item.app.id}.p`]);
+      if (index < 0) return { item, p, m: 1, cx: 0, cy: 0 };
+      const col = index % columns;
+      const row = Math.floor(index / columns);
+      return {
+        item,
+        p,
+        m: 1,
+        cx: (col - (cols - 1) / 2) * (size + gap),
+        cy: -(rows - 1 - row) * (size + rowGap),
+      };
+    });
+    return {
+      slots,
+      width: cols * size + (cols - 1) * gap + pad * 2,
+      height: rows * size + (rows - 1) * rowGap + pad * 2,
+    };
+  }
+
   function computeSlots(values, magnified = true) {
+    if (layout.columns) return computeGrid(values);
     const { size, gap, pad } = layout;
     const slots = items.map((item) => {
       const id = item.app.id;
@@ -94,19 +121,21 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
     let cursor = -inner / 2;
     slots.forEach((slot) => {
       slot.cx = cursor + (size * slot.m * slot.p) / 2;
+      slot.cy = 0;
       cursor += slot.span;
     });
-    return { slots, width };
+    return { slots, width, height: size + pad * 2 };
   }
 
   function render(values) {
     const { size, pad } = layout;
-    const { slots, width } = computeSlots(values);
+    const { slots, width, height } = computeSlots(values);
     bg.style.width = `${width}px`;
+    bg.style.height = `${height}px`;
     bg.style.opacity = width > pad * 2 + 1 ? '1' : '0';
-    slots.forEach(({ item, p, m, cx }) => {
+    slots.forEach(({ item, p, m, cx, cy }) => {
       const id = item.app.id;
-      const y = values[`${id}.y`];
+      const y = values[`${id}.y`] + cy;
       const s = values[`${id}.s`];
       item.button.style.transform = `translate3d(${cx - size / 2}px, ${y}px, 0) scale(${Math.max(0, m * p * s)})`;
       item.button.style.opacity = String(Math.min(1, Math.max(0, p)));
@@ -189,9 +218,10 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
     const scale = slot ? slot.m * values[`${id}.s`] : 1;
     const size = layout.size * scale;
     const cx = slot ? slot.cx : 0;
+    const cy = slot ? slot.cy : 0;
     return {
       x: anchor.x + cx - size / 2,
-      y: anchor.y + hideOffset() + values[`${id}.y`] - size,
+      y: anchor.y + hideOffset() + cy + values[`${id}.y`] - size,
       size,
     };
   }
