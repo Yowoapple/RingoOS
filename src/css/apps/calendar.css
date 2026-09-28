@@ -43,7 +43,7 @@
 
 .calendar__weekdays {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   text-align: center;
   font-size: var(--text-hint);
   font-weight: var(--font-weight-body-strong);
@@ -53,7 +53,7 @@
 
 .calendar__grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: var(--space-1);
 }
 
@@ -521,4 +521,38 @@
 
 .calendar-qr-card__close {
   margin-top: var(--space-1);
+}
+
+@container (max-width: 440px) {
+  .calendar__cell {
+    padding-top: var(--space-1);
+    font-size: var(--text-hint);
+  }
+
+  .calendar__weekdays {
+    font-size: calc(0.75rem * var(--scale-factor));
+  }
+}
+
+@container (min-width: 760px) {
+  .calendar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
+    column-gap: var(--space-5);
+    align-items: start;
+  }
+
+  .calendar > * {
+    grid-column: 1;
+  }
+
+  .calendar > .calendar__day-panel {
+    grid-column: 2;
+    grid-row: 1 / span 6;
+    margin-top: 0;
+    padding-top: 0;
+    padding-left: var(--space-5);
+    border-top: none;
+    border-left: 1px solid var(--color-surface-border);
+  }
 }

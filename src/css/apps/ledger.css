@@ -1,0 +1,44 @@
+@container (min-width: 640px) {
+  [data-app-id="daily-entry"] .window__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--space-6);
+    align-items: start;
+  }
+
+  [data-app-id="daily-entry"] .window__body > * {
+    grid-column: 1;
+  }
+
+  [data-app-id="daily-entry"] .window__body > .entry-list {
+    grid-column: 2;
+    grid-row: 1 / span 12;
+    max-height: none;
+    margin-top: 0;
+  }
+
+  [data-app-id="overview"] .window__body,
+  [data-app-id="life-reminder"] .window__body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-5);
+    align-items: start;
+  }
+
+  [data-app-id="overview"] .window__body > .settings-section:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@container (max-width: 360px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    text-align: left;
+  }
+}

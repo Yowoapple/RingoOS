@@ -97,3 +97,23 @@
 .calculator__key--zero {
   grid-column: span 2;
 }
+
+[data-app-id="calculator"] .window__body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+[data-app-id="calculator"] .calculator {
+  flex: 1;
+  min-height: 0;
+}
+
+[data-app-id="calculator"] .calculator__keys {
+  flex: 1;
+  grid-auto-rows: minmax(44px, 1fr);
+}
+
+[data-app-id="calculator"] .calculator__key {
+  padding: 0;
+}
