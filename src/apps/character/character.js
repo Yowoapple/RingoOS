@@ -4,6 +4,9 @@ import { Data } from '../../core/data-model.js';
 
 const BASE_PATH = 'characters/coffeebean/';
 const ENABLED_KEY = 'yoworingo.character-enabled';
+const POSITION_KEY = 'yoworingo.character-position';
+const MENUBAR_HEIGHT = 34;
+const DOCK_CLEARANCE = 110;
 
 const IDLE_MAP = {
   empty: ['trashtuber_idle.webp'],
@@ -171,18 +174,7 @@ function initCharacter() {
         widget.classList.add('is-dragging');
       }
 
-      const desktop = document.querySelector('.desktop');
-      const desktopRect = desktop.getBoundingClientRect();
-      const widgetRect = widget.getBoundingClientRect();
-      const minVisible = 40;
-
-      let newLeft = startLeft + deltaX;
-      let newTop = startTop + deltaY;
-      newLeft = Math.max(-widgetRect.width + minVisible, Math.min(newLeft, desktopRect.width - minVisible));
-      newTop = Math.max(0, Math.min(newTop, desktopRect.height - minVisible));
-
-      widget.style.left = `${newLeft}px`;
-      widget.style.top = `${newTop}px`;
+      placeAt(startLeft + deltaX, startTop + deltaY);
       notifyMoved();
     });
 
@@ -198,6 +190,8 @@ function initCharacter() {
 
       if (!wasDragging) {
         playRandomEasterEgg();
+      } else {
+        savePosition();
       }
     }
 
@@ -216,8 +210,38 @@ function initCharacter() {
     window.dispatchEvent(new CustomEvent('yoworingo:character-moved'));
   }
 
-  widget.style.left = widget.style.left || '520px';
-  widget.style.top = widget.style.top || '360px';
+  function bounds() {
+    const w = widget.offsetWidth || 170;
+    const h = widget.offsetHeight || 170;
+    return {
+      minX: 8,
+      maxX: Math.max(8, window.innerWidth - w - 8),
+      minY: MENUBAR_HEIGHT + 8,
+      maxY: Math.max(MENUBAR_HEIGHT + 8, window.innerHeight - h - 8),
+    };
+  }
+
+  function placeAt(x, y) {
+    const b = bounds();
+    widget.style.left = `${Math.min(Math.max(x, b.minX), b.maxX)}px`;
+    widget.style.top = `${Math.min(Math.max(y, b.minY), b.maxY)}px`;
+  }
+
+  function savePosition() {
+    Storage.set(POSITION_KEY, JSON.stringify({ x: parseFloat(widget.style.left), y: parseFloat(widget.style.top) }));
+  }
+
+  function initialPosition() {
+    try {
+      const saved = JSON.parse(Storage.get(POSITION_KEY, 'null'));
+      if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) return saved;
+    } catch (err) {}
+    const b = bounds();
+    return { x: b.maxX - 40, y: b.maxY - DOCK_CLEARANCE };
+  }
+
+  const start = initialPosition();
+  placeAt(start.x, start.y);
 
   enableDrag();
   syncVisibility();
@@ -227,7 +251,10 @@ function initCharacter() {
   if (dateInput) dateInput.addEventListener('change', showIdle);
 
   window.requestAnimationFrame(notifyMoved);
-  window.addEventListener('resize', notifyMoved);
+  window.addEventListener('resize', () => {
+    placeAt(parseFloat(widget.style.left) || 0, parseFloat(widget.style.top) || 0);
+    notifyMoved();
+  });
 }
 
 export const Character = { isEnabled, setEnabled, getCurrentIdleFile };

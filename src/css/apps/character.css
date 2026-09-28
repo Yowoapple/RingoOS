@@ -178,8 +178,3 @@
 
 .character-bubble--danger { background: var(--color-danger-bg); border-color: color-mix(in srgb, var(--color-danger) 35%, transparent); }
 .character-bubble--danger .character-bubble__tag { background: var(--color-danger); color: white; }
-
-.character-widget {
-  left: 520px;
-  top: 360px;
-}
