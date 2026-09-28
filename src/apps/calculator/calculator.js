@@ -1,4 +1,4 @@
-import { Dock } from '../../system/dock.js';
+import { Desktop } from '../../system/desktop.js';
 
 const MAX_SIG_DIGITS = 10;
 
@@ -138,7 +138,7 @@ function createCalculatorState() {
 export const CalculatorEngine = { formatNumber, compute, createCalculatorState };
 
 function initCalculator() {
-  const windowEl = document.querySelector('[data-window-id="calculator"]');
+  const windowEl = document.querySelector('.calculator');
   const expressionEl = document.getElementById('calculator-expression');
   const resultEl = document.getElementById('calculator-result');
   if (!windowEl || !expressionEl || !resultEl) return;
@@ -185,10 +185,7 @@ function initCalculator() {
   });
 
   function isCalculatorActive() {
-    if (windowEl.style.display === 'none') return false;
-    if (windowEl.classList.contains('window--hidden')) return false;
-    const settingsWindowEl = document.querySelector('[data-window-id="settings"]');
-    if (settingsWindowEl && settingsWindowEl.style.display !== 'none') return false;
+    if (!Desktop.isFocused('calculator')) return false;
     const active = document.activeElement;
     if (active) {
       const tag = active.tagName;
@@ -239,9 +236,6 @@ function initCalculator() {
 
   render();
 
-  if (Dock) {
-    Dock.minimizeInstant(windowEl);
-  }
 }
 
 export function boot() {

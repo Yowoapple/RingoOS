@@ -20,6 +20,40 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
   let mode = 'launcher';
   let pointerX = null;
   let anchor = { x: 0, y: 0 };
+  let autoHide = false;
+  let hovering = false;
+  let edgePeek = false;
+  let holdUntil = 0;
+  let holdTimer = null;
+  const hideMotion = createMotion({ h: 0 }, { response: 0.32, damping: 1, restDelta: 0.001 });
+
+  function hideDistance() {
+    return layout.size + layout.pad * 2 + 24;
+  }
+
+  function hideOffset() {
+    return hideMotion.get('h') * hideDistance();
+  }
+
+  function updateHidden() {
+    const shown = !autoHide || hovering || edgePeek || performance.now() < holdUntil;
+    hideMotion.to({ h: shown ? 0 : 1 }, shown ? { response: 0.28, damping: 0.9 } : { response: 0.36, damping: 1 });
+  }
+
+  hideMotion.onUpdate(({ h }) => {
+    root.style.transform = h > 0.0005 ? `translate3d(0, ${h * hideDistance()}px, 0)` : '';
+  });
+
+  window.addEventListener('pointermove', (event) => {
+    if (!autoHide) return;
+    const nearEdge = window.innerHeight - event.clientY < 6;
+    const inDockZone = window.innerHeight - event.clientY < layout.size + layout.pad * 2 + 30;
+    const next = nearEdge || (edgePeek && inDockZone);
+    if (next !== edgePeek) {
+      edgePeek = next;
+      updateHidden();
+    }
+  });
   const badges = new Map();
   const initial = {};
   const items = apps.map((app) => {
@@ -84,7 +118,7 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
 
   function measure() {
     const rect = root.getBoundingClientRect();
-    anchor = { x: rect.left, y: rect.bottom - layout.pad };
+    anchor = { x: rect.left, y: rect.bottom - layout.pad - hideOffset() };
   }
 
   function magnifyTargets() {
@@ -114,11 +148,17 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
   }
 
   root.addEventListener('pointermove', (event) => {
+    if (!hovering) {
+      hovering = true;
+      updateHidden();
+    }
     if (event.pointerType === 'touch') return;
     pointerX = event.clientX;
     magnifyTargets();
   });
   root.addEventListener('pointerleave', () => {
+    hovering = false;
+    updateHidden();
     pointerX = null;
     magnifyTargets();
     label.classList.remove('is-visible');
@@ -151,12 +191,15 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
     const cx = slot ? slot.cx : 0;
     return {
       x: anchor.x + cx - size / 2,
-      y: anchor.y + values[`${id}.y`] - size,
+      y: anchor.y + hideOffset() + values[`${id}.y`] - size,
       size,
     };
   }
 
-  store.subscribe(syncState);
+  const STATE_EVENTS = new Set(['open', 'close', 'minimize', 'restore']);
+  store.subscribe(({ type }) => {
+    if (STATE_EVENTS.has(type)) syncState();
+  });
 
   const api = {
     get mode() { return mode; },
@@ -190,6 +233,19 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
     },
     reveal(id) {
       if (mode === 'minimized') motion.to({ [`${id}.p`]: 1 }, MotionSettings.spring('dock'));
+    },
+    get autoHide() { return autoHide; },
+    setAutoHide(value) {
+      autoHide = !!value;
+      root.classList.toggle('dock--autohide', autoHide);
+      updateHidden();
+    },
+    peek(ms = 900) {
+      if (!autoHide) return;
+      holdUntil = Math.max(holdUntil, performance.now() + ms);
+      updateHidden();
+      window.clearTimeout(holdTimer);
+      holdTimer = window.setTimeout(updateHidden, holdUntil - performance.now() + 20);
     },
   };
 

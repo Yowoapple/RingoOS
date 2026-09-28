@@ -1,6 +1,6 @@
 import { Calc } from '../../core/calculations.js';
 import { Data } from '../../core/data-model.js';
-import { Dock } from '../../system/dock.js';
+import { Desktop } from '../../system/desktop.js';
 import { qrcode } from '../../utils/qr.js';
 
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
@@ -265,7 +265,7 @@ function initCalendar() {
     return;
   }
 
-  const windowEl = document.querySelector('[data-window-id="calendar"]');
+  const windowEl = document.querySelector('.calendar');
   const monthLabelEl = document.getElementById('calendar-month-label');
   const gridEl = document.getElementById('calendar-grid');
   const bannerEl = document.getElementById('calendar-upcoming-banner');
@@ -300,9 +300,7 @@ function initCalendar() {
   function renderUpcoming() {
     const summary = Calc.getUpcomingTaskSummary();
 
-    if (Dock) {
-      Dock.setBadge('calendar', summary.count);
-    }
+    Desktop.setBadge('calendar', summary.count);
 
     bannerEl.innerHTML = '';
     if (summary.count === 0) {
@@ -641,10 +639,6 @@ function initCalendar() {
 
   renderGrid();
   renderUpcoming();
-
-  if (Dock) {
-    Dock.minimizeInstant(windowEl);
-  }
 }
 
 export function boot() {

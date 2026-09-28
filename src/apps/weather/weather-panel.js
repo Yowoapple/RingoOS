@@ -1,4 +1,3 @@
-import { Dock } from '../../system/dock.js';
 import { Persona } from '../reminder/persona.js';
 import { Weather } from './weather.js';
 
@@ -124,7 +123,7 @@ function renderCurrent(current) {
     </div>
   `;
 
-  const weatherWindowEl = document.querySelector('[data-window-id="weather"]');
+  const weatherWindowEl = document.querySelector('.wm-window[data-app-id="weather"]');
   if (weatherWindowEl) weatherWindowEl.dataset.weatherMood = current.mood || '';
 }
 
@@ -295,11 +294,6 @@ function initWeatherWindow() {
   const quipWrap = document.getElementById('weather-quip');
   if (quipAvatar && quipWrap) {
     quipAvatar.addEventListener('error', () => { quipWrap.hidden = true; });
-  }
-
-  const weatherWindowEl = document.querySelector('[data-window-id="weather"]');
-  if (weatherWindowEl && Dock) {
-    Dock.minimizeInstant(weatherWindowEl);
   }
 
   loadAndRender(false);

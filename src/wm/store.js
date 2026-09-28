@@ -92,6 +92,7 @@ export function createWindowStore() {
     setFrame(id, frame) {
       const record = require(id);
       record.frame = { ...record.frame, ...frame };
+      emit('frame', id);
     },
     setSnap(id, zone, frame) {
       const record = require(id);

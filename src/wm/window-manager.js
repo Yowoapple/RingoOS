@@ -16,6 +16,7 @@ import {
 
 const EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 const DRAG_THRESHOLD = 4;
+const INTERACTIVE = '[data-wm-control], button, input, select, textarea, a, [data-no-drag]';
 const PHONE_BREAKPOINT = 768;
 const WINDOW_RADIUS = { desktop: 12, phone: 0 };
 const ICON_RADIUS_RATIO = 0.225;
@@ -103,7 +104,7 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
             </div>
             <div class="wm-titlebar__title">${app.title}</div>
           </header>
-          <div class="wm-window__body">${app.render()}</div>
+          <div class="wm-window__body">${app.render ? app.render() : ''}</div>
         </div>
         <div class="wm-window__icon">${renderIcon(app)}</div>
         <div class="wm-homebar" data-wm-homebar><span></span></div>
@@ -111,6 +112,17 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
       ${EDGES.map((edge) => `<div class="wm-handle wm-handle--${edge}" data-wm-edge="${edge}"></div>`).join('')}
     `;
     areaEl.appendChild(el);
+    if (app.content) {
+      const bodyEl = el.querySelector('.wm-window__body');
+      const titleEl = el.querySelector('.wm-titlebar__title');
+      let anchor = titleEl;
+      (app.content.titlebar || []).forEach((node) => {
+        anchor.after(node);
+        anchor = node;
+      });
+      (app.content.body || []).forEach((node) => bodyEl.appendChild(node));
+      if (app.content.bodyClass) bodyEl.classList.add(app.content.bodyClass);
+    }
 
     const record = store.register({ id: app.id, title: app.title, frame: app.frame, min: app.min });
     const win = {
@@ -262,6 +274,7 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
     if (!win.visible || wasClosed || layout === 'phone') win.frame.set(frame);
     else win.frame.to(frame, MotionSettings.spring('snap'));
     const interrupting = win.visible && win.morph.isAnimating;
+    if (dock.peek) dock.peek(700);
     show(win);
     store.open(id);
     if (MotionSettings.reduced) {
@@ -278,6 +291,7 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
 
   function sendToDock(win, action, velocity) {
     const id = win.app.id;
+    if (dock.peek) dock.peek(900);
     if (action === 'close') store.close(id);
     else store.minimize(id);
     const finish = (done) => { if (done) hide(win); };
@@ -335,12 +349,12 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
     let grab = null;
 
     win.titlebar.addEventListener('dblclick', (event) => {
-      if (event.target.closest('[data-wm-control]')) return;
+      if (event.target.closest(INTERACTIVE)) return;
       toggleZoom(win);
     });
 
     win.titlebar.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0 || layout === 'phone' || event.target.closest('[data-wm-control]')) return;
+      if (event.button !== 0 || layout === 'phone' || event.target.closest(INTERACTIVE)) return;
       pointerId = event.pointerId;
       dragging = false;
       start = toAreaPoint(event);
@@ -556,7 +570,9 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
     win.el.style.display = 'none';
   });
 
-  store.subscribe(applyOrder);
+  store.subscribe(({ type }) => {
+    if (type !== 'frame') applyOrder();
+  });
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     measureArea();
@@ -566,8 +582,42 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
   });
   applyLayout();
 
+  function restoreSession(session) {
+    if (!session) return;
+    session.order.forEach((id) => {
+      const saved = session.windows[id];
+      const win = windows.get(id);
+      if (!saved || !win) return;
+      const record = store.get(id);
+      if (saved.frame && saved.state === 'closed') {
+        store.setFrame(id, fitFrame(saved.frame, record.min, area));
+        return;
+      }
+      if (saved.state === 'closed') return;
+      if (saved.snap && layout === 'desktop') {
+        store.setFrame(id, fitFrame(saved.restore || saved.frame || defaultFrameFrom(record), record.min, area));
+        store.setSnap(id, saved.snap, snapFrame(saved.snap, area));
+      } else {
+        store.setFrame(id, fitFrame(saved.frame || defaultFrameFrom(record), record.min, area));
+      }
+      store.open(id);
+      win.frame.set(store.get(id).frame);
+      show(win);
+      win.morph.set({ p: 1, ox: 0, oy: 0, fade: 1 });
+      if (saved.state === 'minimized') {
+        store.minimize(id);
+        hide(win);
+      }
+    });
+    if (session.focused && store.get(session.focused).state === 'open') store.focus(session.focused);
+    if (layout === 'phone') applyLayout();
+  }
+
   return {
     open,
+    restoreSession,
+    isOpen(id) { return store.get(id)?.state === 'open'; },
+    isFocused(id) { return store.focusedId === id && store.get(id)?.state === 'open'; },
     close(id) { sendToDock(windows.get(id), 'close'); },
     minimize(id) { sendToDock(windows.get(id), 'minimize'); },
     toggleZoom(id) { toggleZoom(windows.get(id)); },

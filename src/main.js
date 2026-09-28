@@ -14,10 +14,8 @@ import { boot as bootRecommendations } from './apps/reminder/recommendations.js'
 import { boot as bootSavings } from './apps/ledger/savings.js';
 import { boot as bootCharacter } from './apps/character/character.js';
 import { boot as bootCharacterBubble } from './apps/character/character-bubble.js';
-import { boot as bootDock } from './system/dock.js';
-import { boot as bootWindowDrag } from './system/window-drag.js';
-import { boot as bootWindowVisibility } from './system/window-visibility.js';
-import { boot as bootLayout } from './system/layout.js';
+import { Desktop } from './system/desktop.js';
+import { Animator } from './motion/animator.js';
 import { boot as bootSettingsPanel } from './system/settings-panel.js';
 import './apps/weather/weather.js';
 import { boot as bootWeatherPanel } from './apps/weather/weather-panel.js';
@@ -32,16 +30,13 @@ const bootSequence = [
   ['bootFontScale', bootFontScale],
   ['bootWallpaper', bootWallpaper],
   ['bootFullscreen', bootFullscreen],
+  ['bootDesktop', Desktop.boot],
   ['bootForms', bootForms],
   ['bootOverview', bootOverview],
   ['bootRecommendations', bootRecommendations],
   ['bootSavings', bootSavings],
   ['bootCharacter', bootCharacter],
   ['bootCharacterBubble', bootCharacterBubble],
-  ['bootDock', bootDock],
-  ['bootWindowDrag', bootWindowDrag],
-  ['bootWindowVisibility', bootWindowVisibility],
-  ['bootLayout', bootLayout],
   ['bootSettingsPanel', bootSettingsPanel],
   ['bootWeatherPanel', bootWeatherPanel],
   ['bootCalculator', bootCalculator],
@@ -84,4 +79,11 @@ function runBootSequence() {
   });
 }
 
-Promise.all([preload(), domReady()]).then(runBootSequence);
+function signature() {
+  console.info('%cRingoOS%c by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
+  if (new URLSearchParams(window.location.search).has('debug')) {
+    window.__ringo = { Animator, Desktop, Storage };
+  }
+}
+
+Promise.all([preload(), domReady()]).then(runBootSequence).then(signature);

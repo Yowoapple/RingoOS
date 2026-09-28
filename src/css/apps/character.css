@@ -1,44 +1,7 @@
-.window {
-  position: absolute;
-  min-width: 320px;
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  box-shadow: var(--shadow-elevation-3), var(--shadow-inset-highlight);
-  overflow: hidden;
-  transition: box-shadow var(--duration-normal) var(--ease-smooth),
-              transform var(--duration-normal) var(--ease-jelly);
-}
-
-.window__icon-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 18%;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.window__content {
-}
-
-.window[data-positioned="false"] {
-  visibility: hidden;
-}
-
-.window--hidden {
-  display: none !important;
-}
-
 .character-widget {
   position: absolute;
   width: 170px;
-  z-index: 900;
+  z-index: 1;
   cursor: grab;
   user-select: none;
   touch-action: none;
@@ -73,7 +36,7 @@
 
 .character-bubble-peek {
   position: absolute;
-  z-index: 901;
+  z-index: 3;
   width: calc(1.8rem * var(--scale-factor));
   height: calc(1.8rem * var(--scale-factor));
   border-radius: var(--radius-pill);
@@ -98,7 +61,7 @@
 
 .character-bubble {
   position: absolute;
-  z-index: 899;
+  z-index: 2;
   width: 260px;
   padding: var(--space-4);
   margin-bottom: 10px;
@@ -215,111 +178,6 @@
 
 .character-bubble--danger { background: var(--color-danger-bg); border-color: color-mix(in srgb, var(--color-danger) 35%, transparent); }
 .character-bubble--danger .character-bubble__tag { background: var(--color-danger); color: white; }
-
-.window.is-dragging {
-  box-shadow: var(--shadow-elevation-3), 0 30px 60px rgba(0, 0, 0, 0.18);
-  transition: none;
-  cursor: grabbing;
-}
-
-.window.is-settling {
-  animation: window-settle var(--duration-normal) var(--ease-jelly);
-}
-
-@keyframes window-settle {
-  0% { transform: scale(1.015); }
-  60% { transform: scale(0.995); }
-  100% { transform: scale(1); }
-}
-
-.window__titlebar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  cursor: grab;
-  user-select: none;
-  border-bottom: 1px solid var(--color-surface-border);
-  background: var(--color-surface-strong);
-}
-
-.window__titlebar:active {
-  cursor: grabbing;
-}
-
-.window__dots {
-  display: flex;
-  gap: var(--space-2);
-  flex-shrink: 0;
-}
-
-.window__dot {
-  width: calc(0.7rem * var(--scale-factor));
-  height: calc(0.7rem * var(--scale-factor));
-  border-radius: var(--radius-pill);
-  background: var(--color-text-tertiary);
-  opacity: 0.5;
-  transition: opacity var(--duration-fast) var(--ease-smooth);
-}
-
-.window__titlebar:hover .window__dot--red { background: #ff5f57; }
-.window__titlebar:hover .window__dot--yellow { background: #febc2e; }
-.window__titlebar:hover .window__dot--green { background: #28c840; }
-
-.window__titlebar:hover .window__dot {
-  opacity: 0.85;
-}
-
-.window__title {
-  font-size: var(--text-body);
-  font-weight: var(--font-weight-heading);
-  color: var(--color-text-primary);
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.window__hint {
-  font-size: var(--text-hint);
-  color: var(--color-text-tertiary);
-  font-weight: var(--font-weight-hint);
-}
-
-.window__body {
-  padding: var(--space-5);
-}
-
-.window__resize-handle {
-  position: absolute;
-  right: 4px;
-  bottom: 4px;
-  width: 16px;
-  height: 16px;
-  cursor: nwse-resize;
-  opacity: 0.35;
-}
-
-.window__resize-handle::before {
-  content: '';
-  position: absolute;
-  right: 4px;
-  bottom: 4px;
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid var(--color-text-tertiary);
-  border-bottom: 2px solid var(--color-text-tertiary);
-  border-radius: 0 0 3px 0;
-}
-
-.window[data-window-id="daily-entry"] { width: 400px; }
-.window[data-window-id="life-reminder"] { width: 360px; }
-.window[data-window-id="overview"] { width: 400px; }
-.window[data-window-id="weather"] { width: 480px; }
-.window[data-window-id="calculator"] { width: 300px; }
-.window[data-window-id="radio"] { width: 480px; }
-.window[data-window-id="calendar"] { width: 520px; }
-.window[data-window-id="settings"] { width: 660px; }
 
 .character-widget {
   left: 520px;

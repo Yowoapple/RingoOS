@@ -1,6 +1,5 @@
 .settings-panel__body {
-  height: 560px;
-  max-height: 78vh;
+  height: 100%;
   display: flex;
   min-height: 0;
 }

@@ -1,0 +1,122 @@
+:root,
+[data-theme="light"] {
+  --wm-surface: #f7f8fa;
+  --wm-titlebar: #eef0f4;
+  --wm-edge: rgba(20, 24, 40, 0.1);
+  --wm-control-idle: rgba(20, 24, 40, 0.18);
+  --wm-shadow-idle: 0 8px 24px rgba(20, 24, 40, 0.1), 0 1px 3px rgba(20, 24, 40, 0.06);
+  --wm-shadow-focus: 0 20px 56px rgba(20, 24, 40, 0.2), 0 2px 8px rgba(20, 24, 40, 0.08);
+  --wm-shadow-drag: 0 28px 76px rgba(20, 24, 40, 0.26), 0 4px 12px rgba(20, 24, 40, 0.1);
+  --wm-preview-fill: rgba(61, 123, 250, 0.12);
+  --wm-preview-edge: rgba(61, 123, 250, 0.45);
+  --dock-glass: rgba(255, 255, 255, 0.55);
+  --dock-edge: rgba(255, 255, 255, 0.8);
+  --dock-shadow: 0 10px 30px rgba(20, 24, 40, 0.16);
+  --dock-label-bg: rgba(28, 30, 38, 0.88);
+  --dock-label-text: #f2f3f7;
+}
+
+[data-theme="dark"] {
+  --wm-surface: #1c1e25;
+  --wm-titlebar: #23252e;
+  --wm-edge: rgba(255, 255, 255, 0.09);
+  --wm-control-idle: rgba(255, 255, 255, 0.2);
+  --wm-shadow-idle: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --wm-shadow-focus: 0 20px 56px rgba(0, 0, 0, 0.55);
+  --wm-shadow-drag: 0 28px 76px rgba(0, 0, 0, 0.6);
+  --wm-preview-fill: rgba(109, 157, 255, 0.12);
+  --wm-preview-edge: rgba(109, 157, 255, 0.45);
+  --dock-glass: rgba(40, 42, 52, 0.55);
+  --dock-edge: rgba(255, 255, 255, 0.12);
+  --dock-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --dock-label-bg: rgba(242, 243, 247, 0.92);
+  --dock-label-text: #1c1e26;
+}
+
+.desktop {
+  --wm-text: var(--color-text-primary);
+  --wm-text-muted: var(--color-text-tertiary);
+  --wm-focus-ring: var(--color-accent);
+  --wm-area-top: 34px;
+  --wm-area-bottom: 96px;
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.desktop.is-dock-autohide {
+  --wm-area-bottom: 8px;
+}
+
+.desktop-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.desktop-layer > * {
+  pointer-events: auto;
+}
+
+.desktop .wm-area {
+  z-index: 2;
+}
+
+.desktop .dock {
+  z-index: 1500;
+}
+
+.desktop .wm-titlebar {
+  height: auto;
+  min-height: 40px;
+  padding: 6px 14px;
+}
+
+.desktop .wm-titlebar__title {
+  font-size: calc(0.8rem * var(--scale-factor));
+}
+
+.app-titlebar__hint {
+  font-size: var(--text-hint);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.app-titlebar__button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.app-titlebar__button:hover {
+  background: var(--color-surface);
+}
+
+.app-titlebar__button:focus-visible {
+  outline: 2px solid var(--wm-focus-ring);
+  outline-offset: 1px;
+}
+
+.window__body {
+  padding: var(--space-5);
+}
+
+.wm-window__body--fill {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wm-window__body--fill > * {
+  flex: 1;
+  min-height: 0;
+}

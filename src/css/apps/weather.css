@@ -2,26 +2,26 @@
   background-image: none;
   transition: background-image var(--duration-slow) var(--ease-smooth);
 }
-.window[data-weather-mood="clear"] .window__body {
+.wm-window[data-weather-mood="clear"] .window__body {
   background-image: linear-gradient(180deg, rgba(61, 123, 250, 0.14) 0%, rgba(61, 123, 250, 0) 220px);
 }
-.window[data-weather-mood="clear-night"] .window__body {
+.wm-window[data-weather-mood="clear-night"] .window__body {
   background-image: linear-gradient(180deg, rgba(60, 70, 140, 0.22) 0%, rgba(60, 70, 140, 0) 220px);
 }
-.window[data-weather-mood="cloudy"] .window__body,
-.window[data-weather-mood="cloudy-night"] .window__body {
+.wm-window[data-weather-mood="cloudy"] .window__body,
+.wm-window[data-weather-mood="cloudy-night"] .window__body {
   background-image: linear-gradient(180deg, rgba(140, 148, 165, 0.18) 0%, rgba(140, 148, 165, 0) 220px);
 }
-.window[data-weather-mood="rain"] .window__body,
-.window[data-weather-mood="rain-night"] .window__body {
+.wm-window[data-weather-mood="rain"] .window__body,
+.wm-window[data-weather-mood="rain-night"] .window__body {
   background-image: linear-gradient(180deg, rgba(70, 110, 180, 0.20) 0%, rgba(70, 110, 180, 0) 220px);
 }
-.window[data-weather-mood="storm"] .window__body,
-.window[data-weather-mood="storm-night"] .window__body {
+.wm-window[data-weather-mood="storm"] .window__body,
+.wm-window[data-weather-mood="storm-night"] .window__body {
   background-image: linear-gradient(180deg, rgba(90, 80, 130, 0.26) 0%, rgba(90, 80, 130, 0) 220px);
 }
-.window[data-weather-mood="snow"] .window__body,
-.window[data-weather-mood="snow-night"] .window__body {
+.wm-window[data-weather-mood="snow"] .window__body,
+.wm-window[data-weather-mood="snow-night"] .window__body {
   background-image: linear-gradient(180deg, rgba(150, 190, 210, 0.20) 0%, rgba(150, 190, 210, 0) 220px);
 }
 

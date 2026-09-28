@@ -76,6 +76,13 @@ describe('window store', () => {
     expect(store.isRunning('a')).toBe(false);
   });
 
+  it('announces frame changes so the session can be saved', () => {
+    const { store, events } = setup();
+    store.setFrame('a', { x: 5 });
+    expect(events).toEqual(['frame:a']);
+    expect(store.get('a').frame.x).toBe(5);
+  });
+
   it('ignores minimize and focus for windows that are not open', () => {
     const { store, events } = setup();
     store.minimize('a');

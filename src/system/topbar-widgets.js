@@ -2,7 +2,7 @@ import { Storage } from '../core/storage/storage.js';
 import { Calc } from '../core/calculations.js';
 import { Character } from '../apps/character/character.js';
 import { Data } from '../core/data-model.js';
-import { Dock } from './dock.js';
+import { Desktop } from './desktop.js';
 import { Radio } from '../apps/radio/radio.js';
 import { Weather } from '../apps/weather/weather.js';
 
@@ -47,27 +47,8 @@ function setEnabled(key, enabled) {
 
 export const TopbarWidgets = { KEYS, hydrate, isEnabled, setEnabled };
 
-function bringToFront(windowEl) {
-  const allWindows = document.querySelectorAll('.window');
-  let maxZ = 10;
-  allWindows.forEach((w) => {
-    const z = parseInt(w.style.zIndex || '10', 10);
-    if (z > maxZ) maxZ = z;
-  });
-  windowEl.style.zIndex = String(maxZ + 1);
-}
-
 function openAppWindow(windowId) {
-  const el = document.querySelector(`.window[data-window-id="${windowId}"]`);
-  if (!el) return;
-  if (Dock && Dock.isDocked(windowId)) {
-    Dock.restoreWindow(windowId);
-  } else if (el.style.display === 'none') {
-    el.style.display = '';
-    bringToFront(el);
-  } else {
-    bringToFront(el);
-  }
+  Desktop.open(windowId);
 }
 
 function initTopbarWidgets() {

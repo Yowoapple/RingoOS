@@ -1,4 +1,3 @@
-import { Dock } from '../../system/dock.js';
 import { Radio } from './radio.js';
 
 const MAX_RENDERED_RESULTS = 150;
@@ -349,11 +348,6 @@ function initRadioWindow() {
 
   Radio.subscribe(render);
   window.addEventListener('yoworingo:radio-stations-change', rebuildBrowser);
-
-  const radioWindowEl = document.querySelector('[data-window-id="radio"]');
-  if (radioWindowEl && Dock) {
-    Dock.minimizeInstant(radioWindowEl);
-  }
 }
 
 export function boot() {

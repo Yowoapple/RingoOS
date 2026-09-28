@@ -1,38 +1,20 @@
 import { Character } from '../apps/character/character.js';
 import { Data } from '../core/data-model.js';
-import { Dock } from './dock.js';
+import { Desktop } from './desktop.js';
 import { FontScale } from '../core/font-scale.js';
 import { Fullscreen } from './fullscreen.js';
 import { Persona } from '../apps/reminder/persona.js';
 import { Theme } from '../core/theme.js';
 import { TopbarWidgets } from './topbar-widgets.js';
 import { Wallpaper } from './wallpaper.js';
-import { WindowVisibility } from './window-visibility.js';
-
-function bringToFront(windowEl) {
-  const allWindows = document.querySelectorAll('.window');
-  let maxZ = 10;
-  allWindows.forEach((w) => {
-    const z = parseInt(w.style.zIndex || '10', 10);
-    if (z > maxZ) maxZ = z;
-  });
-  windowEl.style.zIndex = String(maxZ + 1);
-}
 
 function initSettingsPanel() {
-  const windowEl = document.querySelector('[data-window-id="settings"]');
+  const panelEl = document.querySelector('.settings-panel__body');
   const openBtn = document.querySelector('[data-settings-toggle]');
-  if (!windowEl || !openBtn) return;
+  if (!panelEl || !openBtn) return;
 
   function openPanel() {
-    if (Dock && Dock.isDocked('settings')) {
-      Dock.restoreWindow('settings');
-    } else if (windowEl.style.display === 'none') {
-      windowEl.style.display = '';
-      bringToFront(windowEl);
-    } else {
-      bringToFront(windowEl);
-    }
+    Desktop.open('settings');
     syncAppearanceControls();
   }
 
@@ -47,27 +29,41 @@ function initSettingsPanel() {
   initCharacterToggle();
   initWindowsDockControls();
   initTopbarWidgetsControls();
+}
 
-  if (Dock) {
-    Dock.minimizeInstant(windowEl);
+function bindChoiceRow(containerId, attribute, getValue, setValue) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const buttons = Array.from(container.querySelectorAll(`[data-${attribute}]`));
+  const key = attribute.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  function sync() {
+    const current = getValue();
+    buttons.forEach((button) => {
+      const active = button.dataset[key] === current;
+      button.classList.toggle('btn--primary', active);
+      button.classList.toggle('btn--secondary', !active);
+      button.setAttribute('aria-pressed', String(active));
+    });
   }
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => {
+      setValue(button.dataset[key]);
+      sync();
+    });
+  });
+  sync();
 }
 
 function initWindowsDockControls() {
-
-  const legacyCheckbox = document.getElementById('legacy-reminder-visible-checkbox');
-  if (legacyCheckbox && WindowVisibility) {
-    legacyCheckbox.checked = WindowVisibility.isVisible('life-reminder');
-    legacyCheckbox.addEventListener('change', () => {
-      WindowVisibility.setVisible('life-reminder', legacyCheckbox.checked);
-    });
-  }
+  bindChoiceRow('motion-style-choices', 'motion-style', () => Desktop.getMotionStyle(), (value) => Desktop.setMotionStyle(value));
+  bindChoiceRow('reduced-motion-choices', 'reduced-motion', () => Desktop.getReducedMotion(), (value) => Desktop.setReducedMotion(value));
+  bindChoiceRow('dock-mode-choices', 'dock-mode', () => Desktop.getDockMode(), (value) => Desktop.setDockMode(value));
 
   const autoHideCheckbox = document.getElementById('dock-autohide-checkbox');
-  if (autoHideCheckbox && Dock) {
-    autoHideCheckbox.checked = Dock.isAutoHideEnabled();
+  if (autoHideCheckbox) {
+    autoHideCheckbox.checked = Desktop.isDockAutoHide();
     autoHideCheckbox.addEventListener('change', () => {
-      Dock.setAutoHide(autoHideCheckbox.checked);
+      Desktop.setDockAutoHide(autoHideCheckbox.checked);
     });
   }
 
