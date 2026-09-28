@@ -2,8 +2,7 @@ import { Calc } from '../../core/calculations.js';
 import { Data } from '../../core/data-model.js';
 
 function initOverview() {
-  const root = document.getElementById('overview-window');
-  if (!root) return;
+  if (!document.getElementById('overview-month-label')) return;
 
   const dateInput = document.getElementById('daily-date');
 
