@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
@@ -14,5 +15,11 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     assetsInlineLimit: 0,
+    rollupOptions: {
+      input: {
+        main: resolve(import.meta.dirname, 'index.html'),
+        wm: resolve(import.meta.dirname, 'prototype/wm/index.html'),
+      },
+    },
   },
 });

@@ -1,0 +1,221 @@
+.wm-area {
+  position: absolute;
+  inset: var(--wm-area-top, 30px) 0 var(--wm-area-bottom, 92px) 0;
+  overflow: visible;
+}
+
+.wm-window {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: none;
+  transform-origin: 0 0;
+  will-change: transform;
+  touch-action: none;
+}
+
+.wm-window__shadow {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--wm-radius, 12px);
+  box-shadow: var(--wm-shadow-idle);
+  pointer-events: none;
+  transition: box-shadow 220ms ease;
+}
+
+.wm-window.is-focused .wm-window__shadow {
+  box-shadow: var(--wm-shadow-focus);
+}
+
+.wm-window.is-dragging .wm-window__shadow {
+  box-shadow: var(--wm-shadow-drag);
+}
+
+.wm-window__frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--wm-radius, 12px);
+  background: var(--wm-surface);
+  box-shadow: inset 0 0 0 1px var(--wm-edge);
+}
+
+.wm-window__chrome {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.wm-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 14px;
+  flex-shrink: 0;
+  background: var(--wm-titlebar);
+  border-bottom: 1px solid var(--wm-edge);
+  cursor: default;
+  user-select: none;
+  touch-action: none;
+}
+
+.wm-titlebar__controls {
+  display: flex;
+  gap: 8px;
+}
+
+.wm-control {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--wm-control-idle);
+  cursor: pointer;
+  transition: background-color 140ms ease, transform 120ms ease;
+}
+
+.wm-window.is-focused .wm-control--close { background: #ff5f57; }
+.wm-window.is-focused .wm-control--minimize { background: #febc2e; }
+.wm-window.is-focused .wm-control--zoom { background: #28c840; }
+
+.wm-control:active {
+  transform: scale(0.86);
+}
+
+.wm-control:focus-visible {
+  outline: 2px solid var(--wm-focus-ring);
+  outline-offset: 2px;
+}
+
+.wm-titlebar__title {
+  flex: 1;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wm-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wm-window:not(.is-focused) .wm-titlebar__title {
+  color: var(--wm-text-muted);
+}
+
+.wm-window__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  container-type: inline-size;
+  contain: layout paint style;
+}
+
+.wm-window__icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  display: grid;
+  place-items: stretch;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.wm-window__icon > * {
+  width: 100%;
+  height: 100%;
+}
+
+.wm-window.is-morphing .wm-titlebar,
+.wm-window.is-morphing .wm-handle {
+  pointer-events: none;
+}
+
+.wm-handle {
+  position: absolute;
+  z-index: 2;
+}
+
+.wm-handle--n { top: -4px; left: 10px; right: 10px; height: 8px; cursor: ns-resize; }
+.wm-handle--s { bottom: -4px; left: 10px; right: 10px; height: 8px; cursor: ns-resize; }
+.wm-handle--e { right: -4px; top: 10px; bottom: 10px; width: 8px; cursor: ew-resize; }
+.wm-handle--w { left: -4px; top: 10px; bottom: 10px; width: 8px; cursor: ew-resize; }
+.wm-handle--ne { top: -6px; right: -6px; width: 16px; height: 16px; cursor: nesw-resize; }
+.wm-handle--sw { bottom: -6px; left: -6px; width: 16px; height: 16px; cursor: nesw-resize; }
+.wm-handle--nw { top: -6px; left: -6px; width: 16px; height: 16px; cursor: nwse-resize; }
+.wm-handle--se { bottom: -6px; right: -6px; width: 16px; height: 16px; cursor: nwse-resize; }
+
+.wm-snap-preview {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 9;
+  border-radius: 14px;
+  background: var(--wm-preview-fill);
+  box-shadow: inset 0 0 0 1px var(--wm-preview-edge);
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.wm-homebar {
+  display: none;
+}
+
+.wm--phone .wm-area {
+  inset: var(--wm-area-top, 30px) 0 0 0;
+}
+
+.wm--phone .wm-window__shadow {
+  box-shadow: none;
+}
+
+.wm--phone .wm-titlebar {
+  justify-content: center;
+  height: 46px;
+}
+
+.wm--phone .wm-titlebar__controls,
+.wm--phone .wm-handle {
+  display: none;
+}
+
+.wm--phone .wm-titlebar__title {
+  flex: none;
+  font-size: 16px;
+}
+
+.wm--phone .wm-window__body {
+  padding-bottom: 28px;
+}
+
+.wm--phone .wm-homebar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  height: 30px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.wm--phone .wm-homebar span {
+  width: 134px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--wm-text);
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wm-window__shadow,
+  .wm-control {
+    transition: none;
+  }
+}

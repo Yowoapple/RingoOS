@@ -21,8 +21,8 @@ export function rubberband(overshoot, dimension, constant = 0.55) {
   return sign * ((distance * dimension * constant) / (dimension + constant * distance));
 }
 
-export function projectMomentum(velocity, decelerationRate = 0.998) {
-  return ((velocity / 1000) * decelerationRate) / (1 - decelerationRate);
+export function glideDistance(velocity, response) {
+  return (velocity * response) / (2 * Math.PI);
 }
 
 export function positionBounds(size, area) {

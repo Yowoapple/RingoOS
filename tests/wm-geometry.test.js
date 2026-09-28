@@ -3,14 +3,15 @@ import {
   clampPosition,
   detachFromSnap,
   fitFrame,
+  glideDistance,
   morphState,
-  projectMomentum,
   resizeFrame,
   rubberband,
   rubberbandPosition,
   snapFrame,
   snapZoneAt,
 } from '../src/wm/geometry.js';
+import { createSpring } from '../src/motion/spring.js';
 
 const AREA = { w: 1200, h: 700 };
 const MIN = { w: 320, h: 220 };
@@ -44,10 +45,26 @@ describe('positions', () => {
     expect(fitFrame({ x: 900, y: 500, w: 1600, h: 900 }, MIN, AREA)).toEqual({ x: 0, y: 0, w: 1200, h: 700 });
   });
 
-  it('projects momentum like a decelerating scroll view', () => {
-    expect(projectMomentum(0)).toBe(0);
-    expect(projectMomentum(1000)).toBeCloseTo(499, 0);
-    expect(projectMomentum(-1000)).toBeCloseTo(-499, 0);
+  it('glides only as far as the spring naturally carries the release velocity', () => {
+    expect(glideDistance(0, 0.4)).toBe(0);
+    expect(glideDistance(1000, 0.4)).toBeCloseTo(63.66, 2);
+    expect(glideDistance(-1000, 0.4)).toBeCloseTo(-63.66, 2);
+  });
+
+  it('only slows down after release until the window first comes to a stop', () => {
+    [1, 0.8, 0.7].forEach((damping) => {
+      const response = 0.4;
+      const velocity = 1500;
+      const spring = createSpring({ value: 0, target: glideDistance(velocity, response), response, damping });
+      spring.setVelocity(velocity);
+      let previous = velocity;
+      for (let i = 0; i < 120 && spring.velocity > 0; i += 1) {
+        spring.step(1 / 60);
+        if (spring.velocity <= 0) break;
+        expect(spring.velocity).toBeLessThanOrEqual(previous + 1e-6);
+        previous = spring.velocity;
+      }
+    });
   });
 });
 
