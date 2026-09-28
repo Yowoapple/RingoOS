@@ -6,10 +6,19 @@ let mode = 'uninitialized';
 let flushScheduled = false;
 let writeChain = Promise.resolve();
 
+const OPEN_TIMEOUT = 4000;
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`IndexedDB did not respond within ${ms} ms`)), ms)),
+  ]);
+}
+
 async function init() {
   if (mode !== 'uninitialized') return mode;
   try {
-    const all = await Idb.readAll();
+    const all = await withTimeout(Idb.readAll(), OPEN_TIMEOUT);
     all.forEach((value, key) => cache.set(key, value));
     mode = 'indexeddb';
     requestPersistence();

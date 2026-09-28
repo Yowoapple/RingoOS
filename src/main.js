@@ -79,6 +79,15 @@ function runBootSequence() {
   });
 }
 
+function warnIfNotPersisting() {
+  if (Storage.getMode() !== 'memory') return;
+  const notice = document.createElement('div');
+  notice.className = 'system-notice';
+  notice.setAttribute('role', 'alert');
+  notice.textContent = '資料庫暫時打不開，這次的變更不會被儲存。請關掉其他 RingoOS 分頁後重新整理。';
+  (document.getElementById('desktop') || document.body).appendChild(notice);
+}
+
 function signature() {
   console.info('%cRingoOS%c by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
   if (new URLSearchParams(window.location.search).has('debug')) {
@@ -86,4 +95,4 @@ function signature() {
   }
 }
 
-Promise.all([preload(), domReady()]).then(runBootSequence).then(signature);
+Promise.all([preload(), domReady()]).then(runBootSequence).then(warnIfNotPersisting).then(signature);
