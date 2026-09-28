@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RingoOS</title>
+  <meta name="description" content="RingoOS, a web desktop for everyday life and money.">
+  <meta name="author" content="YoWoRingo">
+  <meta name="color-scheme" content="light dark">
+
+  <link rel="stylesheet" href="/src/css/tokens.css">
+  <link rel="stylesheet" href="/src/css/base.css">
+  <link rel="stylesheet" href="/src/css/system/wallpaper.css">
+  <link rel="stylesheet" href="/src/css/system/topbar.css">
+  <link rel="stylesheet" href="/src/css/system/window.css">
+  <link rel="stylesheet" href="/src/css/components/forms.css">
+  <link rel="stylesheet" href="/src/css/system/settings-panel.css">
+  <link rel="stylesheet" href="/src/css/system/dock.css">
+  <link rel="stylesheet" href="/src/css/apps/weather.css">
+  <link rel="stylesheet" href="/src/css/apps/calculator.css">
+  <link rel="stylesheet" href="/src/css/apps/radio.css">
+  <link rel="stylesheet" href="/src/css/apps/calendar.css"></head>
+<body>
+
+  <div class="wallpaper-layer" id="wallpaper-layer" aria-hidden="true">
+    <div class="wallpaper-layer__image" id="wallpaper-layer-image"></div>
+  </div>
+
+  <div class="desktop" id="desktop">
+
+    <header class="topbar">
+      <div class="topbar__brand" title="YoWoRingo">
+        <svg class="topbar__logo" width="15" height="16" viewBox="0 0 100 110" aria-hidden="true">
+          <path d="M50,25 C35,5 5,10 5,45 C5,80 25,107 50,107 C75,107 95,80 95,45 C95,10 65,5 50,25 Z"/>
+          <rect x="46" y="-8" width="8" height="20" rx="3"/>
+        </svg>
+      </div>
+
+      <div class="topbar__status" id="topbar-status">
+        <div class="topbar__group" id="topbar-group-actions">
+          <div class="topbar__quick-add">
+            <button type="button" class="topbar__item topbar__item--icon-only" id="topbar-quick-add-btn" data-no-drag hidden aria-label="快速記一筆">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <div class="topbar__quick-add-popover" id="topbar-quick-add-popover" hidden data-no-drag>
+              <div class="topbar__quick-add-type-row">
+                <button type="button" class="topbar__quick-add-type-btn" data-quick-add-type="expense" id="quick-add-type-expense">支出</button>
+                <button type="button" class="topbar__quick-add-type-btn" data-quick-add-type="income" id="quick-add-type-income">收入</button>
+              </div>
+              <div class="field field--compact">
+                <input type="number" min="0" step="1" id="quick-add-amount" class="field__input" placeholder="金額">
+              </div>
+              <div class="field field--compact">
+                <select id="quick-add-category" class="field__input"></select>
+              </div>
+              <button type="button" class="btn btn--primary btn--block" id="quick-add-submit">記一筆</button>
+            </div>
+          </div>
+          <span class="topbar__item topbar__item--icon-only" id="topbar-budget-dot" hidden aria-label="本月預算狀態" title="本月預算狀態">
+            <span class="topbar__dot"></span>
+          </span>
+          <span class="topbar__item topbar__item--icon-only" id="topbar-savings-ring" hidden aria-label="儲蓄目標進度" title="儲蓄目標進度">
+            <svg width="15" height="15" viewBox="0 0 32 32">
+              <circle class="topbar__ring-bg" cx="16" cy="16" r="12"/>
+              <circle class="topbar__ring-fg" id="topbar-savings-ring-fg" cx="16" cy="16" r="12" stroke-dasharray="0 75.4"/>
+            </svg>
+          </span>
+          <span class="topbar__item topbar__avatar" id="topbar-mood-avatar" hidden title="夥伴角色心情">
+            <img id="topbar-mood-avatar-img" alt="">
+          </span>
+        </div>
+
+        <span class="topbar__divider" id="topbar-divider-1" hidden></span>
+
+        <div class="topbar__group" id="topbar-group-status">
+          <button type="button" class="topbar__item topbar__item--icon-only" id="topbar-calendar-bell" data-no-drag hidden aria-label="日程提醒">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+            <span class="topbar__badge" id="topbar-calendar-badge" hidden>0</span>
+          </button>
+          <button type="button" class="topbar__item" id="topbar-music" data-no-drag hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <span class="topbar__music-label" id="topbar-music-label"></span>
+          </button>
+          <button type="button" class="topbar__item" id="topbar-weather" data-no-drag hidden>
+            <img class="topbar__weather-icon" id="topbar-weather-icon" alt="">
+            <span id="topbar-weather-temp"></span>
+          </button>
+          <span class="topbar__item topbar__clock" id="topbar-clock" hidden></span>
+        </div>
+
+        <span class="topbar__divider" id="topbar-divider-2" hidden></span>
+      </div>
+
+      <div class="topbar__controls">
+        <div class="font-scale" role="group" aria-label="字級調整">
+          <button class="font-scale__btn" data-font-scale-decrease aria-label="縮小字級" data-no-drag>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <span class="font-scale__label" data-font-scale-label>130%</span>
+          <button class="font-scale__btn" data-font-scale-increase aria-label="放大字級" data-no-drag>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+
+        <button class="icon-btn" data-theme-toggle aria-label="切換主題" data-no-drag>◐</button>
+        <button class="icon-btn" data-fullscreen-toggle aria-label="進入全螢幕" data-no-drag hidden>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-fullscreen-icon>
+            <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+          </svg>
+        </button>
+        <button class="icon-btn" data-settings-toggle aria-label="開啟設定" data-no-drag>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <circle cx="12" cy="12" r="6.4"/>
+            <circle cx="12" cy="12" r="2.1"/>
+            <line x1="12" y1="5.4" x2="12" y2="3.2" stroke-width="2.3"/>
+            <line x1="15.88" y1="6.66" x2="17.17" y2="4.88" stroke-width="2.3"/>
+            <line x1="18.28" y1="9.96" x2="20.37" y2="9.28" stroke-width="2.3"/>
+            <line x1="18.28" y1="14.04" x2="20.37" y2="14.72" stroke-width="2.3"/>
+            <line x1="15.88" y1="17.34" x2="17.17" y2="19.12" stroke-width="2.3"/>
+            <line x1="12" y1="18.6" x2="12" y2="20.8" stroke-width="2.3"/>
+            <line x1="8.12" y1="17.34" x2="6.83" y2="19.12" stroke-width="2.3"/>
+            <line x1="5.72" y1="14.04" x2="3.63" y2="14.72" stroke-width="2.3"/>
+            <line x1="5.72" y1="9.96" x2="3.63" y2="9.28" stroke-width="2.3"/>
+            <line x1="8.12" y1="6.66" x2="6.83" y2="4.88" stroke-width="2.3"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="window-flow">
+
+    <section class="window" data-positioned="false" data-window-id="daily-entry" data-window-icon="daily-entry">
+      <div class="window__icon-overlay" data-window-icon-overlay></div>
+      <div class="window__content">
+      <div class="window__titlebar">
+        <div class="window__dots">
+          <span class="window__dot window__dot--red" data-dot-action="none" data-no-drag></span>
+          <span class="window__dot window__dot--yellow" data-dot-action="minimize" data-no-drag title="縮小到 Dock"></span>
+          <span class="window__dot window__dot--green" data-dot-action="none" data-no-drag></span>
+        </div>
+        <span class="window__title">每日記帳</span>
+        <span class="window__hint">拖我試試</span>
+      </div>
+      <div class="window__body">
+
+        <div class="field">
+          <label class="field__label" for="daily-date">日期</label>
+          <input type="date" id="daily-date" class="field__input" data-no-drag>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="收入或支出">
+          <button type="button" class="tabs__btn is-active" data-entry-tab="expense" data-no-drag>支出</button>
+          <button type="button" class="tabs__btn" data-entry-tab="income" data-no-drag>收入</button>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="field__label" for="entry-amount">金額</label>
+            <input type="number" min="0" step="1" id="entry-amount" class="field__input" placeholder="0" data-no-drag>
+          </div>
+          <div class="field">
+            <label class="field__label" for="entry-category">分類</label>
+            <select id="entry-category" class="field__select" data-no-drag></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="entry-note">備註（選填）</label>
+          <input type="text" id="entry-note" class="field__input" placeholder="例如：晚餐、捷運卡儲值" data-no-drag>
+        </div>
+
+        <div class="field__checkbox-row" id="entry-recurring-row">
+          <input type="checkbox" id="entry-recurring" data-no-drag>
+          <label for="entry-recurring">這是固定支出／訂閱（房租、保險、月費等）</label>
+        </div>
+
+        <div class="field" id="entry-necessity-row">
+          <label class="field__label">想要，還是需要？（選填，不選也沒關係）</label>
+          <div class="necessity-toggle" role="group" aria-label="想要或需要">
+            <button type="button" class="necessity-toggle__btn" data-necessity="want" data-no-drag>想要</button>
+            <button type="button" class="necessity-toggle__btn" data-necessity="need" data-no-drag>需要</button>
+          </div>
+        </div>
+
+        <button type="button" id="add-entry-btn" class="btn btn--primary btn--block" data-no-drag>新增這筆記錄</button>
+
+        <div class="field-row field-row--spaced">
+          <div class="field field--flush">
+            <input type="text" id="new-category-name" class="field__input" placeholder="新增自訂分類名稱" data-no-drag>
+          </div>
+          <button type="button" id="add-category-btn" class="btn btn--secondary" data-no-drag>新增分類</button>
+        </div>
+
+        <div class="entry-list" id="entry-list"></div>
+      </div>
+      </div>
+      <div class="window__resize-handle"></div>
+    </section>
+
+    <section class="window" data-positioned="false" data-window-id="life-reminder" data-window-icon="life-reminder">
+      <div class="window__icon-overlay" data-window-icon-overlay></div>
+      <div class="window__content">
+      <div class="window__titlebar">
+        <div class="window__dots">
+          <span class="window__dot window__dot--red" data-dot-action="none" data-no-drag></span>
+          <span class="window__dot window__dot--yellow" data-dot-action="minimize" data-no-drag title="縮小到 Dock"></span>
+          <span class="window__dot window__dot--green" data-dot-action="none" data-no-drag></span>
+        </div>
+        <span class="window__title">生活提醒</span>
+        <span class="window__hint">拖我試試</span>
+      </div>
+      <div class="window__body">
+
+        <div class="settings-section">
+          <div class="settings-section__title">這個月</div>
+          <div class="recommend-card" id="month-recommend-card">
+            <div class="recommend-card__tag" id="month-recommend-tag"></div>
+            <p class="recommend-card__text" id="month-recommend-text"></p>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section__title">這禮拜</div>
+          <div class="recommend-card" id="week-recommend-card">
+            <div class="recommend-card__tag" id="week-recommend-tag"></div>
+            <p class="recommend-card__text" id="week-recommend-text"></p>
+          </div>
+        </div>
+
+      </div>
+      </div>
+      <div class="window__resize-handle"></div>
+    </section>
+
+    <section class="window" id="overview-window" data-positioned="false" data-window-id="overview" data-window-icon="overview">
+      <div class="window__icon-overlay" data-window-icon-overlay></div>
+      <div class="window__content">
+      <div class="window__titlebar">
+        <div class="window__dots">
+          <span class="window__dot window__dot--red" data-dot-action="none" data-no-drag></span>
+          <span class="window__dot window__dot--yellow" data-dot-action="minimize" data-no-drag title="縮小到 Dock"></span>
+          <span class="window__dot window__dot--green" data-dot-action="none" data-no-drag></span>
+        </div>
+        <span class="window__title">收支總覽</span>
+        <span class="window__hint">拖我試試</span>
+      </div>
+      <div class="window__body">
+
+        <div class="settings-section">
+          <div class="settings-section__title">本月</div>
+          <div class="overview-period-label" id="overview-month-label"></div>
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-card__label">收入</div>
+              <div class="stat-card__value" id="overview-month-income">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__label">支出</div>
+              <div class="stat-card__value" id="overview-month-expense">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__label">淨額</div>
+              <div class="stat-card__value" id="overview-month-net">0</div>
+            </div>
+          </div>
+          <div class="budget-summary-line" id="overview-budget-summary"></div>
+          <div class="overview-period-label" id="overview-necessity-line" hidden></div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section__title">本週</div>
+          <div class="overview-period-label" id="overview-week-label"></div>
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-card__label">收入</div>
+              <div class="stat-card__value" id="overview-week-income">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__label">支出</div>
+              <div class="stat-card__value" id="overview-week-expense">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__label">淨額</div>
+              <div class="stat-card__value" id="overview-week-net">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section__title">本月支出前五名分類</div>
+          <div id="overview-category-list"></div>
+        </div>
+
+      </div>
+      </div>
+      <div class="window__resize-handle"></div>
+    </section>
+
+    <section class="window" data-positioned="false" data-window-id="weather" data-window-icon="weather" data-weather-mood="">
+      <div class="window__icon-overlay" data-window-icon-overlay></div>
+      <div class="window__content">
+      <div class="window__titlebar">
+        <div class="window__dots">
+          <span class="window__dot window__dot--red" data-dot-action="none" data-no-drag></span>
+          <span class="window__dot window__dot--yellow" data-dot-action="minimize" data-no-drag title="縮小到 Dock"></span>
+          <span class="window__dot window__dot--green" data-dot-action="none" data-no-drag></span>
+        </div>
+        <span class="window__title">天氣</span>
+        <span class="window__hint" id="weather-town-label"></span>
+        <button type="button" class="window__icon-btn" id="weather-refresh-btn" data-no-drag aria-label="重新整理天氣" title="重新整理">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
+        </button>
+      </div>
+      <div class="window__body">
+
+        <div class="weather-alert-banner" id="weather-alert-banner" hidden>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M10.36 3.51 2.7 17a1.8 1.8 0 0 0 1.55 2.7h15.5A1.8 1.8 0 0 0 21.3 17L13.64 3.51a1.8 1.8 0 0 0-3.28 0Z"/><path d="M12 16.5h.01"/></svg>
+          <span class="weather-alert-banner__text" id="weather-alert-banner-text"></span>
+        </div>
+
+        <div class="weather-hero-row">
+          <div class="weather-current" id="weather-current">
+            <div class="weather-current__icon">
+              <img id="weather-current-icon" alt="">
+            </div>
+            <div class="weather-current__info">
+              <div class="weather-current__temp" id="weather-current-temp">--°</div>
+              <div class="weather-current__text" id="weather-current-text">讀取中...</div>
+            </div>
+          </div>
+
+          <div class="weather-detail-row" id="weather-detail-row"></div>
+        </div>
+
+        <div class="weather-daynight" id="weather-daynight" hidden>
+          <div class="weather-daynight__labels">
+            <span id="weather-sunrise-label"></span>
+            <span class="weather-daynight__title">晝夜進度</span>
+            <span id="weather-sunset-label"></span>
+          </div>
+          <div class="weather-daynight__track">
+            <div class="weather-daynight__fill" id="weather-daynight-fill"></div>
+            <div class="weather-daynight__dot" id="weather-daynight-dot"></div>
+          </div>
+        </div>
+
+        <p class="weather-description" id="weather-description"></p>
+
+        <div class="settings-section">
+          <div class="settings-section__title">接下來幾小時</div>
+          <div class="weather-scroll-row" id="weather-hourly"></div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section__title">未來一週</div>
+          <div class="weather-scroll-row weather-scroll-row--days" id="weather-weekly"></div>
+        </div>
+
+        <div class="weather-quip" id="weather-quip" hidden>
+          <img class="weather-quip__avatar" id="weather-quip-avatar" alt="">
+          <span class="weather-quip__text" id="weather-quip-text"></span>
+        </div>
+
+        <div class="io-status" id="weather-status"></div>
+        <div class="weather-source">資料來源：交通部中央氣象署開放資料，依政府資料開放授權條款－第1版使用</div>
+
+      </div>
+      </div>
+      <div class="window__resize-handle"></div>
+    </section>
+
+    <section class="window" data-positioned="false" data-window-id="calculator" data-window-icon="calculator">
+      <div class="window__icon-overlay" data-window-icon-overlay></div>
+      <div class="window__content">
+      <div class="window__titlebar">
+        <div class="window__dots">
+          <span class="window__dot window__dot--red" data-dot-action="none" data-no-drag></span>
+          <span class="window__dot window__dot--yellow" data-dot-action="minimize" data-no-drag title="縮小到 Dock"></span>
+          <span class="window__dot window__dot--green" data-dot-action="none" data-no-drag></span>
+        </div>
+        <span class="window__title">計算機</span>
+        <span class="window__hint">拖我試試</span>
+      </div>
+      <div class="window__body">
+
+        <div class="calculator">
+          <div class="calculator__screen">
+            <div class="calculator__expression" id="calculator-expression"></div>
+            <div class="calculator__result" id="calculator-result">0</div>
+          </div>
+
+          <div class="calculator__keys">
+            <button type="button" class="calculator__key calculator__key--func" data-calc-action="clear" data-no-drag>C</button>
+            <button type="button" class="calculator__key calculator__key--func" data-calc-action="toggle-sign" data-no-drag>+/-</button>
+            <button type="button" class="calculator__key calculator__key--func" data-calc-action="percent" data-no-drag>%</button>
+            <button type="button" class="calculator__key calculator__key--op" data-calc-op="/" data-no-drag>÷</button>
+
+            <button type="button" class="calculator__key" data-calc-digit="7" data-no-drag>7</button>
+            <button type="button" class="calculator__key" data-calc-digit="8" data-no-drag>8</button>
+            <button type="button" class="calculator__key" data-calc-digit="9" data-no-drag>9</button>
+            <button type="button" class="calculator__key calculator__key--op" data-calc-op="*" data-no-drag>×</button>
+
+            <button type="button" class="calculator__key" data-calc-digit="4" data-no-drag>4</button>
+            <button type="button" class="calculator__key" data-calc-digit="5" data-no-drag>5</button>
+            <button type="button" class="calculator__key" data-calc-digit="6" data-no-drag>6</button>
+            <button type="button" class="calculator__key calculator__key--op" data-calc-op="-" data-no-drag>－</button>
+
+            <button type="button" class="calculator__key" data-calc-digit="1" data-no-drag>1</button>
+            <button type="button" class="calculator__key" data-calc-digit="2" data-no-drag>2</button>
+            <button type="button" class="calculator__key" data-calc-digit="3" data-no-drag>3</button>
+            <button type="button" class="calculator__key calculator__key--op" data-calc-op="+" data-no-drag>＋</button>
+
+            <button type="button" class="calculator__key calculator__key--zero" data-calc-digit="0" data-no-drag>0</button>
+            <button type="button" class="calculator__key" data-calc-action="decimal" data-no-drag>.</button>
+            <button type="button" class="calculator__key calculator__key--equals" data-calc-action="equals" data-no-drag>＝</button>
+          </div>
+        </div>
+
+      </div>
+      </div>
+      <div class="window__resize-handle"></div>
+    </section>
+
+    <section class="window" data-positioned="false" data-window-id="radio" data-window-icon="radio">
+      <div class="window__icon-overlay" data-window-icon-overlay></div>
+      <div class="window__content">
+      <div class="window__titlebar">
+        <div class="window__dots">
+          <span class="window__dot window__dot--red" data-dot-action="none" data-no-drag></span>
+          <span class="window__dot window__dot--yellow" data-dot-action="minimize" data-no-drag title="縮小到 Dock"></span>
+          <span class="window__dot window__dot--green" data-dot-action="none" data-no-drag></span>
+        </div>
+        <span class="window__title">電台</span>
+      </div>
+      <div class="window__body">
+
+        <div class="radio">
+
+          <div class="radio-main">
+            <div class="radio-deck" id="radio-deck">
+              <div class="radio-disc" id="radio-disc" data-no-drag>
+                <div class="radio-disc__label" id="radio-disc-label">
+                  <div class="radio-disc__hole"></div>
+                </div>
+              </div>
+              <div class="radio-tonearm"></div>
+              <span class="radio-note radio-note--1">♪</span>
+              <span class="radio-note radio-note--2">♫</span>
+              <span class="radio-note radio-note--3">♪</span>
+            </div>
+
+            <div class="radio-main__info">
+              <div class="radio-info">
+                <div class="radio-info__name" id="radio-station-name">—</div>
+                <div class="radio-info__desc" id="radio-station-desc"></div>
+              </div>
+
+              <div class="radio-now-playing" id="radio-now-playing" hidden></div>
+
+              <div class="radio-controls">
+                <button type="button" class="radio-play-btn" id="radio-play-btn" data-no-drag aria-label="播放"></button>
+                <div class="radio-volume-row">
+                  <svg class="radio-volume-row__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 10v4h3.5l4.5 4V6l-4.5 4H4z"/>
+                    <path d="M16 9a4 4 0 0 1 0 6"/>
+                  </svg>
+                  <input type="range" id="radio-volume" min="0" max="100" value="70" data-no-drag>
+                </div>
+              </div>
+
+              <div class="io-status" id="radio-status"></div>
+            </div>
+          </div>
+
+          <div class="radio-browser">
+            <div class="radio-browser__search-row">
+              <input type="text" class="field__input" id="radio-search-input" placeholder="搜尋電台名稱…" data-no-drag>
+            </div>
+            <div class="radio-browser__chips" id="radio-region-chips" data-no-drag></div>
+            <div class="radio-browser__count" id="radio-result-count"></div>
+            <div class="radio-browser__list" id="radio-station-list" data-no-drag></div>
+          </div>
+
+        </div>
+
+      </div>
+      </div>
+      <div class="window__resize-handle"></div>
+    </section>
+
+    <section class="window" data-positioned="false" data-window-id="calendar" data-window-icon="calendar">
+      <div class="window__icon-overlay" data-window-icon-overlay></div>
+      <div class="window__content">
+      <div class="window__titlebar">
+        <div class="window__dots">
+          <span class="window__dot window__dot--red" data-dot-action="none" data-no-drag></span>
+          <span class="window__dot window__dot--yellow" data-dot-action="minimize" data-no-drag title="縮小到 Dock"></span>
+          <span class="window__dot window__dot--green" data-dot-action="none" data-no-drag></span>
+        </div>
+        <span class="window__title">日曆</span>
+        <span class="window__hint">拖我試試</span>
+      </div>
+      <div class="window__body">
+
+        <div class="calendar">
+          <div class="calendar__header">
+            <button type="button" class="calendar__nav" data-calendar-nav="prev" data-no-drag>‹</button>
+            <div class="calendar__month-label" id="calendar-month-label"></div>
+            <button type="button" class="calendar__nav" data-calendar-nav="next" data-no-drag>›</button>
+            <button type="button" class="btn btn--secondary btn--sm" data-calendar-today data-no-drag>今天</button>
+          </div>
+
+          <div class="calendar__upcoming-banner" id="calendar-upcoming-banner" hidden></div>
+
+          <div class="calendar__weekdays">
+            <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+          </div>
+
+          <div class="calendar__grid" id="calendar-grid"></div>
+
+          <div class="calendar__day-panel" id="calendar-day-panel" hidden>
+            <div class="calendar__day-panel-header">
+              <span class="calendar__day-panel-title" id="calendar-day-panel-title"></span>
+              <button type="button" class="calendar__day-panel-export-toggle" id="calendar-export-toggle-btn" data-no-drag title="選取多筆代辦，匯出成同一個 .ics 檔案">多筆匯出</button>
+              <button type="button" class="calendar__day-panel-close" data-calendar-close-panel data-no-drag title="收合">×</button>
+            </div>
+            <ul class="calendar__task-list" id="calendar-task-list"></ul>
+            <div class="calendar__export-bar" id="calendar-export-bar" hidden>
+              <span id="calendar-export-count"></span>
+              <button type="button" class="btn btn--primary btn--sm" id="calendar-export-generate-btn" data-no-drag>產生 .ics 檔案</button>
+              <button type="button" class="btn btn--secondary btn--sm" id="calendar-export-cancel-btn" data-no-drag>取消</button>
+            </div>
+            <div class="calendar__task-form">
+              <input type="text" id="calendar-task-input" class="field__input" placeholder="新增代辦事項…" data-no-drag autocomplete="off">
+              <input type="time" id="calendar-task-time-input" class="field__input calendar__task-time-input" data-no-drag title="選填：設定時間（不設就是整天事件）">
+              <button type="button" class="btn btn--primary btn--sm" id="calendar-task-add-btn" data-no-drag>加入</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      </div>
+      <div class="window__resize-handle"></div>
+    </section>
+
+  <section class="window" data-positioned="false" data-window-id="settings" data-window-icon="settings">
+    <div class="window__icon-overlay" data-window-icon-overlay></div>
+    <div class="window__content">
+      <div class="window__titlebar">
+        <div class="window__dots">
+          <span class="window__dot window__dot--red" data-dot-action="close" data-no-drag title="關閉"></span>
+          <span class="window__dot window__dot--yellow" data-dot-action="minimize" data-no-drag title="縮小到 Dock"></span>
+          <span class="window__dot window__dot--green" data-dot-action="none" data-no-drag></span>
+        </div>
+        <span class="window__title">設定</span>
+      </div>
+
+      <div class="settings-panel__body">
+
+        <nav class="settings-panel__sidebar">
+          <button type="button" class="settings-nav__item is-active" data-settings-tab="appearance">一般外觀</button>
+          <button type="button" class="settings-nav__item" data-settings-tab="windows-dock">視窗與 Dock</button>
+          <button type="button" class="settings-nav__item" data-settings-tab="topbar">選單列</button>
+          <button type="button" class="settings-nav__item" data-settings-tab="categories">分類管理</button>
+          <button type="button" class="settings-nav__item" data-settings-tab="persona">提醒與角色</button>
+          <button type="button" class="settings-nav__item" data-settings-tab="budget-goals">預算與目標</button>
+          <button type="button" class="settings-nav__item" data-settings-tab="weather">天氣</button>
+          <button type="button" class="settings-nav__item" data-settings-tab="backup">資料備份</button>
+        </nav>
+
+        <div class="settings-panel__content">
+
+          <section class="settings-panel__section is-active" data-settings-section="appearance">
+            <div class="settings-section">
+              <div class="settings-section__title">配色模式</div>
+              <div class="settings-choice-row">
+                <button type="button" class="btn btn--secondary" data-theme-set="light">淺色</button>
+                <button type="button" class="btn btn--secondary" data-theme-set="dark">深色</button>
+                <button type="button" class="btn btn--secondary" data-theme-set="auto">自動（跟隨系統／時間）</button>
+              </div>
+            </div>
+            <div class="settings-section">
+              <div class="settings-section__title">字級大小</div>
+              <div class="settings-choice-row">
+                <input type="range" id="settings-font-scale-slider" min="100" max="200" step="10" data-no-drag>
+                <span class="entry-row__note" id="settings-font-scale-value"></span>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section__title">桌布</div>
+              <div class="wallpaper-upload-row">
+                <div class="wallpaper-preview" id="wallpaper-preview"></div>
+                <button type="button" class="btn btn--secondary" id="wallpaper-upload-btn">上傳圖片</button>
+                <button type="button" class="btn btn--secondary" id="wallpaper-clear-btn">清除桌布</button>
+                <input type="file" id="wallpaper-file-input" accept="image/*" hidden>
+              </div>
+              <div class="settings-section__hint">圖片會自動壓縮後存在這台裝置的瀏覽器裡；如果想換裝置也帶著走，到下方「資料備份」分頁匯出時會一併包進去。</div>
+              <div class="wallpaper-slider-row">
+                <label for="wallpaper-opacity-slider">不透明度</label>
+                <input type="range" id="wallpaper-opacity-slider" min="10" max="100" step="5" data-no-drag>
+                <span class="entry-row__note" id="wallpaper-opacity-value"></span>
+              </div>
+              <div class="wallpaper-slider-row">
+                <label for="wallpaper-blur-slider">模糊程度</label>
+                <input type="range" id="wallpaper-blur-slider" min="0" max="20" step="1" data-no-drag>
+                <span class="entry-row__note" id="wallpaper-blur-value"></span>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section__title">全螢幕</div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="fullscreen-auto-checkbox">
+                <label for="fullscreen-auto-checkbox">進站後第一次點擊畫面或按任意鍵時，自動進入全螢幕</label>
+              </div>
+              <div class="settings-section__hint" id="fullscreen-hint">瀏覽器規定一定要有使用者的操作才能進全螢幕，沒辦法在頁面「一載入」就自動觸發，所以改成搭順風車：你第一次點擊或按鍵時就順便進入全螢幕，開關預設關閉。</div>
+              <div class="settings-choice-row settings-choice-row--spaced">
+                <button type="button" class="btn btn--secondary" id="fullscreen-manual-btn">立即切換全螢幕</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-panel__section" data-settings-section="windows-dock">
+            <div class="settings-section">
+              <div class="settings-section__title">舊版生活提醒視窗</div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="legacy-reminder-visible-checkbox">
+                <label for="legacy-reminder-visible-checkbox">顯示桌面上的「生活提醒」視窗（跟角色對話氣泡的內容重複，關掉可以讓桌面更精簡）</label>
+              </div>
+            </div>
+            <div class="settings-section">
+              <div class="settings-section__title">Dock</div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="dock-autohide-checkbox">
+                <label for="dock-autohide-checkbox">自動隱藏 Dock（滑鼠移到畫面最下方邊緣時才滑出來）</label>
+              </div>
+            </div>
+            <div class="settings-section">
+              <div class="settings-section__title">代辦事項提醒</div>
+              <label for="task-reminder-lookahead-input" class="settings-section__hint">提前幾天開始提醒（0＝只看今天，日曆 Dock 圖示上的紅點跟高光顯示都以此為準）</label>
+              <input type="number" min="0" max="7" step="1" id="task-reminder-lookahead-input" class="field__input field__input--narrow">
+            </div>
+          </section>
+
+          <section class="settings-panel__section" data-settings-section="topbar">
+            <div class="settings-section">
+              <div class="settings-section__title">選單列小工具</div>
+              <div class="entry-row__note settings-section__lead">
+                都是各自獨立的開關，全開全關都不會影響任何視窗本身的功能。
+              </div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="topbar-widget-clock-checkbox">
+                <label for="topbar-widget-clock-checkbox">時間</label>
+              </div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="topbar-widget-weather-checkbox">
+                <label for="topbar-widget-weather-checkbox">天氣</label>
+              </div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="topbar-widget-music-checkbox">
+                <label for="topbar-widget-music-checkbox">音樂播放中（只在電台播放時才會出現）</label>
+              </div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="topbar-widget-calendarBell-checkbox">
+                <label for="topbar-widget-calendarBell-checkbox">日程提醒鈴鐺</label>
+              </div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="topbar-widget-budgetDot-checkbox">
+                <label for="topbar-widget-budgetDot-checkbox">本月預算燈號小圓點</label>
+              </div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="topbar-widget-savingsRing-checkbox">
+                <label for="topbar-widget-savingsRing-checkbox">儲蓄目標進度環</label>
+              </div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="topbar-widget-quickAdd-checkbox">
+                <label for="topbar-widget-quickAdd-checkbox">快速記一筆（＋）</label>
+              </div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="topbar-widget-moodAvatar-checkbox">
+                <label for="topbar-widget-moodAvatar-checkbox">角色心情小頭像</label>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-panel__section" data-settings-section="categories">
+            <div class="settings-section">
+              <div class="tabs" role="tablist" aria-label="收入或支出分類">
+                <button type="button" class="tabs__btn is-active" data-settings-category-tab="expense">支出分類</button>
+                <button type="button" class="tabs__btn" data-settings-category-tab="income">收入分類</button>
+              </div>
+              <div class="field-row field-row--spaced">
+                <div class="field field--flush">
+                  <input type="text" id="settings-new-category-name" class="field__input" placeholder="新增自訂分類名稱">
+                </div>
+                <button type="button" id="settings-add-category-btn" class="btn btn--secondary">新增</button>
+              </div>
+              <div class="category-manage-list" id="settings-category-list"></div>
+            </div>
+          </section>
+
+          <section class="settings-panel__section" data-settings-section="persona">
+            <div class="settings-section">
+              <div class="settings-section__title">角色語氣</div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="persona-enabled-checkbox">
+                <label for="persona-enabled-checkbox">開啟角色語氣（關閉時使用預設的中性語氣）</label>
+              </div>
+              <div class="settings-choice-row settings-choice-row--spaced" id="persona-type-choices">
+                <button type="button" class="btn btn--secondary" data-persona-set="maid">女僕</button>
+                <button type="button" class="btn btn--secondary" data-persona-set="wife">老婆</button>
+                <button type="button" class="btn btn--secondary" data-persona-set="sister">妹妹</button>
+              </div>
+            </div>
+            <div class="settings-section">
+              <div class="settings-section__title">夥伴角色</div>
+              <div class="field__checkbox-row">
+                <input type="checkbox" id="character-enabled-checkbox">
+                <label for="character-enabled-checkbox">顯示桌面夥伴角色（獨立於上面的角色語氣文字，可以分開開關）</label>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-panel__section" data-settings-section="budget-goals">
+            <div class="settings-section">
+              <div class="settings-section__title">本月預算 <span id="budget-month-label" class="entry-row__note"></span></div>
+              <div id="budget-list"></div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section__title">儲蓄目標</div>
+              <div class="field-row">
+                <div class="field">
+                  <input type="text" id="goal-title" class="field__input" placeholder="目標名稱，例如：緊急預備金">
+                </div>
+                <div class="field">
+                  <input type="number" min="0" step="1000" id="goal-amount" class="field__input" placeholder="目標金額">
+                </div>
+              </div>
+              <div class="field">
+                <input type="date" id="goal-deadline" class="field__input">
+              </div>
+              <button type="button" id="add-goal-btn" class="btn btn--secondary btn--block">新增儲蓄目標</button>
+              <div id="goal-list" class="goal-list"></div>
+            </div>
+          </section>
+
+          <section class="settings-panel__section" data-settings-section="weather">
+            <div class="settings-section">
+              <div class="settings-section__title">中央氣象署授權碼</div>
+              <div class="entry-row__note settings-section__lead">
+                授權碼只存在這台裝置的瀏覽器裡，不會上傳到任何地方。
+              </div>
+              <div class="field-row">
+                <div class="field field--flush">
+                  <input type="text" id="weather-auth-input" class="field__input" placeholder="CWA-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                </div>
+                <button type="button" id="weather-auth-save-btn" class="btn btn--secondary">儲存</button>
+              </div>
+              <div class="io-status" id="weather-auth-status"></div>
+            </div>
+            <div class="settings-section">
+              <div class="settings-section__title">天氣地點</div>
+              <div class="entry-row__note settings-section__lead" id="weather-location-current"></div>
+              <div class="field-row">
+                <div class="field field--flush">
+                  <select id="weather-county-select" class="field__select">
+                    <option value="">選擇縣市</option>
+                  </select>
+                </div>
+                <div class="field field--flush">
+                  <select id="weather-town-select" class="field__select" disabled>
+                    <option value="">選擇鄉鎮</option>
+                  </select>
+                </div>
+                <button type="button" id="weather-location-save-btn" class="btn btn--secondary" disabled>儲存</button>
+              </div>
+              <div class="io-status" id="weather-location-status"></div>
+            </div>
+          </section>
+
+          <section class="settings-panel__section" data-settings-section="backup">
+            <div class="settings-section">
+              <div class="settings-section__title">資料備份</div>
+              <div class="io-row">
+                <button type="button" id="export-btn" class="btn btn--primary">匯出 JSON</button>
+                <button type="button" id="import-btn" class="btn btn--secondary">匯入 JSON</button>
+                <input type="file" id="import-input" accept="application/json" hidden>
+              </div>
+              <div class="io-row">
+                <button type="button" id="connect-folder-btn" class="btn btn--secondary">連結資料夾（進階）</button>
+                <button type="button" id="save-folder-btn" class="btn btn--secondary" disabled>寫入資料夾</button>
+                <button type="button" id="load-folder-btn" class="btn btn--secondary" disabled>從資料夾讀取</button>
+              </div>
+              <div id="folder-status" class="io-status"></div>
+            </div>
+            <div class="settings-section">
+              <div class="settings-section__title">電台清單</div>
+              <div class="entry-row__note settings-section__lead" id="radio-stations-summary"></div>
+              <div class="io-row">
+                <button type="button" id="radio-import-btn" class="btn btn--secondary">匯入電台清單 JSON</button>
+                <button type="button" id="radio-clear-btn" class="btn btn--secondary">清除電台清單</button>
+                <input type="file" id="radio-import-input" accept="application/json,.json" hidden>
+              </div>
+              <div class="io-status" id="radio-import-status"></div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+    <div class="window__resize-handle"></div>
+  </section>
+
+    </div>
+
+    <div class="character-widget" id="character-widget">
+      <img id="character-img" src="characters/coffeebean/trashtuber_idle.webp" alt="夥伴角色" draggable="false">
+    </div>
+
+    <button type="button" class="character-bubble-peek" id="character-bubble-peek" hidden aria-label="展開對話氣泡">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+      </svg>
+    </button>
+
+    <div class="character-bubble" id="character-bubble">
+      <div class="character-bubble__header">
+        <div class="character-bubble__tabs">
+          <button type="button" class="character-bubble__tab is-active" data-bubble-period="month">這個月</button>
+          <button type="button" class="character-bubble__tab" data-bubble-period="week">這禮拜</button>
+        </div>
+        <button type="button" class="character-bubble__collapse" id="character-bubble-collapse" aria-label="收合對話氣泡">×</button>
+      </div>
+      <div class="character-bubble__tag" id="character-bubble-tag"></div>
+      <p class="character-bubble__text" id="character-bubble-text"></p>
+    </div>
+
+  </div>
+
+  <div class="dock" id="dock"></div>
+  <div class="dock-tooltip" id="dock-tooltip"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

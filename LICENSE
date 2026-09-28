@@ -1,0 +1,44 @@
+Copyright (c) 2026 YoWoRingo (劉奕彬). All rights reserved.
+
+This repository and everything in it, including but not limited to source code,
+styles, markup, scripts, interface and visual design, icons, motion and
+animation design, layout, text, translations, sound, and data structures, are
+the exclusive property of the copyright holder, except where noted below.
+
+1. What you may do
+   You may view the contents of this repository and read the source code for
+   personal study and learning, for example to understand how a technique works.
+
+2. What you may not do
+   Without prior written permission from the copyright holder, you may not:
+   a. copy, reproduce or duplicate any part of this repository, in whole or in
+      part, in any project, website, product or service;
+   b. modify, adapt, translate or create derivative works based on it;
+   c. publish, distribute, sublicense, sell or otherwise make it available to
+      others;
+   d. use any part of it for commercial purposes;
+   e. use the name, logos, icons or written content to represent yourself or
+      any other person or organization.
+
+3. GitHub
+   Because this repository is public, GitHub's Terms of Service allow other
+   GitHub users to view it and to fork it within GitHub. Viewing or forking does
+   not grant any additional rights. Any use of a fork outside of viewing remains
+   subject to the restrictions in section 2.
+
+4. Third-party components
+   Third-party libraries, fonts, character artwork and data used by this
+   project remain the property of their respective owners and are used under
+   their own licenses and terms, which are listed in THIRD_PARTY_NOTICES.md.
+   This includes the character animations in public/characters/, which were
+   created with EmoteLab; the character design belongs to its original creator
+   and is not claimed by this notice. Those licenses are not affected by this
+   notice.
+
+5. Permission requests
+   To ask for permission, contact apple@twerg.org.
+
+THIS REPOSITORY IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES
+OR OTHER LIABILITY ARISING FROM, OUT OF OR IN CONNECTION WITH THIS REPOSITORY OR
+ITS USE.

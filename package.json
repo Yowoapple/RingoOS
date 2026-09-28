@@ -1,0 +1,28 @@
+{
+  "name": "ringoos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RingoOS, a web desktop for everyday life and money",
+  "author": "YoWoRingo",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "assets:characters": "node scripts/convert-characters.mjs",
+    "assets:fonts": "node scripts/convert-fonts.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2",
+    "wawoff2": "^2.0.1"
+  },
+  "dependencies": {
+    "qrcode-generator": "^2.0.4"
+  }
+}
