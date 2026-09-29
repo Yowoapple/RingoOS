@@ -50,15 +50,37 @@
   --glass-shade: rgba(24, 26, 48, 0.12);
   --glass-lens: rgba(255, 255, 255, 0.22);
 
-  --ico-tile: #ffffff;
+  --ico-tile: #f6f6f3;
+  --ico-tile-hi: #ffffff;
+  --ico-tile-lo: #ebebe7;
   --ico-ink: #0e0e10;
   --ico-edge: rgba(14, 14, 16, 0.1);
-  --ico-sheen: 0.6;
+  --ico-rim: 0;
 
   --island: #0e0e10;
   --island-ink: #efeeea;
   --island-ink-2: #8e8d89;
   --island-field: rgba(255, 255, 255, 0.08);
+
+  --wm-radius: var(--r-win);
+  --wm-surface: var(--paper);
+  --wm-titlebar: var(--paper);
+  --wm-edge: var(--line);
+  --wm-text: var(--ink);
+  --wm-text-muted: var(--ink-3);
+  --wm-focus-ring: var(--accent);
+  --wm-control-idle: rgba(14, 14, 16, 0.2);
+  --wm-control-rest: rgba(14, 14, 16, 0.1);
+  --wm-shadow-idle: 0 1px 2px rgba(14, 14, 16, 0.04), 0 10px 28px rgba(14, 14, 16, 0.08);
+  --wm-shadow-focus: 0 2px 6px rgba(14, 14, 16, 0.06), 0 24px 60px rgba(14, 14, 16, 0.18);
+  --wm-shadow-drag: 0 4px 10px rgba(14, 14, 16, 0.08), 0 34px 84px rgba(14, 14, 16, 0.24);
+  --wm-preview-fill: var(--accent-soft);
+  --wm-preview-edge: color-mix(in oklab, var(--accent) 60%, transparent);
+
+  --dock-surface: #ecece8;
+  --dock-shadow: 0 0 0 1px var(--line), 0 12px 34px rgba(14, 14, 16, 0.1);
+  --tip: #000000;
+  --tip-ink: #f2f1ed;
 
   color-scheme: light;
 }
@@ -83,13 +105,24 @@
   --glass-shade: rgba(0, 0, 0, 0.4);
   --glass-lens: rgba(255, 255, 255, 0.08);
 
-  --ico-tile: #242428;
+  --ico-tile: #26262a;
+  --ico-tile-hi: #2e2e33;
+  --ico-tile-lo: #1c1c20;
   --ico-ink: #efeeea;
-  --ico-edge: rgba(255, 255, 255, 0.08);
-  --ico-sheen: 0.14;
+  --ico-edge: rgba(255, 255, 255, 0.07);
+  --ico-rim: 0.16;
 
   --island: #000000;
   --island-field: rgba(255, 255, 255, 0.1);
+
+  --wm-control-idle: rgba(255, 255, 255, 0.24);
+  --wm-control-rest: rgba(255, 255, 255, 0.11);
+  --wm-shadow-idle: 0 12px 32px rgba(0, 0, 0, 0.42);
+  --wm-shadow-focus: 0 2px 6px rgba(0, 0, 0, 0.3), 0 28px 72px rgba(0, 0, 0, 0.62);
+  --wm-shadow-drag: 0 4px 12px rgba(0, 0, 0, 0.34), 0 38px 92px rgba(0, 0, 0, 0.7);
+
+  --dock-surface: var(--paper);
+  --dock-shadow: 0 0 0 1px var(--line), 0 14px 40px rgba(0, 0, 0, 0.5);
 
   color-scheme: dark;
 }
@@ -130,9 +163,12 @@
 
 :root[data-style="a"] {
   --ico-tile: #f8f8fa;
+  --ico-tile-lo: #eeeef2;
   --ico-edge: rgba(255, 255, 255, 0.9);
 }
 :root[data-theme="dark"][data-style="a"] {
   --ico-tile: #2a2a30;
+  --ico-tile-hi: #34343b;
+  --ico-tile-lo: #222227;
   --ico-edge: rgba(255, 255, 255, 0.12);
 }

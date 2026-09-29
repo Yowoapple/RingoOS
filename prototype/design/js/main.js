@@ -10,8 +10,12 @@ import { createNotices } from './notices.js';
 import { createIsland } from './island.js';
 import { flip, enter, pressable } from './motion-kit.js';
 import { startPerfMeter } from './perf.js';
+import { createLabDesktop } from './desktop.js';
+import { createMenubar } from './menubar.js';
 
 MotionSettings.usePreset('hyperos');
+MotionSettings.setSpring('dock', { response: 0.32, damping: 0.66 });
+MotionSettings.setSpring('focus', { response: 0.34, damping: 0.62 });
 
 const STATE_KEY = 'yoworingo.design-lab.v2';
 const SOFT = { response: 0.55, damping: 0.62 };
@@ -24,6 +28,25 @@ const CATEGORIES = {
 const WEEK_LABELS = ['三', '四', '五', '六', '日', '一', '二'];
 const WEEK_VALUES = [520, 890, 1240, 2310, 760, 640, 385];
 const TODAY_INDEX = 6;
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const FRAMES = {
+  'daily-entry': { w: 470, h: 640 },
+  overview: { w: 440, h: 640 },
+  'life-reminder': { w: 400, h: 520 },
+  calendar: { w: 560, h: 600 },
+  weather: { w: 500, h: 600 },
+  calculator: { w: 340, h: 540 },
+  radio: { w: 500, h: 580 },
+  settings: { w: 700, h: 560 },
+};
+const STUB_NOTES = {
+  'life-reminder': '週報、月報與推薦卡片',
+  calendar: '月曆、代辦與 QR 匯出',
+  weather: '氣象署資料與動態天氣背景',
+  calculator: '四則運算與鍵盤操作',
+  radio: '唱片機與選台清單',
+  settings: '側欄分頁與強調色',
+};
 
 const root = document.documentElement;
 const $ = (id) => document.getElementById(id);
@@ -33,7 +56,7 @@ const state = {
   accent: 'apple',
   theme: 'dark',
   wall: 'mono',
-  lab: 'open',
+  lab: window.innerWidth < 768 ? 'closed' : 'open',
 };
 
 try {
@@ -65,12 +88,13 @@ function pad(n) {
   return String(n).padStart(2, '0');
 }
 
-function renderClock() {
+function renderDates() {
   const now = new Date();
-  const week = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
-  $('menubar-clock').textContent = `${now.getMonth() + 1}/${now.getDate()} 週${week}  ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
+  const day = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][now.getDay()];
   $('entry-date').textContent = `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${day}`;
+  $('overview-month').textContent = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  $('overview-range').textContent = `${pad(now.getMonth() + 1)}.01 — ${pad(now.getMonth() + 1)}.${pad(last)}`;
 }
 
 function buildChips(container, list) {
@@ -153,6 +177,34 @@ function renderRank() {
   });
 }
 
+function renderRows() {
+  const container = $('entry-rows');
+  container.textContent = '';
+  ledger.rows.forEach((row) => container.appendChild(rowElement(row)));
+  renderTotal();
+}
+
+function stubBody(app) {
+  const body = document.createElement('div');
+  body.className = 'win__body';
+  body.innerHTML = '<div class="stub"><div class="stub__icon"></div><p class="stub__title"></p><p class="stub__note"></p><span class="tag">P3b · Next</span></div>';
+  body.querySelector('.stub__icon').innerHTML = renderIcon(app.id);
+  body.querySelector('.stub__title').textContent = app.title;
+  body.querySelector('.stub__note').textContent = `${STUB_NOTES[app.id] || ''}。外框、開關、縮放、吸附已是正式版引擎，內容在下一階段重新設計`;
+  return body;
+}
+
+function collectContent(app) {
+  const source = document.querySelector(`.app-source[data-app-id="${app.id}"]`);
+  if (!source) return { titlebar: [], body: [stubBody(app)], bodyClass: 'wm-window__body--stub' };
+  const titlebar = source.querySelector(':scope > .app-source__titlebar');
+  return {
+    titlebar: titlebar ? Array.from(titlebar.children) : [],
+    body: Array.from(source.children).filter((node) => node !== titlebar),
+  };
+}
+
+renderDates();
 const notices = createNotices($('notices'), renderIcon);
 const expenseOdo = createOdometer($('ov-expense'), { value: ledger.expense });
 const chart = createBarChart($('ov-chart'), $('ov-chart-labels'), {
@@ -190,6 +242,42 @@ const entrySeg = createSegmented($('entry-seg'), {
 buildChips(document.querySelector('[data-chips="entry"]'), CATEGORIES.expense);
 wireChips(document.querySelector('[data-chips="entry"]'));
 wireChips(document.querySelector('[data-chips="island"]'));
+renderRows();
+renderRank();
+renderOverview({ animate: false });
+
+const LAB_APPS = APPS.map((app) => ({
+  id: app.id,
+  title: app.title,
+  frame: FRAMES[app.id],
+  min: { w: 320, h: 320 },
+  divider: app.id === 'settings',
+  content: collectContent(app),
+}));
+const TITLES = new Map(APPS.map((app) => [app.id, app.title]));
+
+const desktop = createLabDesktop({
+  desk: $('desk'),
+  areaEl: $('wm-area'),
+  dockEl: $('dock'),
+  wallEl: $('wall'),
+  apps: LAB_APPS,
+  renderIcon,
+});
+const { wm, store } = desktop;
+$('app-sources').remove();
+
+const menubar = createMenubar({
+  root: $('menubar'),
+  store,
+  titles: TITLES,
+  onOpen: (id) => wm.open(id),
+});
+
+function syncReminders(count) {
+  menubar.setReminders(count);
+  desktop.setBadge('calendar', count);
+}
 
 function addEntry({ type, amount, category, note }) {
   const now = new Date();
@@ -268,79 +356,6 @@ $('island-panel').addEventListener('submit', (event) => {
   input.value = '';
 });
 
-const windows = Array.from(document.querySelectorAll('.win'));
-const windowMotions = new Map(windows.map((win) => {
-  const motion = createMotion({ s: 1, o: 1, y: 0 }, { response: 0.5, damping: 0.8, restDelta: { s: 0.0005, o: 0.001, y: 0.05 } });
-  motion.onUpdate(({ s, o, y }) => {
-    const idle = Math.abs(s - 1) < 0.0005 && Math.abs(y) < 0.05;
-    win.style.transform = idle ? '' : `translate3d(0, ${y}px, 0) scale(${s})`;
-    win.style.opacity = o >= 0.999 ? '' : String(Math.max(0, o));
-  });
-  return [win, motion];
-}));
-
-const dockItems = new Map();
-
-function focusWindow(win) {
-  windows.forEach((other) => other.classList.toggle('is-focused', other === win));
-  $('menubar-app').textContent = win.querySelector('.win__title').textContent;
-  dockItems.forEach((item, id) => item.el.classList.toggle('is-focused', id === win.dataset.app));
-  const motion = windowMotions.get(win);
-  if (!MotionSettings.reduced) {
-    motion.set({ s: 0.992 });
-    motion.to({ s: 1 }, MotionSettings.spring('focus'));
-  }
-}
-
-windows.forEach((win) => win.addEventListener('pointerdown', () => {
-  if (!win.classList.contains('is-focused')) focusWindow(win);
-}));
-
-function buildDock() {
-  const dock = $('dock');
-  const label = $('dock-label');
-  APPS.forEach((app) => {
-    const el = document.createElement('button');
-    el.type = 'button';
-    el.className = 'dock__item';
-    el.setAttribute('aria-label', app.title);
-    el.innerHTML = `${renderIcon(app.id)}<span class="dock__dot"></span>`;
-    dock.appendChild(el);
-    const motion = createMotion({ y: 0, s: 1 }, { response: 0.3, damping: 0.75, restDelta: { y: 0.05, s: 0.0005 } });
-    motion.onUpdate(({ y, s }) => {
-      el.style.transform = Math.abs(y) < 0.05 && Math.abs(s - 1) < 0.0005 ? '' : `translate3d(0, ${y}px, 0) scale(${s})`;
-    });
-    const win = windows.find((w) => w.dataset.app === app.id);
-    if (win) el.classList.add('is-running');
-    el.addEventListener('pointerenter', () => {
-      if (!MotionSettings.reduced) motion.to({ y: -7, s: 1.08 }, MotionSettings.spring('dock'));
-      label.textContent = app.title;
-      label.style.transform = `translate(calc(${el.offsetLeft + el.offsetWidth / 2}px - 50%), 0)`;
-      label.classList.add('is-visible');
-    });
-    el.addEventListener('pointerleave', () => {
-      motion.to({ y: 0, s: 1 }, MotionSettings.spring('dock'));
-      label.classList.remove('is-visible');
-    });
-    el.addEventListener('pointerdown', () => motion.to({ s: 0.9 }, { response: 0.16, damping: 1 }));
-    el.addEventListener('pointerup', () => motion.to({ s: 1.08 }, MotionSettings.spring('dock')));
-    el.addEventListener('click', () => {
-      if (!MotionSettings.reduced) motion.to({ y: 0 }, { response: 0.42, damping: 0.35, velocity: { y: -420 } });
-      if (win) focusWindow(win);
-      else notices.push({ app: app.id, title: app.title, body: '這個實驗頁只放了記帳與總覽兩個視窗，圖示是新設計的草稿。' });
-    });
-    dockItems.set(app.id, { el, motion });
-  });
-  dockItems.get('daily-entry').el.classList.add('is-focused');
-}
-
-function renderRows() {
-  const container = $('entry-rows');
-  container.textContent = '';
-  ledger.rows.forEach((row) => container.appendChild(rowElement(row)));
-  renderTotal();
-}
-
 function applyState() {
   root.dataset.style = state.style;
   root.dataset.accent = state.accent;
@@ -383,44 +398,69 @@ $('lab-toggle').addEventListener('click', () => {
   save();
 });
 
+$('lab-radio').addEventListener('click', () => {
+  const next = !menubar.playing;
+  menubar.setPlaying(next);
+  $('lab-radio').setAttribute('aria-pressed', String(next));
+});
+
+$('lab-remind').addEventListener('click', () => {
+  syncReminders(menubar.reminders + 1);
+});
+
+$('lab-notify').addEventListener('click', () => notices.push({ app: 'life-reminder', title: '這禮拜花得比上週少', body: '少了 NT$ 1,240，餐飲省最多，繼續保持' }));
+
+function placeWindows() {
+  const area = wm.area;
+  const unit = parseFloat(getComputedStyle(root).fontSize) || 20.8;
+  const labSpace = state.lab === 'open' && window.innerWidth >= 1100 ? 15 * unit + 1.8 * unit - area.left : 0;
+  const gap = 28;
+  const entry = FRAMES['daily-entry'];
+  const overview = FRAMES.overview;
+  const total = entry.w + gap + overview.w;
+  const x = Math.max(labSpace + 16, labSpace + (area.w - labSpace - total) / 2);
+  store.setFrame('daily-entry', { x, y: 10, w: entry.w, h: Math.min(entry.h, area.h - 22) });
+  store.setFrame('overview', { x: x + entry.w + gap, y: 38, w: overview.w, h: Math.min(overview.h, area.h - 50) });
+}
+
+let introTimers = [];
+
+function later(fn, ms) {
+  introTimers.push(window.setTimeout(fn, ms));
+}
+
 function intro() {
-  windows.forEach((win, i) => {
-    const motion = windowMotions.get(win);
-    if (MotionSettings.reduced) {
-      motion.set({ o: 0 });
-      motion.to({ o: 1 }, MotionSettings.spring('open'));
-      return;
-    }
-    motion.set({ s: 0.94, o: 0, y: 18 });
-    window.setTimeout(() => {
-      motion.to({ s: 1, y: 0 }, SOFT);
-      motion.to({ o: 1 }, { response: 0.3, damping: 1 });
-    }, 80 + i * 90);
-  });
-  expenseOdo.set(ledger.expense, { from: 0 });
-  budgetMotion.set({ f: 0 });
-  window.setTimeout(() => renderOverview(), 250);
-  window.setTimeout(() => chart.grow(), 200);
-  window.setTimeout(() => notices.push({ app: 'calendar', title: '10:00 牙醫回診', body: '還有 30 分鐘，記得帶健保卡', meta: '日曆' }), 1100);
-  window.setTimeout(() => notices.push({ app: 'weather', title: '午後有雷陣雨', body: '14 點後降雨機率 70%，出門帶傘', meta: '天氣' }), 1900);
+  introTimers.forEach((id) => window.clearTimeout(id));
+  introTimers = [];
+  const running = store.all().filter((record) => record.state !== 'closed').map((record) => record.id);
+  running.forEach((id, i) => later(() => wm.close(id), i * 50));
+  const start = running.length ? 560 + running.length * 50 : 240;
+  later(() => {
+    placeWindows();
+    wm.open('daily-entry');
+  }, start);
+  later(() => {
+    expenseOdo.set(ledger.expense, { from: 0 });
+    budgetMotion.set({ f: 0 });
+    wm.open('overview');
+  }, start + 170);
+  later(() => chart.grow(), start + 380);
+  later(() => renderOverview(), start + 420);
+  later(() => notices.push({ app: 'calendar', title: '10:00 牙醫回診', body: '還有 30 分鐘，記得帶健保卡', meta: '日曆' }), start + 1300);
+  later(() => syncReminders(Math.max(1, menubar.reminders)), start + 1450);
+  later(() => notices.push({ app: 'weather', title: '午後有雷陣雨', body: '14 點後降雨機率 70%，出門帶傘', meta: '天氣' }), start + 2100);
 }
 
 $('lab-replay').addEventListener('click', intro);
-$('lab-notify').addEventListener('click', () => notices.push({ app: 'life-reminder', title: '這禮拜花得比上週少', body: '少了 NT$ 1,240，餐飲省最多，繼續保持' }));
 
 document.querySelectorAll('[data-press]').forEach(pressable);
 
-buildDock();
-renderRows();
-renderRank();
-renderOverview({ animate: false });
-renderClock();
-window.setInterval(renderClock, 15000);
+window.setInterval(renderDates, 60000);
 applyState();
 startPerfMeter($('lab-perf'));
 intro();
 
 console.info('%cRingoOS%c design lab', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
 if (new URLSearchParams(window.location.search).has('debug')) {
-  window.__ringoLab = { Animator, entrySeg };
+  window.__ringoLab = { Animator, MotionSettings, entrySeg, wm, store, dock: desktop.dock, menubar };
 }
