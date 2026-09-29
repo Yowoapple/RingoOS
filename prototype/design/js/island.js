@@ -8,23 +8,25 @@ const CLOSE_W = { response: 0.38, damping: 0.68 };
 const CLOSE_H = { response: 0.32, damping: 0.72 };
 const WIDE_W = { response: 0.45, damping: 0.55 };
 const WIDE_H = { response: 0.38, damping: 0.5 };
-const ROW_IN = { response: 0.42, damping: 0.74 };
+const ROW_IN = { response: 0.3, damping: 0.78 };
 const ROW_OUT = { response: 0.16, damping: 1 };
 const HOLD = 1800;
 
 export function createIsland({ root, pill, label, panel, activity, onOpen }) {
   const rows = Array.from(panel.querySelectorAll('.island__row'));
   const badge = activity.querySelector('.island__badge');
-  const check = activity.querySelector('.island__check path');
+  const ring = activity.querySelector('.island__ring');
+  const fill = activity.querySelector('.island__fill');
+  const tick = activity.querySelector('.island__tick');
   const text = activity.querySelector('.island__activity-text');
   const amountEl = activity.querySelector('.island__activity-amount');
   const activityRows = [text, amountEl];
-  const odometer = createOdometer(amountEl.querySelector('.odo-host'), { value: 0 });
+  let sign = '−';
+  const odometer = createOdometer(amountEl.querySelector('.odo-host'), { value: 0, format: (value) => `${sign}${formatAmount(value)}` });
 
   const shape = createMotion({ w: 0, h: 0 }, { response: 0.4, damping: 0.7, restDelta: 0.05 });
   const labelMotion = createMotion({ e: 1 }, { response: 0.3, damping: 1, restDelta: 0.002 });
-  const badgeMotion = createMotion({ s: 0 }, { response: 0.4, damping: 0.45, restDelta: 0.002 });
-  const checkMotion = createMotion({ d: 0 }, { response: 0.32, damping: 1, restDelta: 0.002 });
+  const done = createMotion({ ring: 0, fill: 0, tick: 0, spin: 0 }, { response: 0.4, damping: 1, restDelta: 0.001 });
   const rowMotions = rows.map(bindRow);
   const activityMotions = activityRows.map(bindRow);
 
@@ -72,10 +74,15 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
 
   function render({ w, h }) {
     const { W, H, R } = size;
-    const side = (W - w) / 2;
-    const bottom = H - h;
-    const radius = Math.max(0, Math.min(h / 2, R));
+    const width = Math.max(0, w);
+    const height = Math.max(0, h);
+    const side = (W - width) / 2;
+    const bottom = H - height;
+    const radius = Math.max(0, Math.min(height / 2, R));
     root.style.clipPath = `inset(0 ${side}px ${bottom}px ${side}px round ${radius}px)`;
+    root.style.setProperty('--outer-now', `${radius}px`);
+    panel.style.width = `${width}px`;
+    panel.style.height = `${height}px`;
   }
 
   function spring(config) {
@@ -114,7 +121,7 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
 
   function hideActivity() {
     rowsOut(activityMotions);
-    badgeMotion.to({ s: 0 }, spring({ response: 0.2, damping: 1 }));
+    done.to({ ring: 0, fill: 0, tick: 0 }, spring({ response: 0.18, damping: 1 }));
   }
 
   function collapse() {
@@ -139,7 +146,7 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     hideActivity();
     labelMotion.to({ e: 0.55 }, spring({ response: 0.3, damping: 1 }));
     toShape({ w: size.W, h: size.H }, OPEN_W, OPEN_H, 40);
-    rowsIn(rowMotions, 70);
+    rowsIn(rowMotions, 60, 28);
     later(() => { if (onOpen) onOpen(); }, 300);
   }
 
@@ -152,17 +159,17 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     labelMotion.to({ e: 0 }, spring({ response: 0.16, damping: 1 }));
     if (document.activeElement && root.contains(document.activeElement)) document.activeElement.blur();
     text.textContent = message;
-    amountEl.dataset.sign = income ? '+' : '−';
+    sign = income ? '+' : '−';
     odometer.set(0, { from: 0 });
-    checkMotion.set({ d: 0 });
-    badgeMotion.set({ s: 0 });
+    done.set({ ring: 0, fill: 0, tick: 0, spin: 0 });
     const start = from === 'open' ? 70 : 0;
     later(() => toShape({ w: size.aw, h: size.ah }, WIDE_W, WIDE_H, 30), start);
-    later(() => badgeMotion.to({ s: 1 }, spring({ response: 0.4, damping: 0.56 })), start + 110);
-    later(() => checkMotion.to({ d: 1 }, spring({ response: 0.3, damping: 1 })), start + 230);
+    later(() => done.to({ ring: 1, spin: 1 }, spring({ response: 0.5, damping: 1 })), start + 120);
+    later(() => done.to({ fill: 1 }, spring({ response: 0.34, damping: 0.55 })), start + 470);
+    later(() => done.to({ tick: 1 }, spring({ response: 0.26, damping: 1 })), start + 560);
     rowsIn(activityMotions, start + 150, 50);
-    later(() => odometer.set(amount), start + 240);
-    later(collapse, start + HOLD);
+    later(() => odometer.set(amount), start + 260);
+    later(collapse, start + HOLD + 300);
   }
 
   shape.onUpdate(render);
@@ -170,12 +177,13 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     label.style.opacity = String(Math.max(0, Math.min(1, e)));
     label.style.filter = e < 0.98 && e > 0.02 && mode === 'activity' ? `blur(${((1 - e) * 4).toFixed(2)}px)` : '';
   });
-  badgeMotion.onUpdate(({ s }) => {
-    badge.style.transform = `scale(${Math.max(0, s)})`;
-    badge.style.opacity = s > 0.02 ? '1' : '0';
-  });
-  checkMotion.onUpdate(({ d }) => {
-    check.style.strokeDashoffset = String(1 - Math.max(0, Math.min(1, d)));
+  done.onUpdate(({ ring: r, fill: f, tick: t, spin }) => {
+    const clamp = (value) => Math.max(0, Math.min(1, value));
+    ring.style.strokeDashoffset = String(1 - clamp(r));
+    ring.style.opacity = r > 0.01 ? '1' : '0';
+    badge.style.transform = `rotate(${(1 - clamp(spin)) * -90}deg)`;
+    fill.style.transform = `scale(${Math.max(0, f)})`;
+    tick.style.strokeDashoffset = String(1 - clamp(t));
   });
 
   pill.addEventListener('pointerenter', () => {
@@ -210,8 +218,6 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
   measure();
   shape.set(restTarget());
   setMode('idle');
-  badge.style.opacity = '0';
-  check.style.strokeDashoffset = '1';
 
   return {
     get mode() { return mode; },

@@ -52,11 +52,21 @@
 
 .island__panel {
   position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-rows: auto auto 1fr;
+  top: 0;
+  left: 50%;
+  width: 19rem;
+  height: 9.6rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   gap: 0.5rem;
   padding: 2rem var(--pad) var(--pad);
+  overflow: hidden;
+  translate: -50% 0;
+}
+
+.island__panel > * {
+  flex: none;
 }
 
 .island__row {
@@ -126,16 +136,15 @@
 }
 
 .island__actions {
-  align-self: end;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.4rem;
 }
 
 .island__btn {
-  height: calc((var(--outer) - var(--pad)) * 2);
+  height: 2rem;
   border: 0;
-  border-radius: calc(var(--outer) - var(--pad));
+  border-radius: max(0.2rem, min(1rem, var(--outer-now, var(--outer)) - var(--pad)));
   background: #1f1f22;
   color: #f2f1ed;
   font-size: 0.78rem;
@@ -169,23 +178,35 @@
 }
 
 .island__badge {
-  display: grid;
-  place-items: center;
+  display: block;
   width: 1.45rem;
   height: 1.45rem;
-  border-radius: 50%;
-  background: var(--accent);
-  opacity: 0;
-  will-change: transform;
+  overflow: visible;
 }
 
-.island__check {
-  width: 0.95rem;
-  height: 0.95rem;
+.island__ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
 }
 
-.island__check path {
+.island__fill {
+  fill: var(--accent);
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0);
+}
+
+.island__tick {
+  fill: none;
   stroke: var(--accent-on);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
   stroke-dashoffset: 1;
 }
 
@@ -200,8 +221,4 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--accent);
-}
-
-.island__activity-amount::before {
-  content: attr(data-sign);
 }
