@@ -98,7 +98,7 @@ function ensureDay(dateKey) {
 
 function addIncomeEntry(dateKey, { amount, category, note }) {
   const day = ensureDay(dateKey);
-  day.income.push({ id: generateId(), amount, category, note: note || '' });
+  day.income.push({ id: generateId(), amount, category, note: note || '', createdAt: Date.now() });
   notify();
   dispatchEntryEvent('yoworingo:entry-added', 'income');
 }
@@ -112,6 +112,7 @@ function addExpenseEntry(dateKey, { amount, category, note, recurring, necessity
     note: note || '',
     recurring: !!recurring,
     necessity: necessity || null,
+    createdAt: Date.now(),
   });
   notify();
   dispatchEntryEvent('yoworingo:entry-added', 'expense');
@@ -127,6 +128,62 @@ function removeEntry(dateKey, type, entryId) {
     notify();
     dispatchEntryEvent('yoworingo:entry-removed', type);
   }
+}
+
+function listFor(day, type) {
+  return type === 'income' ? day.income : day.expenses;
+}
+
+function shapeEntry(type, entry) {
+  const base = {
+    id: entry.id,
+    amount: entry.amount,
+    category: entry.category,
+    note: entry.note || '',
+  };
+  if (entry.createdAt !== undefined) base.createdAt = entry.createdAt;
+  if (type === 'expense') {
+    base.recurring = !!entry.recurring;
+    base.necessity = entry.necessity || null;
+  }
+  return base;
+}
+
+function restoreEntry(dateKey, type, entry, index) {
+  if (!entry || !entry.id) return false;
+  const day = ensureDay(dateKey);
+  const list = listFor(day, type);
+  if (list.some((e) => e.id === entry.id)) return false;
+  const at = Math.max(0, Math.min(Number.isInteger(index) ? index : list.length, list.length));
+  list.splice(at, 0, shapeEntry(type, entry));
+  notify();
+  dispatchEntryEvent('yoworingo:entry-added', type);
+  return true;
+}
+
+function updateEntry(dateKey, type, entryId, patch) {
+  const day = state.days[dateKey];
+  if (!day) return null;
+  const list = listFor(day, type);
+  const idx = list.findIndex((e) => e.id === entryId);
+  if (idx === -1) return null;
+  const nextType = patch.type === 'income' || patch.type === 'expense' ? patch.type : type;
+  const merged = { ...list[idx], ...patch, id: entryId };
+  const updated = shapeEntry(nextType, merged);
+  if (nextType === type) {
+    list[idx] = updated;
+  } else {
+    list.splice(idx, 1);
+    listFor(day, nextType).push(updated);
+  }
+  notify();
+  return { type: nextType, entry: updated };
+}
+
+function getEntryIndex(dateKey, type, entryId) {
+  const day = state.days[dateKey];
+  if (!day) return -1;
+  return listFor(day, type).findIndex((e) => e.id === entryId);
 }
 
 function dispatchEntryEvent(eventName, entryType) {
@@ -363,6 +420,9 @@ export const Data = {
   addIncomeEntry,
   addExpenseEntry,
   removeEntry,
+  restoreEntry,
+  updateEntry,
+  getEntryIndex,
   getDayEntries,
   getDayTasks,
   addTask,
