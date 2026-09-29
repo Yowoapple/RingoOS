@@ -1,0 +1,207 @@
+.island {
+  --pad: 0.6rem;
+  --outer: 1.6rem;
+  position: absolute;
+  top: 0.2rem;
+  left: 50%;
+  z-index: 40;
+  width: 19rem;
+  height: 9.6rem;
+  margin-left: -9.5rem;
+  background: #000;
+  color: #f2f1ed;
+  clip-path: inset(0 6.2rem 8.2rem 6.2rem round 0.7rem);
+  will-change: clip-path;
+}
+
+.island__pill {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 6.6rem;
+  height: 1.4rem;
+  margin-left: -3.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0.7rem;
+  background: none;
+  color: inherit;
+}
+
+.island[data-mode="open"] .island__pill {
+  cursor: default;
+}
+
+.island__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.island__label svg {
+  width: 0.72rem;
+  height: 0.72rem;
+  color: var(--accent);
+}
+
+.island__panel {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 0.5rem;
+  padding: 2rem var(--pad) var(--pad);
+}
+
+.island__row {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.island__amount {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0 0.4rem;
+}
+
+.island__cur {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #8e8d89;
+}
+
+.island__input {
+  field-sizing: content;
+  min-width: 1ch;
+  max-width: 9ch;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font-size: 2.1rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  caret-color: var(--accent);
+}
+
+.island__input::placeholder {
+  color: #3a3a3e;
+}
+
+.island__chips {
+  display: flex;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.island__chips .chip {
+  height: 1.6rem;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 0.8rem;
+  background: #1f1f22;
+  color: #b9b8b4;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.island__chips .chip:hover {
+  background: #2a2a2e;
+  color: #f2f1ed;
+}
+
+.island__chips .chip[aria-checked="true"] {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.island__actions {
+  align-self: end;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.island__btn {
+  height: calc((var(--outer) - var(--pad)) * 2);
+  border: 0;
+  border-radius: calc(var(--outer) - var(--pad));
+  background: #1f1f22;
+  color: #f2f1ed;
+  font-size: 0.78rem;
+  font-weight: 700;
+  will-change: transform;
+}
+
+.island__btn:hover {
+  background: #2a2a2e;
+}
+
+.island__btn--go,
+.island__btn--go:hover {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.island__activity {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 16rem;
+  height: 2.15rem;
+  margin-left: -8rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.95rem 0 0.35rem;
+  pointer-events: none;
+}
+
+.island__badge {
+  display: grid;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+  will-change: transform;
+}
+
+.island__check {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.island__check path {
+  stroke: var(--accent-on);
+  stroke-dashoffset: 1;
+}
+
+.island__activity-text {
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.island__activity-amount {
+  display: inline-flex;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.island__activity-amount::before {
+  content: attr(data-sign);
+}

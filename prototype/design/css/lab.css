@@ -322,23 +322,38 @@ button {
 .seg {
   --seg-on: var(--accent-text);
   --seg-platter: var(--paper);
-  --seg-platter-shadow: 0 0 0 0.5px var(--line-strong), 0 1px 3px rgba(14, 14, 16, 0.12), 0 3px 10px rgba(14, 14, 16, 0.06);
+  --seg-platter-shadow: drop-shadow(0 1px 2px rgba(14, 14, 16, 0.14)) drop-shadow(0 3px 8px rgba(14, 14, 16, 0.06));
   touch-action: pan-y;
   user-select: none;
 }
 
 :root[data-theme="dark"] .seg {
   --seg-platter: #3a3a41;
-  --seg-platter-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.08), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --seg-platter-shadow: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
 }
 
 :root[data-style="c"] .seg {
-  --seg-on: var(--paper);
-  --seg-platter: var(--ink);
+  --seg-on: var(--accent-on);
+  --seg-platter: var(--accent);
   --seg-platter-shadow: none;
 }
 
-.seg__platter,
+.seg__platter {
+  position: absolute;
+  inset: 0.2rem 0;
+  z-index: 1;
+  pointer-events: none;
+  filter: var(--seg-platter-shadow);
+  will-change: opacity;
+}
+
+.seg__blob {
+  position: absolute;
+  inset: 0;
+  background: var(--seg-platter);
+  will-change: clip-path;
+}
+
 .seg__lens {
   position: absolute;
   top: 0.2rem;
@@ -347,15 +362,6 @@ button {
   border-radius: var(--r-pill);
   pointer-events: none;
   will-change: transform, opacity;
-}
-
-.seg__platter {
-  z-index: 1;
-  background: var(--seg-platter);
-  box-shadow: var(--seg-platter-shadow);
-}
-
-.seg__lens {
   z-index: 3;
   opacity: 0;
   background: var(--glass-lens);
@@ -433,10 +439,6 @@ button {
   font-weight: 600;
 }
 
-:root[data-style="a"] .chip[aria-checked="true"] {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 3px 10px var(--accent-soft);
-}
-
 .field {
   height: 2.1rem;
   width: 100%;
@@ -473,7 +475,6 @@ button {
 :root[data-style="a"] .btn--primary {
   background: var(--accent);
   color: var(--accent-on);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px var(--accent-soft);
 }
 
 .list {
@@ -850,7 +851,7 @@ button {
 }
 
 :root[data-style="a"] .notice.chrome,
-:root[data-style="a"] .capsule.chrome {
+:root[data-style="a"] .island.chrome {
   background: var(--glass-fill-strong);
   backdrop-filter: blur(30px) saturate(1.9);
   -webkit-backdrop-filter: blur(30px) saturate(1.9);
@@ -876,126 +877,6 @@ button {
 .notice__body {
   font-size: 0.7rem;
   color: var(--ink-2);
-}
-
-.capsule {
-  position: absolute;
-  top: 0.2rem;
-  left: 50%;
-  z-index: 40;
-  width: 19rem;
-  height: 9.2rem;
-  margin-left: -9.5rem;
-  border-radius: 1.2rem;
-  clip-path: inset(0 6.5rem 7.8rem 6.5rem round 0.7rem);
-  will-change: clip-path;
-}
-
-:root[data-style="c"] .capsule.chrome {
-  background: var(--island);
-  color: var(--island-ink);
-  box-shadow: none;
-}
-
-.capsule__pill {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 6rem;
-  height: 1.4rem;
-  margin-left: -3rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  padding: 0;
-  border: 0;
-  border-radius: 0.7rem;
-  background: none;
-  font-size: 0.68rem;
-  font-weight: 600;
-}
-
-.capsule__pill svg {
-  width: 0.7rem;
-  height: 0.7rem;
-  color: var(--accent);
-}
-
-:root[data-style="a"][data-accent="apple"]:not([data-theme="dark"]) .capsule__pill svg {
-  color: var(--accent-text);
-}
-
-.capsule__panel {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  padding: 0.85rem 1rem 1rem;
-  opacity: 0;
-  visibility: hidden;
-}
-
-.capsule__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-:root[data-style="c"] .capsule .tag {
-  color: var(--island-ink-2);
-}
-
-.capsule__amount {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-}
-
-.capsule__amount .amount__input {
-  font-size: 1.8rem;
-}
-
-.capsule .chip {
-  height: 1.55rem;
-  padding: 0 0.65rem;
-  font-size: 0.68rem;
-}
-
-:root[data-style="c"] .capsule .chip {
-  border-color: rgba(255, 255, 255, 0.16);
-  color: var(--island-ink-2);
-}
-
-:root[data-style="c"] .capsule .chip[aria-checked="true"] {
-  border-color: transparent;
-  color: var(--accent-on);
-}
-
-.capsule__foot {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: auto;
-}
-
-.capsule .btn {
-  height: 1.8rem;
-  font-size: 0.72rem;
-}
-
-.btn--ghost {
-  background: transparent;
-  color: inherit;
-  opacity: 0.7;
-}
-
-.btn--accent {
-  background: var(--accent);
-  color: var(--accent-on);
 }
 
 .lab {
@@ -1143,7 +1024,7 @@ button {
   .dock,
   .lab,
   .notices,
-  .capsule {
+  .island {
     position: fixed;
   }
 

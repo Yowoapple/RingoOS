@@ -53,7 +53,7 @@ export function createNotices(root, renderIcon) {
     root.prepend(el);
     cards.unshift(card);
     if (MotionSettings.reduced) motion.set({ x: 0, s: 1, o: 0 });
-    motion.to({ x: 0, s: 1, o: 1 }, MotionSettings.spring('open'));
+    motion.to({ x: 0, s: 1, o: 1 }, MotionSettings.reduced ? MotionSettings.spring('open') : { response: 0.55, damping: 0.64 });
     settleShifts(before);
 
     el.addEventListener('click', () => dismiss(card));

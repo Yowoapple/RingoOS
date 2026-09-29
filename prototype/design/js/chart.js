@@ -16,7 +16,7 @@ export function createBarChart(root, labelsRoot, { values, labels, todayIndex, f
     const label = document.createElement('span');
     label.textContent = labels[i];
     labelsRoot.appendChild(label);
-    const motion = createMotion({ h: 0 }, { response: 0.55, damping: 0.72, restDelta: 0.0005 });
+    const motion = createMotion({ h: 0 }, { response: 0.6, damping: 0.56, restDelta: 0.0005 });
     motion.onUpdate(({ h }) => {
       const scale = Math.max(0, h);
       bar.style.transform = `scaleY(${scale})`;

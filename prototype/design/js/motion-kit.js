@@ -32,10 +32,12 @@ export function enter(element, fromY = -10) {
   const motion = shiftMotion(element);
   if (MotionSettings.reduced) {
     motion.set({ y: 0, o: 0 });
-  } else {
-    motion.set({ y: fromY, o: 0 });
+    motion.to({ o: 1 }, MotionSettings.spring('open'));
+    return;
   }
-  motion.to({ y: 0, o: 1 }, MotionSettings.spring('open'));
+  motion.set({ y: fromY, o: 0 });
+  motion.to({ y: 0 }, { response: 0.5, damping: 0.58 });
+  motion.to({ o: 1 }, { response: 0.3, damping: 1 });
 }
 
 export function pressable(element) {
@@ -43,9 +45,9 @@ export function pressable(element) {
   motion.onUpdate(({ s }) => {
     element.style.transform = Math.abs(s - 1) < 0.0005 ? '' : `scale(${s})`;
   });
-  const release = () => motion.to({ s: 1 }, { response: 0.35, damping: 0.55 });
+  const release = () => motion.to({ s: 1 }, { response: 0.38, damping: 0.42 });
   element.addEventListener('pointerdown', () => {
-    if (!MotionSettings.reduced) motion.to({ s: 0.95 }, { response: 0.16, damping: 1 });
+    if (!MotionSettings.reduced) motion.to({ s: 0.92 }, { response: 0.14, damping: 1 });
   });
   element.addEventListener('pointerup', release);
   element.addEventListener('pointercancel', release);

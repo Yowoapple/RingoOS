@@ -7,6 +7,7 @@
   <meta name="author" content="YoWoRingo">
   <link rel="stylesheet" href="./css/tokens.css">
   <link rel="stylesheet" href="./css/lab.css">
+  <link rel="stylesheet" href="./css/island.css">
 </head>
 <body>
   <svg class="sr-only" aria-hidden="true" focusable="false">
@@ -17,7 +18,7 @@
       </linearGradient>
       <filter id="lens-filter" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
         <feFlood flood-color="rgb(128, 128, 128)" result="neutral"/>
-        <feImage id="lens-map" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="raw"/>
+        <feImage id="lens-map" preserveAspectRatio="none" result="raw"/>
         <feComposite in="raw" in2="neutral" operator="over" result="map"/>
         <feDisplacementMap id="lens-displace" in="SourceGraphic" in2="map" scale="9" xChannelSelector="R" yChannelSelector="G"/>
       </filter>
@@ -38,28 +39,34 @@
       <span class="menubar__item mono" id="menubar-clock"></span>
     </header>
 
-    <div class="capsule chrome" id="capsule">
-      <button type="button" class="capsule__pill" id="capsule-pill" aria-expanded="false" aria-controls="capsule-panel">
-        <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        記一筆
+    <div class="island" id="island" data-mode="idle">
+      <button type="button" class="island__pill" id="island-pill" aria-expanded="false" aria-controls="island-panel">
+        <span class="island__label" id="island-label">
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          記一筆
+        </span>
       </button>
-      <form class="capsule__panel" id="capsule-panel" aria-label="快速記一筆">
-        <div class="capsule__head"><span>快速記一筆</span><span class="tag">Quick add</span></div>
-        <label class="capsule__amount">
-          <span class="amount__cur mono">NT$</span>
-          <input class="amount__input" id="capsule-amount" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="金額">
+      <form class="island__panel" id="island-panel" aria-label="快速記一筆">
+        <label class="island__row island__amount">
+          <span class="island__cur mono">NT$</span>
+          <input class="island__input mono" id="island-amount" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="金額">
         </label>
-        <div class="chips" role="radiogroup" aria-label="分類" data-chips="capsule">
+        <div class="island__row island__chips" role="radiogroup" aria-label="分類" data-chips="island">
           <button type="button" class="chip" role="radio" aria-checked="true">餐飲</button>
           <button type="button" class="chip" role="radio" aria-checked="false">交通</button>
           <button type="button" class="chip" role="radio" aria-checked="false">娛樂</button>
           <button type="button" class="chip" role="radio" aria-checked="false">其他</button>
         </div>
-        <div class="capsule__foot">
-          <button type="button" class="btn btn--ghost" id="capsule-cancel">取消</button>
-          <button type="submit" class="btn btn--accent" data-press>記下</button>
+        <div class="island__row island__actions">
+          <button type="button" class="island__btn" id="island-cancel">取消</button>
+          <button type="submit" class="island__btn island__btn--go" data-press>記下</button>
         </div>
       </form>
+      <div class="island__activity" id="island-activity" aria-live="polite">
+        <span class="island__badge"><svg class="island__check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.8 8.4l2.9 2.9 5.6-6.2" pathLength="1" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1"/></svg></span>
+        <span class="island__activity-text"></span>
+        <span class="island__activity-amount mono"><span class="odo-host"></span></span>
+      </div>
     </div>
 
     <main class="windows" id="windows">
@@ -71,7 +78,7 @@
         </header>
         <div class="win__body">
           <div class="seg" role="tablist" aria-label="支出或收入" id="entry-seg">
-            <span class="seg__platter" aria-hidden="true"></span>
+            <span class="seg__platter" aria-hidden="true"><span class="seg__blob"></span></span>
             <span class="seg__lens" aria-hidden="true"></span>
             <button type="button" class="seg__btn" role="tab" aria-selected="true">支出</button>
             <button type="button" class="seg__btn" role="tab" aria-selected="false">收入</button>

@@ -64,8 +64,6 @@ export function applyLens(element, enabled) {
   const ratio = window.devicePixelRatio || 1;
   const map = buildMap(element.offsetWidth, element.offsetHeight, ratio);
   mapNode.setAttribute('href', map.url);
-  mapNode.setAttribute('width', String(map.w));
-  mapNode.setAttribute('height', String(map.h));
   const displacement = document.getElementById('lens-displace');
   if (displacement) displacement.setAttribute('scale', String(STRENGTH * ratio));
   const value = 'url(#lens-filter) saturate(1.6) brightness(1.04)';

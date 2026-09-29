@@ -7,13 +7,14 @@ import { createSegmented } from './segmented.js';
 import { createOdometer, formatAmount } from './odometer.js';
 import { createBarChart } from './chart.js';
 import { createNotices } from './notices.js';
-import { createCapsule } from './capsule.js';
+import { createIsland } from './island.js';
 import { flip, enter, pressable } from './motion-kit.js';
 import { startPerfMeter } from './perf.js';
 
 MotionSettings.usePreset('hyperos');
 
-const STATE_KEY = 'yoworingo.design-lab';
+const STATE_KEY = 'yoworingo.design-lab.v2';
+const SOFT = { response: 0.55, damping: 0.62 };
 const BUDGET = 24000;
 const INCOME = 42000;
 const CATEGORIES = {
@@ -28,10 +29,10 @@ const root = document.documentElement;
 const $ = (id) => document.getElementById(id);
 
 const state = {
-  style: 'a',
-  accent: 'ultramarine',
-  theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-  wall: 'aurora',
+  style: 'c',
+  accent: 'apple',
+  theme: 'dark',
+  wall: 'mono',
   lab: 'open',
 };
 
@@ -85,11 +86,28 @@ function buildChips(container, list) {
   });
 }
 
+const chipPops = new WeakMap();
+
+function popChip(chip) {
+  if (MotionSettings.reduced) return;
+  let motion = chipPops.get(chip);
+  if (!motion) {
+    motion = createMotion({ s: 1 }, { response: 0.36, damping: 0.4, restDelta: 0.0005 });
+    motion.onUpdate(({ s }) => {
+      chip.style.transform = Math.abs(s - 1) < 0.0005 ? '' : `scale(${s})`;
+    });
+    chipPops.set(chip, motion);
+  }
+  motion.set({ s: 0.9 });
+  motion.to({ s: 1 }, { response: 0.36, damping: 0.4, velocity: { s: 2.4 } });
+}
+
 function wireChips(container, onPick) {
   container.addEventListener('click', (event) => {
     const chip = event.target.closest('.chip');
     if (!chip) return;
     container.querySelectorAll('.chip').forEach((other) => other.setAttribute('aria-checked', String(other === chip)));
+    popChip(chip);
     if (onPick) onPick(chip.textContent);
   });
 }
@@ -156,7 +174,7 @@ function renderOverview({ animate = true } = {}) {
   $('ov-budget-pct').textContent = `${Math.round(ratio * 100)}%`;
   const net = INCOME - ledger.expense;
   $('ov-net').textContent = `${net >= 0 ? '+' : '−'}${formatAmount(net)}`;
-  if (animate) budgetMotion.to({ f: ratio }, MotionSettings.spring('snap'));
+  if (animate) budgetMotion.to({ f: ratio }, MotionSettings.reduced ? MotionSettings.spring('snap') : SOFT);
   else budgetMotion.set({ f: ratio });
 }
 
@@ -171,7 +189,7 @@ const entrySeg = createSegmented($('entry-seg'), {
 
 buildChips(document.querySelector('[data-chips="entry"]'), CATEGORIES.expense);
 wireChips(document.querySelector('[data-chips="entry"]'));
-wireChips(document.querySelector('[data-chips="capsule"]'));
+wireChips(document.querySelector('[data-chips="island"]'));
 
 function addEntry({ type, amount, category, note }) {
   const now = new Date();
@@ -189,13 +207,9 @@ function addEntry({ type, amount, category, note }) {
     chart.add(TODAY_INDEX, amount);
     renderOverview();
   }
-  notices.push({
-    app: type === 'expense' ? 'daily-entry' : 'overview',
-    title: `已記下 NT$ ${formatAmount(amount)}`,
-    body: `${category}${note ? `，${note}` : ''}`,
-  });
+  island.celebrate({ label: `已記下 · ${category}`, amount, income: type === 'income' });
   if (type === 'expense' && ledger.expense / BUDGET >= 0.8) {
-    window.setTimeout(() => notices.push({ app: 'overview', title: '預算快用完了', body: `本月已用 ${Math.round((ledger.expense / BUDGET) * 100)}%，還剩 NT$ ${formatAmount(BUDGET - ledger.expense)}` }), 600);
+    window.setTimeout(() => notices.push({ app: 'overview', title: '預算快用完了', body: `本月已用 ${Math.round((ledger.expense / BUDGET) * 100)}%，還剩 NT$ ${formatAmount(BUDGET - ledger.expense)}` }), 900);
   }
 }
 
@@ -230,27 +244,28 @@ $('entry-add').addEventListener('click', () => {
   $('entry-note').value = '';
 });
 
-const capsule = createCapsule({
-  root: $('capsule'),
-  pill: $('capsule-pill'),
-  panel: $('capsule-panel'),
+const island = createIsland({
+  root: $('island'),
+  pill: $('island-pill'),
+  label: $('island-label'),
+  panel: $('island-panel'),
+  activity: $('island-activity'),
   onOpen() {
-    window.setTimeout(() => $('capsule-amount').focus(), 120);
+    $('island-amount').focus({ preventScroll: true });
   },
 });
 
-$('capsule-cancel').addEventListener('click', () => capsule.set(false));
-$('capsule-panel').addEventListener('submit', (event) => {
+$('island-cancel').addEventListener('click', () => island.close());
+$('island-panel').addEventListener('submit', (event) => {
   event.preventDefault();
-  const input = $('capsule-amount');
+  const input = $('island-amount');
   const amount = readAmount(input);
   if (amount <= 0) {
-    shake(input.closest('.capsule__amount'));
+    shake(input.closest('.island__amount'));
     return;
   }
-  addEntry({ type: 'expense', amount, category: pickedChip(document.querySelector('[data-chips="capsule"]')), note: '' });
+  addEntry({ type: 'expense', amount, category: pickedChip(document.querySelector('[data-chips="island"]')), note: '' });
   input.value = '';
-  capsule.set(false);
 });
 
 const windows = Array.from(document.querySelectorAll('.win'));
@@ -338,7 +353,7 @@ function applyState() {
   $('lab-toggle').textContent = state.lab === 'open' ? '收起' : '展開';
   $('lab-toggle').setAttribute('aria-expanded', String(state.lab === 'open'));
   applyLens(entrySeg.lens, state.style === 'a');
-  capsule.relayout();
+  island.relayout();
   entrySeg.measure();
 }
 
@@ -377,7 +392,10 @@ function intro() {
       return;
     }
     motion.set({ s: 0.94, o: 0, y: 18 });
-    window.setTimeout(() => motion.to({ s: 1, o: 1, y: 0 }, MotionSettings.spring('open')), 80 + i * 90);
+    window.setTimeout(() => {
+      motion.to({ s: 1, y: 0 }, SOFT);
+      motion.to({ o: 1 }, { response: 0.3, damping: 1 });
+    }, 80 + i * 90);
   });
   expenseOdo.set(ledger.expense, { from: 0 });
   budgetMotion.set({ f: 0 });

@@ -74,7 +74,7 @@ export function createOdometer(element, { value = 0, format = formatAmount } = {
     const count = columns.length;
     columns.forEach((column, i) => {
       column.digit = digits[i];
-      const spring = MotionSettings.reduced ? MotionSettings.spring('focus') : { response: 0.5 + (count - i) * 0.05, damping: 0.86 };
+      const spring = MotionSettings.reduced ? MotionSettings.spring('focus') : { response: 0.5 + (count - i) * 0.06, damping: 0.68 };
       column.motion.to({ d: digits[i] }, spring);
     });
     current = next;
