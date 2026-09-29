@@ -232,12 +232,14 @@ export function createSelect(el, { options, value, onChange, menuHost }) {
   const list = menu.querySelector('.sel__list');
   const listId = `sel-${Math.random().toString(36).slice(2, 8)}`;
   list.id = listId;
+  list.tabIndex = -1;
   button.setAttribute('aria-haspopup', 'listbox');
   button.setAttribute('aria-controls', listId);
   button.setAttribute('aria-expanded', 'false');
 
   let current = value;
   let open = false;
+  let viaKeyboard = false;
   let active = -1;
   let box = { w: 0, h: 0, bw: 0, bh: 0, r: 0, br: 0 };
   const items = options.map((option) => {
@@ -264,16 +266,10 @@ export function createSelect(el, { options, value, onChange, menuHost }) {
   const swap = createMotion({ e: 1 }, { response: 0.3, damping: 1, restDelta: 0.002 });
   let timers = [];
   let itemH = 0;
-  const menuGlass = createGlass(glass, {
-    variable: '--lens-menu',
-    band: 6,
-    strength: 6,
-    measure: () => ({ w: box.w, h: box.h, r: box.r }),
-  });
   const hoverGlass = createGlass(platter, {
     variable: '--lens-hover',
-    band: 5,
-    strength: 6,
+    band: 4,
+    strength: 3.5,
     measure: () => ({ w: platter.offsetWidth, h: itemH, r: parseFloat(getComputedStyle(platter).borderTopLeftRadius) || 8 }),
   });
 
@@ -307,8 +303,6 @@ export function createSelect(el, { options, value, onChange, menuHost }) {
     const glassClip = `inset(0 round ${box.r}px)`;
     glass.style.clipPath = glassClip;
     itemH = items[0].item.offsetHeight;
-    platter.style.height = `${itemH}px`;
-    menuGlass.refresh();
     hoverGlass.refresh();
   }
 
@@ -335,8 +329,8 @@ export function createSelect(el, { options, value, onChange, menuHost }) {
   }
 
   function paintPlatter({ t, b, v }) {
-    const span = Math.max(0, Math.abs(b - t));
-    platter.style.transform = `translate3d(0, ${Math.min(t, b)}px, 0) scaleY(${itemH ? span / itemH : 1})`;
+    platter.style.transform = `translate3d(0, ${Math.min(t, b)}px, 0)`;
+    platter.style.height = `${Math.max(0, Math.abs(b - t))}px`;
     platter.style.opacity = String(clamp(v, 0, 1));
   }
 
@@ -377,7 +371,8 @@ export function createSelect(el, { options, value, onChange, menuHost }) {
     edges.set({ v: 0 });
     later(() => {
       highlight(index, true);
-      items[index].item.focus({ preventScroll: true });
+      if (viaKeyboard) items[index].item.focus({ preventScroll: true });
+      else list.focus({ preventScroll: true });
     }, 60);
   }
 
@@ -422,10 +417,15 @@ export function createSelect(el, { options, value, onChange, menuHost }) {
   shape.onUpdate(paintShape);
   edges.onUpdate(paintPlatter);
 
-  button.addEventListener('click', () => (open ? hide() : show()));
+  button.addEventListener('click', (event) => {
+    viaKeyboard = event.detail === 0;
+    if (open) hide();
+    else show();
+  });
   button.addEventListener('keydown', (event) => {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
+      viaKeyboard = true;
       show();
     }
   });

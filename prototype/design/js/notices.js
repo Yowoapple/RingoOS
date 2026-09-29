@@ -1,6 +1,5 @@
 import { createMotion } from '../../../src/motion/animator.js';
 import { MotionSettings } from '../../../src/motion/presets.js';
-import { createGlass } from './glass.js';
 
 const LIFETIME = 7000;
 const MAX = 3;
@@ -29,7 +28,6 @@ export function createNotices(root, renderIcon) {
     window.clearTimeout(card.timer);
     card.motion.to({ o: 0, s: 0.92, x: 0.15 }, MotionSettings.spring('close')).then(() => {
       const before = tops();
-      card.glass.destroy();
       card.el.remove();
       cards.splice(cards.indexOf(card), 1);
       settleShifts(before);
@@ -49,18 +47,11 @@ export function createNotices(root, renderIcon) {
       el.style.transform = `translate3d(${x * el.offsetWidth}px, ${y}px, 0) scale(${s})`;
       el.style.opacity = String(Math.max(0, Math.min(1, o)));
     });
-    const glass = createGlass(el, {
-      variable: '--lens-chrome',
-      band: 6,
-      strength: 5,
-      measure: () => ({ w: el.offsetWidth, h: el.offsetHeight, r: parseFloat(getComputedStyle(el).borderTopLeftRadius) || 20 }),
-    });
-    const card = { el, motion, glass, leaving: false, timer: 0 };
+    const card = { el, motion, leaving: false, timer: 0 };
 
     const before = tops();
     root.prepend(el);
     cards.unshift(card);
-    glass.rebuild();
     if (MotionSettings.reduced) motion.set({ x: 0, s: 1, o: 0 });
     motion.to({ x: 0, s: 1, o: 1 }, MotionSettings.reduced ? MotionSettings.spring('open') : { response: 0.55, damping: 0.64 });
     settleShifts(before);

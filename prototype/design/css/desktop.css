@@ -168,8 +168,8 @@
 
 :root[data-style="a"] .dock__bg {
   background: rgba(var(--glass-rgb), var(--dock-alpha));
-  -webkit-backdrop-filter: var(--fx-glass) var(--lens-dock, );
-  backdrop-filter: var(--fx-glass) var(--lens-dock, );
+  -webkit-backdrop-filter: var(--fx-glass);
+  backdrop-filter: var(--fx-glass);
   box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-rim-soft), 0 10px 30px var(--glass-shade);
 }
 

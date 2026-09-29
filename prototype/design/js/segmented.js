@@ -162,8 +162,8 @@ export function createSegmented(root, { onChange, onLayout } = {}) {
   const refraction = createGlass(lens, {
     variable: '--lens-seg',
     observe: root,
-    band: 6,
-    strength: 7,
+    band: 5,
+    strength: 4,
     measure: () => ({ w: lens.offsetWidth, h: lens.offsetHeight, r: lens.offsetHeight / 2 }),
   });
 

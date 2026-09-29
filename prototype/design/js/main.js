@@ -11,7 +11,6 @@ import { flip, enter, pressable } from './motion-kit.js';
 import { startPerfMeter } from './perf.js';
 import { Fx } from './fx-tier.js';
 import { createSettings } from './settings.js';
-import { createGlass } from './glass.js';
 import { createLabDesktop } from './desktop.js';
 import { createMenubar } from './menubar.js';
 import { baseThickness, sampleGlassThickness, presetAccent, wallpaperAccent } from './wall-tone.js';
@@ -573,13 +572,7 @@ document.querySelectorAll('[data-press]').forEach(pressable);
 window.setInterval(renderDates, 60000);
 applyState();
 startPerfMeter($('lab-perf'));
-createGlass($('lab'), {
-  variable: '--lens-chrome',
-  observe: $('lab'),
-  band: 6,
-  strength: 5,
-  measure: () => ({ w: $('lab').offsetWidth, h: $('lab').offsetHeight, r: parseFloat(getComputedStyle($('lab')).borderTopLeftRadius) || 22 }),
-});
+
 intro();
 
 console.info('%cRingoOS%c design lab', 'font-weight:700;font-size:14px', 'color:#8b8f9a');

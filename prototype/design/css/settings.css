@@ -53,8 +53,8 @@
 }
 
 :root[data-style="a"][data-fx="full"] .wm-window[data-app-id="settings"] .wm-window__frame::before {
-  -webkit-backdrop-filter: var(--fx-glass) var(--lens-side, );
-  backdrop-filter: var(--fx-glass) var(--lens-side, );
+  -webkit-backdrop-filter: var(--fx-glass);
+  backdrop-filter: var(--fx-glass);
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1);
 }
 
