@@ -373,7 +373,7 @@
 .chart {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--cols, 7), minmax(0, 1fr));
   gap: 0.45rem;
   height: 6.2rem;
   align-items: end;
@@ -432,7 +432,7 @@
 
 .chart__labels {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--cols, 7), minmax(0, 1fr));
   gap: 0.45rem;
   margin-top: 0.3rem;
   text-align: center;
@@ -441,17 +441,29 @@
 }
 
 .rank {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: minmax(2.6rem, max-content) minmax(0, 1fr) max-content;
+  column-gap: 0.6rem;
+  row-gap: 0.5rem;
 }
 
 .rank__row {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 2.6rem 1fr auto;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 0.6rem;
   font-size: 0.75rem;
+}
+
+.rank__name {
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank__amt {
+  text-align: right;
 }
 
 .rank__track {

@@ -1,0 +1,192 @@
+.ov {
+  display: grid;
+  gap: 1.2rem;
+  padding: 0.35rem 1.05rem 1.2rem;
+}
+
+.ov__main,
+.ov__side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  min-width: 0;
+}
+
+.ov__mode {
+  align-self: flex-start;
+  min-width: 7.5rem;
+}
+
+.ov__hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ov__delta,
+.ov__note,
+.ov__empty {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--ink-2);
+}
+
+.ov__delta[hidden],
+.ov__note[hidden],
+.ov__empty[hidden],
+.ov__block[hidden] {
+  display: none;
+}
+
+.ov__delta.is-up {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.ov__note.is-over,
+.budget__legend .is-over {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.ov__block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.budget__fill.is-over {
+  background: var(--accent);
+}
+
+.rank__row.is-over .rank__fill {
+  background: var(--accent);
+}
+
+.rank__row.is-over .rank__amt {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.split {
+  display: flex;
+  gap: 0.2rem;
+  height: 0.5rem;
+}
+
+.split__need,
+.split__want {
+  flex: 1 1 0;
+  min-width: 0.5rem;
+  border-radius: var(--r-pill);
+}
+
+.split__need {
+  background: var(--ink-2);
+}
+
+.split__want {
+  box-shadow: inset 0 0 0 1.5px var(--accent-spot);
+}
+
+.chart--dense {
+  gap: 0.14rem;
+}
+
+.chart--dense .chart__bar {
+  border-radius: 0.18rem 0.18rem 0.08rem 0.08rem;
+}
+
+.chart__labels--dense {
+  gap: 0.14rem;
+  overflow: visible;
+}
+
+.chart__labels span {
+  white-space: nowrap;
+}
+
+.chart__labels span.is-today {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.period-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.period-nav__tag {
+  min-width: 4.2rem;
+  text-align: center;
+}
+
+.period-nav__tag.is-past {
+  color: var(--accent-text);
+}
+
+.period-nav__btn {
+  display: grid;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, opacity 160ms ease;
+}
+
+.period-nav__btn svg {
+  width: 0.8rem;
+  height: 0.8rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.period-nav__btn:hover:not(:disabled) {
+  background: var(--sel-btn, rgba(14, 14, 16, 0.06));
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .period-nav__btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.period-nav__btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+@container (min-width: 34rem) {
+  .ov {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 1.8rem;
+    align-items: start;
+  }
+
+  .ov__main {
+    position: sticky;
+    top: 0;
+  }
+
+  .ov .chart {
+    height: 8rem;
+  }
+}
+
+@container (min-width: 52rem) {
+  .ov .big__num {
+    font-size: 3.6rem;
+  }
+
+  .ov .chart {
+    height: 10rem;
+  }
+}

@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="/src/styles/feedback.css">
   <link rel="stylesheet" href="/src/styles/island.css">
   <link rel="stylesheet" href="/src/styles/apps/ledger.css">
+  <link rel="stylesheet" href="/src/styles/apps/overview.css">
 </head>
 <body>
   <svg class="sr-only" aria-hidden="true" focusable="false">
@@ -167,6 +168,72 @@
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+      </div>
+    </div>
+    <div class="app-source" data-app-id="overview">
+      <div class="app-source__titlebar">
+        <span class="date-pick" data-no-drag>
+          <button type="button" class="date-today" id="overview-now" hidden>本月</button>
+          <span class="period-nav">
+            <button type="button" class="period-nav__btn" id="overview-prev" aria-label="上一期"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+            <span class="tag period-nav__tag" id="overview-period"></span>
+            <button type="button" class="period-nav__btn" id="overview-next" aria-label="下一期"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+          </span>
+        </span>
+      </div>
+      <div class="ov" id="overview">
+        <section class="ov__main" aria-label="支出摘要">
+          <div class="seg ov__mode" role="tablist" aria-label="看整月或整週" data-ov="mode">
+            <span class="seg__platter" aria-hidden="true"><span class="seg__blob"></span></span>
+            <span class="seg__lens" aria-hidden="true"></span>
+            <button type="button" class="seg__btn" role="tab" aria-selected="true">月</button>
+            <button type="button" class="seg__btn" role="tab" aria-selected="false">週</button>
+          </div>
+          <div class="ov__hero">
+            <div class="ov-head">
+              <span class="ov-head__label" data-ov="hero-label">這個月支出</span>
+              <span class="tag" data-ov="range"></span>
+            </div>
+            <div class="big">
+              <span class="big__cur">NT$</span>
+              <span class="big__num" data-ov="expense"></span>
+            </div>
+            <p class="ov__delta" data-ov="delta" hidden></p>
+          </div>
+          <div class="budget">
+            <div class="budget__track"><span class="budget__fill" data-ov="budget-fill"></span></div>
+            <div class="budget__legend"><span data-ov="budget-legend"></span><span class="mono" data-ov="budget-pct"></span></div>
+          </div>
+          <div class="stats">
+            <div>
+              <div class="stat__label">收入</div>
+              <div class="stat__value stat__value--strong mono" data-ov="income"></div>
+            </div>
+            <div>
+              <div class="stat__label">淨額</div>
+              <div class="stat__value mono" data-ov="net"></div>
+            </div>
+          </div>
+          <p class="ov__note" data-ov="projection" hidden></p>
+          <p class="ov__note" data-ov="budget-line" hidden></p>
+        </section>
+        <section class="ov__side" aria-label="圖表">
+          <div class="ov__block">
+            <div class="ov-head"><span class="ov-head__label" data-ov="chart-title">每日支出</span></div>
+            <div class="chart" data-ov="chart"></div>
+            <div class="chart__labels" data-ov="chart-labels"></div>
+          </div>
+          <div class="ov__block">
+            <div class="ov-head"><span class="ov-head__label">花最多的分類</span></div>
+            <div class="rank" data-ov="rank"></div>
+            <p class="ov__empty" data-ov="rank-empty" hidden></p>
+          </div>
+          <div class="ov__block" data-ov="need-block" hidden>
+            <div class="ov-head"><span class="ov-head__label">需要與想要</span><span class="tag" data-ov="need-pct"></span></div>
+            <div class="split" aria-hidden="true"><span class="split__need" data-ov="split-need"></span><span class="split__want" data-ov="split-want"></span></div>
+            <div class="budget__legend"><span data-ov="need-amt"></span><span data-ov="want-amt"></span></div>
           </div>
         </section>
       </div>

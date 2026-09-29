@@ -15,6 +15,7 @@ import { createMenubar } from './menubar.js';
 import { createSettings } from './settings.js';
 import { createAppearance } from './appearance.js';
 import { createLedgerApp } from '../apps/ledger/ledger-app.js';
+import { createOverviewApp } from '../apps/overview/overview-app.js';
 
 const SESSION_KEY = 'yoworingo.v2.windows';
 const MOTION_KEY = 'yoworingo.motion-style';
@@ -23,7 +24,6 @@ const MAGNIFY_KEY = 'yoworingo.v2.dock-magnify';
 const SAVE_DELAY = 300;
 const ACCENT_NAMES = { apple: '青蘋果', signal: '信號橘', ultramarine: '群青' };
 const MOVING_IN = {
-  overview: '收支總覽會在記帳之後接上',
   'life-reminder': '週報、月報與推薦卡片',
   calendar: '月曆、代辦與 QR 匯出',
   weather: '氣象署資料與動態天氣',
@@ -105,6 +105,7 @@ function start() {
   const sizes = new Map(scaledApps(appearance.scale).map((app) => [app.id, app]));
   const ratio = Math.max(0.75, appearance.scale / 1.3);
   sizes.get('daily-entry').size = { w: Math.round(820 * ratio), h: Math.round(660 * ratio) };
+  sizes.get('overview').size = { w: Math.round(780 * ratio), h: Math.round(620 * ratio) };
   const apps = APPS.map((app) => ({
     id: app.id,
     title: app.title,
@@ -175,6 +176,14 @@ function start() {
     island,
   });
 
+  const overview = createOverviewApp({
+    root: $('overview'),
+    periodTag: $('overview-period'),
+    nowButton: $('overview-now'),
+    prevButton: $('overview-prev'),
+    nextButton: $('overview-next'),
+  });
+
   function syncReminders() {
     const open = Data.getDayTasks(todayKey()).filter((task) => !task.done).length;
     menubar.setReminders(open);
@@ -242,6 +251,10 @@ function start() {
   store.subscribe(({ type, id }) => {
     if ((type === 'open' || type === 'restore') && id === 'settings') settings.refreshGlass();
     if ((type === 'open' || type === 'restore') && id === 'daily-entry') ledger.refreshGlass();
+    if ((type === 'open' || type === 'restore') && id === 'overview') {
+      overview.refreshGlass();
+      overview.intro();
+    }
   });
 
   let saveTimer = 0;
@@ -268,7 +281,7 @@ function start() {
 
   console.info('%cRingoOS%c 2.0 by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
   if (new URLSearchParams(window.location.search).has('debug')) {
-    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island };
+    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview };
   }
 }
 
