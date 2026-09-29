@@ -26,12 +26,6 @@
         <stop class="ico-rim-hi" offset="0"/>
         <stop class="ico-rim-lo" offset="0.4"/>
       </linearGradient>
-      <filter id="lens-filter" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
-        <feFlood flood-color="rgb(128, 128, 128)" result="neutral"/>
-        <feImage id="lens-map" preserveAspectRatio="none" result="raw"/>
-        <feComposite in="raw" in2="neutral" operator="over" result="map"/>
-        <feDisplacementMap id="lens-displace" in="SourceGraphic" in2="map" scale="9" xChannelSelector="R" yChannelSelector="G"/>
-      </filter>
     </defs>
   </svg>
 
@@ -231,7 +225,6 @@
           </div>
           <div class="set__pages">
             <section class="set__page is-current" data-page="appearance" aria-label="外觀">
-              <span class="tag">01 · Appearance</span>
               <h3 class="set__title">外觀</h3>
               <div class="set__group">
                 <div class="set__row">
@@ -264,7 +257,6 @@
               </div>
             </section>
             <section class="set__page" data-page="motion" aria-label="動態" hidden>
-              <span class="tag">02 · Motion</span>
               <h3 class="set__title">動態</h3>
               <div class="set__group">
                 <div class="set__row">
@@ -286,7 +278,6 @@
               </div>
             </section>
             <section class="set__page" data-page="notify" aria-label="通知" hidden>
-              <span class="tag">03 · Notifications</span>
               <h3 class="set__title">通知</h3>
               <div class="set__group">
                 <div class="set__row"><div class="set__text"><span class="set__label">每日記帳提醒</span><span class="set__hint">晚上 9 點還沒記帳時提醒</span></div><button type="button" class="tgl" data-toggle="n-daily" aria-label="每日記帳提醒"><span class="tgl__knob"></span></button></div>
@@ -296,7 +287,6 @@
               </div>
             </section>
             <section class="set__page" data-page="data" aria-label="資料" hidden>
-              <span class="tag">04 · Data</span>
               <h3 class="set__title">資料</h3>
               <div class="set__group">
                 <label class="fld" data-field="budget">

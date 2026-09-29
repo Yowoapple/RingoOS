@@ -3,6 +3,7 @@ import { MotionSettings } from '../../../src/motion/presets.js';
 import { rubberband } from '../../../src/wm/geometry.js';
 import { createOdometer } from './odometer.js';
 import { Fx } from './fx-tier.js';
+import { createGlass } from './glass.js';
 
 const PRESS = { response: 0.14, damping: 1 };
 const RELEASE = { response: 0.38, damping: 0.42 };
@@ -262,6 +263,19 @@ export function createSelect(el, { options, value, onChange, menuHost }) {
   const edges = createMotion({ t: 0, b: 0, v: 0 }, { response: 0.3, damping: 0.8, restDelta: { t: 0.05, b: 0.05, v: 0.002 } });
   const swap = createMotion({ e: 1 }, { response: 0.3, damping: 1, restDelta: 0.002 });
   let timers = [];
+  let itemH = 0;
+  const menuGlass = createGlass(glass, {
+    variable: '--lens-menu',
+    band: 6,
+    strength: 6,
+    measure: () => ({ w: box.w, h: box.h, r: box.r }),
+  });
+  const hoverGlass = createGlass(platter, {
+    variable: '--lens-hover',
+    band: 5,
+    strength: 6,
+    measure: () => ({ w: platter.offsetWidth, h: itemH, r: parseFloat(getComputedStyle(platter).borderTopLeftRadius) || 8 }),
+  });
 
   function labelOf(v) {
     const found = options.find((option) => option.value === v);
@@ -292,6 +306,10 @@ export function createSelect(el, { options, value, onChange, menuHost }) {
     box.shift = shift;
     const glassClip = `inset(0 round ${box.r}px)`;
     glass.style.clipPath = glassClip;
+    itemH = items[0].item.offsetHeight;
+    platter.style.height = `${itemH}px`;
+    menuGlass.refresh();
+    hoverGlass.refresh();
   }
 
   function paintShape({ o }) {
@@ -304,7 +322,7 @@ export function createSelect(el, { options, value, onChange, menuHost }) {
     const clip = `inset(${top}px ${right}px ${bottom}px 0 round ${r}px)`;
     fillEl.style.clipPath = clip;
     list.style.clipPath = clip;
-    platter.style.clipPath = clip;
+    platter.style.visibility = open && o > 0.97 ? '' : 'hidden';
     shadow.style.transform = `translate3d(0, ${top}px, 0)`;
     shadow.style.width = `${Math.max(0, box.w - right)}px`;
     shadow.style.height = `${Math.max(0, box.h - top - bottom)}px`;
@@ -317,8 +335,8 @@ export function createSelect(el, { options, value, onChange, menuHost }) {
   }
 
   function paintPlatter({ t, b, v }) {
-    platter.style.transform = `translate3d(0, ${Math.min(t, b)}px, 0)`;
-    platter.style.height = `${Math.max(0, Math.abs(b - t))}px`;
+    const span = Math.max(0, Math.abs(b - t));
+    platter.style.transform = `translate3d(0, ${Math.min(t, b)}px, 0) scaleY(${itemH ? span / itemH : 1})`;
     platter.style.opacity = String(clamp(v, 0, 1));
   }
 

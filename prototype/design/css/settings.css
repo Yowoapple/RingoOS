@@ -8,7 +8,7 @@
 }
 
 :root[data-style="a"] .wm-window[data-app-id="settings"] {
-  --side-fill: rgba(var(--glass-rgb), 0.5);
+  --side-fill: rgba(var(--glass-rgb), 0.62);
 }
 
 :root[data-style="a"][data-fx="lite"] .wm-window[data-app-id="settings"],
@@ -40,13 +40,30 @@
   box-shadow: inset -1px 0 0 var(--line);
 }
 
-:root[data-style="a"][data-fx="full"] .wm-window[data-app-id="settings"]:not(.is-morphing) .wm-window__chrome::before {
-  -webkit-backdrop-filter: var(--fx-glass);
-  backdrop-filter: var(--fx-glass);
+.wm-window[data-app-id="settings"] .wm-window__frame::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--set-side-w);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms ease;
 }
 
-.wm-window[data-app-id="settings"].is-morphing .wm-window__chrome::before {
-  background: var(--glass-solid);
+:root[data-style="a"][data-fx="full"] .wm-window[data-app-id="settings"] .wm-window__frame::before {
+  -webkit-backdrop-filter: var(--fx-glass) var(--lens-side, );
+  backdrop-filter: var(--fx-glass) var(--lens-side, );
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+:root[data-style="a"][data-fx="full"] .wm-window[data-app-id="settings"]:not(.is-morphing) .wm-window__frame::before {
+  opacity: 1;
+}
+
+.wm-window[data-app-id="settings"].is-morphing .wm-window__frame::before {
+  transition: none;
 }
 
 .wm-window[data-app-id="settings"] .wm-window__chrome::after {
@@ -113,7 +130,7 @@
   border: 0;
   border-radius: var(--r-ctl);
   background: none;
-  color: var(--ink-2);
+  color: var(--ink);
   font-size: 0.78rem;
   font-weight: 500;
   text-align: left;
@@ -121,7 +138,11 @@
 }
 
 .set__nav:hover {
-  color: var(--ink);
+  background: var(--nav-hover, rgba(14, 14, 16, 0.05));
+}
+
+:root[data-theme="dark"] .set__nav:hover {
+  --nav-hover: rgba(255, 255, 255, 0.06);
 }
 
 .set__nav[aria-current="page"] {

@@ -1,6 +1,7 @@
 import { createMotion } from '../../../src/motion/animator.js';
 import { MotionSettings } from '../../../src/motion/presets.js';
 import { Fx } from './fx-tier.js';
+import { createGlass } from './glass.js';
 import { createWindowStore } from '../../../src/wm/store.js';
 import { createWindowManager } from '../../../src/wm/window-manager.js';
 import { createDock } from '../../../src/dock/dock.js';
@@ -230,6 +231,14 @@ export function createLabDesktop({ desk, areaEl, dockEl, wallEl, apps, renderIco
     bindScrollEdge(win);
   });
   createDockDots({ dockEl, store, apps });
+  const dockBg = dockEl.querySelector('.dock__bg');
+  createGlass(dockBg, {
+    variable: '--lens-dock',
+    observe: dockBg,
+    band: 7,
+    strength: 6,
+    measure: () => ({ w: dockBg.offsetWidth, h: dockBg.offsetHeight, r: parseFloat(getComputedStyle(dockBg).borderTopLeftRadius) || 22 }),
+  });
   createDockTip({ dockEl, dock, apps, host: desk });
 
   const badgeMotions = new Map();

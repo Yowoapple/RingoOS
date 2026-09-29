@@ -3,6 +3,7 @@ import { MotionSettings } from '../../../src/motion/presets.js';
 import { createSegmented } from './segmented.js';
 import { createToggle, createSlider, createSelect, createField } from './controls.js';
 import { Fx } from './fx-tier.js';
+import { createGlass } from './glass.js';
 
 const LEAD = { response: 0.26, damping: 0.6 };
 const TRAIL = { response: 0.46, damping: 0.72 };
@@ -120,6 +121,7 @@ export function createSettings({ root, state, menuHost, dock, onChange }) {
   }));
   let index = 0;
   let narrow = false;
+  let sideGlass = null;
 
   const tabs = createSegmented(root.querySelector('.set__tabs'), {
     onChange(i) { go(i, { fromTabs: true }); },
@@ -175,6 +177,7 @@ export function createSettings({ root, state, menuHost, dock, onChange }) {
       narrow = next;
       win.classList.toggle('is-narrow', narrow);
       root.classList.toggle('is-narrow', narrow);
+      if (sideGlass) sideGlass.refresh();
     }
     if (!narrow && navButtons[index].offsetHeight) platter.to(navButtons[index], true);
   }).observe(root);
@@ -237,6 +240,19 @@ export function createSettings({ root, state, menuHost, dock, onChange }) {
     onCommit: (text) => onChange('budget', Number(String(text).replace(/[,\s]/g, ''))),
   });
 
+  const frame = win.querySelector('.wm-window__frame');
+  sideGlass = createGlass(win, {
+    variable: '--lens-side',
+    observe: win,
+    band: 7,
+    strength: 6,
+    measure: () => {
+      if (narrow) return null;
+      const radius = 0.9 * rem();
+      return { w: nav.offsetWidth, h: frame.offsetHeight, r: [radius, 0, 0, radius] };
+    },
+  });
+
   function fxLabel() {
     selects.fx.setLabel('auto', `自動 · ${FX_NAMES[Fx.auto]}`);
   }
@@ -254,6 +270,13 @@ export function createSettings({ root, state, menuHost, dock, onChange }) {
       accent.set(next.accent);
       toggles.reduced.set(MotionSettings.reduced);
       fxLabel();
+      tabs.measure();
+      theme.measure();
+    },
+    refreshGlass() {
+      if (sideGlass) sideGlass.refresh();
+      tabs.refreshGlass();
+      theme.refreshGlass();
     },
     setAccentHint(text) {
       const hint = root.querySelector('#set-accent-hint');

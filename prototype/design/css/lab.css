@@ -109,8 +109,8 @@ button {
 
 :root[data-style="a"] .chrome {
   background: var(--glass-fill);
-  -webkit-backdrop-filter: var(--fx-glass);
-  backdrop-filter: var(--fx-glass);
+  -webkit-backdrop-filter: var(--fx-glass) var(--lens-chrome, );
+  backdrop-filter: var(--fx-glass) var(--lens-chrome, );
   box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-rim-soft), 0 10px 30px var(--glass-shade);
 }
 
@@ -207,9 +207,10 @@ button {
   will-change: transform, opacity;
   z-index: 3;
   opacity: 0;
+  transform-origin: 0 50%;
   background: var(--glass-lens);
-  backdrop-filter: saturate(1.5) brightness(1.05);
-  -webkit-backdrop-filter: saturate(1.5) brightness(1.05);
+  -webkit-backdrop-filter: var(--lens-seg, ) saturate(1.6) brightness(1.04);
+  backdrop-filter: var(--lens-seg, ) saturate(1.6) brightness(1.04);
   box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-rim-soft), inset 0 -1px 2px rgba(0, 0, 0, 0.05), 0 6px 18px rgba(24, 26, 48, 0.18);
 }
 
@@ -654,8 +655,8 @@ button {
 :root[data-style="a"] .notice.chrome,
 :root[data-style="a"] .island.chrome {
   background: var(--glass-fill-strong);
-  -webkit-backdrop-filter: var(--fx-glass-strong);
-  backdrop-filter: var(--fx-glass-strong);
+  -webkit-backdrop-filter: var(--fx-glass-strong) var(--lens-chrome, );
+  backdrop-filter: var(--fx-glass-strong) var(--lens-chrome, );
 }
 
 .notice svg {

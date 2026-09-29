@@ -2,7 +2,6 @@ import '@fontsource-variable/geist-mono';
 import { createMotion, Animator } from '../../../src/motion/animator.js';
 import { MotionSettings } from '../../../src/motion/presets.js';
 import { APPS, renderIcon } from './icons.js';
-import { applyLens } from './lens.js';
 import { createSegmented } from './segmented.js';
 import { createOdometer, formatAmount } from './odometer.js';
 import { createBarChart } from './chart.js';
@@ -12,6 +11,7 @@ import { flip, enter, pressable } from './motion-kit.js';
 import { startPerfMeter } from './perf.js';
 import { Fx } from './fx-tier.js';
 import { createSettings } from './settings.js';
+import { createGlass } from './glass.js';
 import { createLabDesktop } from './desktop.js';
 import { createMenubar } from './menubar.js';
 import { baseThickness, sampleGlassThickness, presetAccent, wallpaperAccent } from './wall-tone.js';
@@ -243,9 +243,6 @@ const entrySeg = createSegmented($('entry-seg'), {
   onChange(index) {
     buildChips(document.querySelector('[data-chips="entry"]'), index === 0 ? CATEGORIES.expense : CATEGORIES.income);
   },
-  onLayout(lens) {
-    applyLens(lens, state.style === 'a');
-  },
 });
 
 buildChips(document.querySelector('[data-chips="entry"]'), CATEGORIES.expense);
@@ -310,6 +307,12 @@ const settings = createSettings({
   menuHost: $('desk'),
   dock: desktop.dock,
   onChange: handleSetting,
+});
+
+store.subscribe(({ type, id }) => {
+  if (type !== 'open' && type !== 'restore') return;
+  if (id === 'settings') settings.refreshGlass();
+  if (id === 'daily-entry') entrySeg.refreshGlass();
 });
 
 function syncFxButtons() {
@@ -476,7 +479,6 @@ function applyState() {
   });
   $('lab-toggle').textContent = state.lab === 'open' ? '收起' : '展開';
   $('lab-toggle').setAttribute('aria-expanded', String(state.lab === 'open'));
-  applyLens(entrySeg.lens, state.style === 'a');
   island.relayout();
   entrySeg.measure();
   refreshTones();
@@ -571,6 +573,13 @@ document.querySelectorAll('[data-press]').forEach(pressable);
 window.setInterval(renderDates, 60000);
 applyState();
 startPerfMeter($('lab-perf'));
+createGlass($('lab'), {
+  variable: '--lens-chrome',
+  observe: $('lab'),
+  band: 6,
+  strength: 5,
+  measure: () => ({ w: $('lab').offsetWidth, h: $('lab').offsetHeight, r: parseFloat(getComputedStyle($('lab')).borderTopLeftRadius) || 22 }),
+});
 intro();
 
 console.info('%cRingoOS%c design lab', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
