@@ -23,6 +23,7 @@
     "wawoff2": "^2.0.1"
   },
   "dependencies": {
+    "@fontsource-variable/geist-mono": "^5.3.0",
     "qrcode-generator": "^2.0.4"
   }
 }

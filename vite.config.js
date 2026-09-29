@@ -19,6 +19,7 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
         wm: resolve(import.meta.dirname, 'prototype/wm/index.html'),
+        design: resolve(import.meta.dirname, 'prototype/design/index.html'),
       },
     },
   },

@@ -44,6 +44,15 @@ This software uses HarmonyOS Sans Fonts. The font files are distributed
 unmodified in their glyph design; they were only converted from TTF to WOFF2
 for web delivery. The fonts are not distributed separately from this software.
 
+## Geist Mono
+
+- Used for: numerals and monospaced labels (`@fontsource-variable/geist-mono`)
+- Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font)
+- License: SIL Open Font License, Version 1.1 (https://openfontlicense.org)
+
+The font is bundled unmodified. The full license text ships with the package
+in `node_modules/@fontsource-variable/geist-mono/LICENSE`.
+
 ## EmoteLab character animations
 
 - Used for: the desktop companion character (`public/characters/`)

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-style="a" data-accent="ultramarine" data-theme="light" data-wall="aurora" data-lab="open">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>RingoOS Design Lab</title>
+  <meta name="author" content="YoWoRingo">
+  <link rel="stylesheet" href="./css/tokens.css">
+  <link rel="stylesheet" href="./css/lab.css">
+</head>
+<body>
+  <svg class="sr-only" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="ico-sheen" x1="0" y1="0" x2="0" y2="1">
+        <stop class="ico-sheen-stop" offset="0" stop-color="#fff"/>
+        <stop offset="0.55" stop-color="#fff" stop-opacity="0"/>
+      </linearGradient>
+      <filter id="lens-filter" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <feFlood flood-color="rgb(128, 128, 128)" result="neutral"/>
+        <feImage id="lens-map" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="raw"/>
+        <feComposite in="raw" in2="neutral" operator="over" result="map"/>
+        <feDisplacementMap id="lens-displace" in="SourceGraphic" in2="map" scale="9" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <div class="desk">
+    <div class="wall" aria-hidden="true"></div>
+
+    <header class="menubar chrome">
+      <span class="brand">Ringo<span class="brand__os">OS</span></span>
+      <span class="menubar__app" id="menubar-app">每日記帳</span>
+      <span class="menubar__spacer"></span>
+      <span class="menubar__item">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="i-acc" cx="15" cy="9" r="4"/><path d="M7.5 19h9a3.5 3.5 0 0 0 .4-7 5 5 0 0 0-9.6 1.2A2.9 2.9 0 0 0 7.5 19z" fill="currentColor"/></svg>
+        <span class="mono">27°</span>
+      </span>
+      <span class="menubar__item mono" id="menubar-clock"></span>
+    </header>
+
+    <div class="capsule chrome" id="capsule">
+      <button type="button" class="capsule__pill" id="capsule-pill" aria-expanded="false" aria-controls="capsule-panel">
+        <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        記一筆
+      </button>
+      <form class="capsule__panel" id="capsule-panel" aria-label="快速記一筆">
+        <div class="capsule__head"><span>快速記一筆</span><span class="tag">Quick add</span></div>
+        <label class="capsule__amount">
+          <span class="amount__cur mono">NT$</span>
+          <input class="amount__input" id="capsule-amount" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="金額">
+        </label>
+        <div class="chips" role="radiogroup" aria-label="分類" data-chips="capsule">
+          <button type="button" class="chip" role="radio" aria-checked="true">餐飲</button>
+          <button type="button" class="chip" role="radio" aria-checked="false">交通</button>
+          <button type="button" class="chip" role="radio" aria-checked="false">娛樂</button>
+          <button type="button" class="chip" role="radio" aria-checked="false">其他</button>
+        </div>
+        <div class="capsule__foot">
+          <button type="button" class="btn btn--ghost" id="capsule-cancel">取消</button>
+          <button type="submit" class="btn btn--accent" data-press>記下</button>
+        </div>
+      </form>
+    </div>
+
+    <main class="windows" id="windows">
+      <section class="win is-focused" id="win-entry" data-app="daily-entry" aria-label="每日記帳">
+        <header class="win__bar">
+          <span class="win__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <h2 class="win__title">每日記帳</h2>
+          <span class="win__meta tag" id="entry-date"></span>
+        </header>
+        <div class="win__body">
+          <div class="seg" role="tablist" aria-label="支出或收入" id="entry-seg">
+            <span class="seg__platter" aria-hidden="true"></span>
+            <span class="seg__lens" aria-hidden="true"></span>
+            <button type="button" class="seg__btn" role="tab" aria-selected="true">支出</button>
+            <button type="button" class="seg__btn" role="tab" aria-selected="false">收入</button>
+          </div>
+          <label class="amount">
+            <span class="amount__cur mono">NT$</span>
+            <input class="amount__input" id="entry-amount" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="金額">
+          </label>
+          <div class="chips" role="radiogroup" aria-label="分類" data-chips="entry"></div>
+          <input class="field" id="entry-note" placeholder="備註，例如：晚餐、捷運儲值" aria-label="備註">
+          <button type="button" class="btn btn--primary" id="entry-add" data-press>記下這筆</button>
+          <div class="list">
+            <div class="list__head">
+              <span class="tag">Today · 今天</span>
+              <span class="list__total mono" id="entry-total"></span>
+            </div>
+            <div id="entry-rows"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="win win--overview" id="win-overview" data-app="overview" aria-label="收支總覽">
+        <header class="win__bar">
+          <span class="win__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <h2 class="win__title">收支總覽</h2>
+          <span class="win__meta tag">Sep 2026</span>
+        </header>
+        <div class="win__body">
+          <div class="ov-head">
+            <span class="ov-head__label">本月支出</span>
+            <span class="tag">09.01 — 09.30</span>
+          </div>
+          <div class="big">
+            <span class="big__cur">NT$</span>
+            <span class="big__num" id="ov-expense"></span>
+          </div>
+          <div class="budget">
+            <div class="budget__track"><span class="budget__fill" id="ov-budget-fill"></span></div>
+            <div class="budget__legend"><span>預算 NT$ 24,000</span><span id="ov-budget-pct"></span></div>
+          </div>
+          <div class="stats">
+            <div>
+              <div class="stat__label">收入</div>
+              <div class="stat__value stat__value--strong mono">+42,000</div>
+            </div>
+            <div>
+              <div class="stat__label">淨額</div>
+              <div class="stat__value mono" id="ov-net"></div>
+            </div>
+          </div>
+          <div>
+            <div class="ov-head"><span class="ov-head__label">近 7 天</span><span class="tag">Daily spend</span></div>
+            <div class="chart" id="ov-chart"></div>
+            <div class="chart__labels" id="ov-chart-labels"></div>
+          </div>
+          <div class="rank" id="ov-rank"></div>
+        </div>
+      </section>
+    </main>
+
+    <div class="notices" id="notices" aria-live="polite"></div>
+
+    <nav class="dock chrome" id="dock" aria-label="Dock">
+      <div class="dock__label" id="dock-label" aria-hidden="true"></div>
+    </nav>
+
+    <aside class="lab chrome" id="lab" aria-label="設計實驗室">
+      <div class="lab__head">
+        <span class="lab__title">設計實驗室</span>
+        <button type="button" class="lab__toggle" id="lab-toggle" aria-expanded="true" aria-controls="lab-body">收起</button>
+      </div>
+      <div class="lab__body" id="lab-body">
+        <div class="lab__group">
+          <span class="tag">Style · 風格</span>
+          <div class="lab__opts">
+            <button type="button" class="lab__opt" data-set="style" data-value="a">A 混合玻璃</button>
+            <button type="button" class="lab__opt" data-set="style" data-value="c">C 首爾單色</button>
+          </div>
+        </div>
+        <div class="lab__group">
+          <span class="tag">Accent · 簽名色</span>
+          <div class="lab__opts">
+            <button type="button" class="lab__opt" data-set="accent" data-value="ultramarine"><span class="lab__swatch lab__swatch--ultramarine"></span>群青</button>
+            <button type="button" class="lab__opt" data-set="accent" data-value="apple"><span class="lab__swatch lab__swatch--apple"></span>青蘋果</button>
+            <button type="button" class="lab__opt" data-set="accent" data-value="signal"><span class="lab__swatch lab__swatch--signal"></span>信號橘</button>
+          </div>
+        </div>
+        <div class="lab__group">
+          <span class="tag">Theme · 外觀</span>
+          <div class="lab__opts">
+            <button type="button" class="lab__opt" data-set="theme" data-value="light">淺色</button>
+            <button type="button" class="lab__opt" data-set="theme" data-value="dark">深色</button>
+          </div>
+        </div>
+        <div class="lab__group">
+          <span class="tag">Wallpaper · 桌布</span>
+          <div class="lab__opts">
+            <button type="button" class="lab__opt" data-set="wall" data-value="aurora">極光</button>
+            <button type="button" class="lab__opt" data-set="wall" data-value="mono">單色</button>
+            <button type="button" class="lab__opt" data-set="wall" data-value="photo" id="lab-photo">我的圖片</button>
+            <input type="file" accept="image/*" id="lab-photo-input" hidden>
+          </div>
+        </div>
+        <div class="lab__actions">
+          <button type="button" class="lab__opt" id="lab-replay">重播動畫</button>
+          <button type="button" class="lab__opt" id="lab-notify">來一則通知</button>
+        </div>
+        <div class="lab__perf mono" id="lab-perf"><span>—</span><span></span></div>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
