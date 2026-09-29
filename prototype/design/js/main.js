@@ -12,7 +12,7 @@ import { flip, enter, pressable } from './motion-kit.js';
 import { startPerfMeter } from './perf.js';
 import { createLabDesktop } from './desktop.js';
 import { createMenubar } from './menubar.js';
-import { presetTones, sampleWallTones } from './wall-tone.js';
+import { baseThickness, sampleGlassThickness } from './wall-tone.js';
 
 MotionSettings.usePreset('hyperos');
 MotionSettings.setSpring('dock', { response: 0.32, damping: 0.66 });
@@ -361,10 +361,8 @@ let photoUrl = null;
 let toneToken = 0;
 
 function applyTones({ bar, dock }) {
-  root.dataset.barTone = bar.tone;
-  root.dataset.barBusy = bar.busy ? '1' : '0';
-  root.dataset.dockTone = dock.tone;
-  root.dataset.dockBusy = dock.busy ? '1' : '0';
+  root.style.setProperty('--bar-alpha', bar.toFixed(2));
+  root.style.setProperty('--dock-alpha', dock.toFixed(2));
 }
 
 function toneRegions() {
@@ -380,13 +378,13 @@ function toneRegions() {
 function refreshTones() {
   const mine = ++toneToken;
   if (state.wall !== 'photo' || !photoUrl) {
-    applyTones(presetTones(state.theme));
+    applyTones(baseThickness(state.theme));
     return;
   }
-  sampleWallTones(photoUrl, toneRegions()).then((tones) => {
+  sampleGlassThickness(photoUrl, toneRegions(), state.theme).then((tones) => {
     if (mine === toneToken) applyTones(tones);
   }).catch(() => {
-    if (mine === toneToken) applyTones(presetTones(state.theme));
+    if (mine === toneToken) applyTones(baseThickness(state.theme));
   });
 }
 

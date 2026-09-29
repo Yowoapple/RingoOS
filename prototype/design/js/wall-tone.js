@@ -1,12 +1,17 @@
 const SAMPLE_WIDTH = 160;
-const INK_DARK = 0.0045;
-const INK_LIGHT = 0.88;
-const KEEP_RATIO = 1.25;
-const BUSY_SPREAD = 0.16;
-const MIN_CONTRAST = 3.2;
+const TARGET_CONTRAST = 4.5;
+const MAX_ALPHA = 0.92;
+const ALPHA_STEP = 0.02;
+const WORST_PERCENTILE = 0.8;
+
+const SECONDARY_CONTRAST = 3;
+
+const GLASS = {
+  light: { rgb: [255, 255, 255], alpha: 0.36, ink: 0.0045, ink2: 0.11 },
+  dark: { rgb: [34, 34, 40], alpha: 0.42, ink: 0.85, ink2: 0.36 },
+};
 
 const images = new Map();
-const previous = new Map();
 
 function loadImage(url) {
   if (!images.has(url)) {
@@ -26,8 +31,17 @@ function toLinear(channel) {
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 }
 
+function toGamma(linear) {
+  const c = linear <= 0.0031308 ? linear * 12.92 : 1.055 * linear ** (1 / 2.4) - 0.055;
+  return Math.max(0, Math.min(255, c * 255));
+}
+
 function luminance(r, g, b) {
   return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
+function contrast(a, b) {
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
 
 function drawCover(img) {
@@ -45,7 +59,7 @@ function drawCover(img) {
   return { ctx, scale };
 }
 
-function measure({ ctx, scale }, rect) {
+function regionLuminances({ ctx, scale }, rect) {
   const x = Math.max(0, Math.floor(rect.x * scale));
   const y = Math.max(0, Math.floor(rect.y * scale));
   const w = Math.max(1, Math.min(ctx.canvas.width - x, Math.ceil(rect.w * scale)));
@@ -53,36 +67,36 @@ function measure({ ctx, scale }, rect) {
   const { data } = ctx.getImageData(x, y, w, h);
   const values = [];
   for (let i = 0; i < data.length; i += 4) values.push(luminance(data[i], data[i + 1], data[i + 2]));
-  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
-  const spread = Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length);
-  return { mean, spread };
+  return values.sort((a, b) => a - b);
 }
 
-function decide(key, { mean, spread }) {
-  const againstDark = (mean + 0.05) / (INK_DARK + 0.05);
-  const againstLight = (INK_LIGHT + 0.05) / (mean + 0.05);
-  let tone = againstDark >= againstLight ? 'dark' : 'light';
-  const last = previous.get(key);
-  if (last && last !== tone) {
-    const ratio = Math.max(againstDark, againstLight) / Math.min(againstDark, againstLight);
-    if (ratio < KEEP_RATIO) tone = last;
+function thickness(values, glass) {
+  const lightInk = glass.ink > 0.5;
+  const pick = lightInk ? WORST_PERCENTILE : 1 - WORST_PERCENTILE;
+  const worst = values[Math.min(values.length - 1, Math.floor(values.length * pick))];
+  const wallGray = toGamma(worst);
+  const glassGray = toGamma(luminance(...glass.rgb));
+  let alpha = glass.alpha;
+  while (alpha < MAX_ALPHA) {
+    const mixed = toLinear(wallGray * (1 - alpha) + glassGray * alpha);
+    if (contrast(mixed, glass.ink) >= TARGET_CONTRAST && contrast(mixed, glass.ink2) >= SECONDARY_CONTRAST) break;
+    alpha += ALPHA_STEP;
   }
-  previous.set(key, tone);
-  const contrast = tone === 'dark' ? againstDark : againstLight;
-  return { tone, busy: spread > BUSY_SPREAD || contrast < MIN_CONTRAST };
+  return Math.min(MAX_ALPHA, alpha);
 }
 
-export function presetTones(theme) {
-  const tone = theme === 'dark' ? 'light' : 'dark';
-  return { bar: { tone, busy: false }, dock: { tone, busy: false } };
+export function baseThickness(theme) {
+  const alpha = GLASS[theme === 'dark' ? 'dark' : 'light'].alpha;
+  return { bar: alpha, dock: alpha };
 }
 
-export async function sampleWallTones(url, regions) {
+export async function sampleGlassThickness(url, regions, theme) {
+  const glass = GLASS[theme === 'dark' ? 'dark' : 'light'];
   const img = await loadImage(url);
   const canvas = drawCover(img);
   const out = {};
   Object.entries(regions).forEach(([key, rect]) => {
-    out[key] = decide(key, measure(canvas, rect));
+    out[key] = thickness(regionLuminances(canvas, rect), glass);
   });
   return out;
 }
