@@ -64,7 +64,7 @@ export function createRowList(container, { render, onDelete, onSelect }) {
     if (onSelect) onSelect(entry ? entry.row : null);
   }
 
-  function remove(entry, { fling = false, silent = false } = {}) {
+  function remove(entry, { fling = false, silent = false, report = true } = {}) {
     if (entry.leaving) return Promise.resolve();
     entry.leaving = true;
     const index = entries.indexOf(entry);
@@ -78,7 +78,7 @@ export function createRowList(container, { render, onDelete, onSelect }) {
         const at = entries.indexOf(entry);
         if (at >= 0) entries.splice(at, 1);
         entry.leaving = false;
-        if (onDelete) onDelete(entry.row, index, { silent });
+        if (report && onDelete) onDelete(entry.row, index, { silent });
         resolve();
       };
       const after = (promise) => promise.then((done) => { if (done) finish(); else after(entry.motion.to({ h: 0, o: 0 }, COLLAPSE)); });
@@ -120,7 +120,7 @@ export function createRowList(container, { render, onDelete, onSelect }) {
       drag = null;
       entry.el.classList.remove('is-swiping');
       if (!state.swiping) {
-        select(entry);
+        select(selected === entry ? null : entry);
         return;
       }
       const first = state.samples[0];
@@ -140,16 +140,13 @@ export function createRowList(container, { render, onDelete, onSelect }) {
         if (next) next.el.focus({ preventScroll: true });
       } else if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        select(entry);
+        select(selected === entry ? null : entry);
       } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault();
         const step = event.key === 'ArrowDown' ? 1 : -1;
         const target = entries[entries.indexOf(entry) + step];
         if (target) target.el.focus({ preventScroll: true });
       }
-    });
-    entry.el.addEventListener('focus', () => {
-      if (entry.el.matches(':focus-visible')) select(entry);
     });
   }
 
@@ -179,8 +176,32 @@ export function createRowList(container, { render, onDelete, onSelect }) {
     return entry;
   }
 
+  function find(id) {
+    return entries.find((entry) => entry.row.id === id && !entry.leaving) || null;
+  }
+
   return {
     get size() { return entries.length; },
+    has: (id) => !!find(id),
+    ids: () => entries.filter((entry) => !entry.leaving).map((entry) => entry.row.id),
+    insertAt: (row, index, from = 'top') => insert(row, index, { from }),
+    update(row) {
+      const entry = find(row.id);
+      if (!entry) return;
+      entry.row = row;
+      entry.el.className = `row row--${row.type}`;
+      entry.slide.textContent = '';
+      entry.slide.appendChild(render(row));
+      if (selected === entry) entry.el.setAttribute('aria-selected', 'true');
+      entry.el.classList.remove('is-updated');
+      void entry.el.offsetWidth;
+      entry.el.classList.add('is-updated');
+    },
+    removeId(id) {
+      const entry = find(id);
+      return entry ? remove(entry, { report: false }) : Promise.resolve();
+    },
+    clearSelection: () => select(null),
     rows: () => entries.map((entry) => entry.row),
     reset(rows) {
       entries.splice(0).forEach((entry) => entry.el.remove());

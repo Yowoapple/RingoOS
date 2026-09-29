@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="/src/styles/settings.css">
   <link rel="stylesheet" href="/src/styles/feedback.css">
   <link rel="stylesheet" href="/src/styles/island.css">
+  <link rel="stylesheet" href="/src/styles/apps/ledger.css">
 </head>
 <body>
   <svg class="sr-only" aria-hidden="true" focusable="false">
@@ -117,6 +118,59 @@
   </div>
 
   <div class="app-sources" id="app-sources" hidden>
+    <div class="app-source" data-app-id="daily-entry">
+      <div class="app-source__titlebar">
+        <span class="date-pick" data-no-drag>
+          <button type="button" class="date-today" id="ledger-today" hidden>今天</button>
+          <button type="button" class="tag date-tag" id="ledger-date" aria-label="記帳日期，按一下可以換一天"></button>
+        </span>
+      </div>
+      <div class="ledger" id="ledger">
+        <form class="ledger__form" data-ledger="form" novalidate>
+          <div class="seg" role="tablist" aria-label="支出或收入" data-ledger="type">
+            <span class="seg__platter" aria-hidden="true"><span class="seg__blob"></span></span>
+            <span class="seg__lens" aria-hidden="true"></span>
+            <button type="button" class="seg__btn" role="tab" aria-selected="true">支出</button>
+            <button type="button" class="seg__btn" role="tab" aria-selected="false">收入</button>
+          </div>
+          <label class="amount">
+            <span class="amount__cur mono">NT$</span>
+            <input class="amount__input" data-ledger="amount" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="金額">
+          </label>
+          <div class="chips" role="radiogroup" aria-label="分類" data-ledger="chips"></div>
+          <input class="field" data-ledger="note" placeholder="備註（選填），例如：午餐便當" aria-label="備註" autocomplete="off">
+          <div class="ledger__extras" data-ledger="extras">
+            <label class="ledger__switch"><span>固定支出</span><button type="button" class="tgl" data-ledger="recurring" aria-label="固定支出"><span class="tgl__knob"></span></button></label>
+            <div class="ledger__need" role="group" aria-label="需要還是想要" data-ledger="necessity">
+              <button type="button" class="chip chip--sm" data-value="need" aria-pressed="false">需要</button>
+              <button type="button" class="chip chip--sm" data-value="want" aria-pressed="false">想要</button>
+            </div>
+          </div>
+          <div class="ledger__actions">
+            <button type="button" class="btn btn--ghost" data-ledger="cancel" hidden>取消修改</button>
+            <button type="submit" class="btn btn--primary" data-ledger="submit" data-press>記下這筆</button>
+          </div>
+        </form>
+        <section class="ledger__side" aria-label="紀錄">
+          <div class="ledger__cal" data-ledger="calendar"></div>
+          <div class="list">
+            <div class="list__head">
+              <span class="ledger__day" data-ledger="day-label"></span>
+              <span class="list__total mono" data-ledger="day-total"></span>
+            </div>
+            <div class="list__stage" data-ledger="stage">
+              <div class="list__view" data-view="rows" data-ledger="rows" role="list" aria-label="這天的紀錄"></div>
+              <div class="list__view" data-view="empty">
+                <div class="list__state">
+                  <span class="list__state-title">這天還沒有紀錄</span>
+                  <span class="list__state-hint">輸入金額後按「記下這筆」。點一筆紀錄可以修改，往左滑可以刪除</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
     <div class="app-source" data-app-id="settings">
       <div class="set" id="settings">
         <nav class="set__side" aria-label="設定分類">
