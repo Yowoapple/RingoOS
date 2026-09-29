@@ -1,0 +1,368 @@
+.tgl {
+  --tgl-off: rgba(14, 14, 16, 0.14);
+  position: relative;
+  flex: none;
+  width: 2.35rem;
+  height: 1.4rem;
+  padding: 0.12rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--accent-spot) calc(var(--fill, 0) * 100%), var(--tgl-off));
+  cursor: pointer;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root[data-theme="dark"] .tgl {
+  --tgl-off: rgba(255, 255, 255, 0.16);
+}
+
+.tgl__knob {
+  position: absolute;
+  left: 0.12rem;
+  top: 0.12rem;
+  width: calc(1.4rem - 0.24rem);
+  height: calc(1.4rem - 0.24rem);
+  border-radius: var(--r-pill);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22), 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+  will-change: transform, width;
+}
+
+.sld {
+  --sld-track: rgba(14, 14, 16, 0.1);
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 1.7rem;
+  padding: 0 0.6rem;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root[data-theme="dark"] .sld {
+  --sld-track: rgba(255, 255, 255, 0.14);
+}
+
+.sld__track {
+  position: relative;
+  flex: 1;
+  height: 0.32rem;
+  border-radius: var(--r-pill);
+  background: var(--sld-track);
+  overflow: hidden;
+}
+
+.sld__fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--accent-spot);
+  transform-origin: 0 50%;
+  will-change: transform;
+}
+
+.sld__thumb {
+  position: absolute;
+  left: 0.6rem;
+  top: 50%;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.26), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.sld__bubble {
+  position: absolute;
+  left: 0.6rem;
+  bottom: calc(50% + 0.95rem);
+  padding: 0.14rem 0.5rem;
+  border-radius: var(--r-pill);
+  background: var(--tip);
+  color: var(--tip-ink);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  will-change: transform, opacity;
+}
+
+.sel {
+  position: relative;
+  flex: none;
+}
+
+.sel__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 1.85rem;
+  padding: 0 0.55rem 0 0.75rem;
+  border: 0;
+  border-radius: var(--r-ctl);
+  background: var(--sel-btn, rgba(14, 14, 16, 0.06));
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 160ms ease, opacity 140ms ease;
+}
+
+:root[data-theme="dark"] .sel__btn {
+  --sel-btn: rgba(255, 255, 255, 0.08);
+}
+
+.sel__btn:hover {
+  background: color-mix(in oklab, var(--sel-btn, rgba(14, 14, 16, 0.06)), var(--ink) 6%);
+}
+
+.sel.is-open .sel__btn {
+  opacity: 0;
+}
+
+.sel__value {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+.sel__chev {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--ink-3);
+}
+
+.sel__menu {
+  --sel-r: 0.9rem;
+  --menu-fill: var(--paper);
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  padding: 0.3rem;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sel__menu.is-open {
+  pointer-events: auto;
+}
+
+:root[data-style="a"] .sel__menu {
+  --menu-fill: var(--glass-fill-strong);
+}
+
+:root[data-style="a"][data-fx="solid"] .sel__menu {
+  --menu-fill: var(--glass-solid);
+}
+
+.sel__shadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: var(--sel-r);
+  box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] .sel__shadow {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09), 0 16px 40px rgba(0, 0, 0, 0.55);
+}
+
+.sel__glass,
+.sel__fill {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sel__glass {
+  -webkit-backdrop-filter: var(--fx-glass-strong);
+  backdrop-filter: var(--fx-glass-strong);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+:root[data-style="c"] .sel__glass {
+  display: none;
+}
+
+.sel__fill {
+  background: var(--menu-fill);
+}
+
+.sel__platter {
+  position: absolute;
+  left: 0.3rem;
+  right: 0.3rem;
+  top: 0;
+  border-radius: calc(var(--sel-r) - 0.3rem);
+  background: var(--mb-platter, rgba(14, 14, 16, 0.07));
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, height;
+}
+
+:root[data-theme="dark"] .sel__platter {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.sel__list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.sel__item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.4rem;
+  height: 1.9rem;
+  padding: 0 0.55rem 0 0.7rem;
+  border: 0;
+  border-radius: calc(var(--sel-r) - 0.3rem);
+  background: none;
+  color: var(--ink);
+  font-size: 0.75rem;
+  text-align: left;
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.sel__item:focus-visible {
+  outline-offset: -2px;
+}
+
+.sel__check {
+  width: 0.8rem;
+  height: 0.8rem;
+  color: var(--accent-text);
+  opacity: 0;
+}
+
+.sel__item[aria-selected="true"] .sel__check {
+  opacity: 1;
+}
+
+.sel__item[aria-selected="true"] {
+  font-weight: 600;
+}
+
+.fld {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fld__box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.3rem;
+  padding: 0 0.8rem;
+  border-radius: var(--r-ctl);
+  background: var(--fld-bg, rgba(14, 14, 16, 0.05));
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow 200ms ease;
+  will-change: transform;
+}
+
+:root[data-theme="dark"] .fld__box {
+  --fld-bg: rgba(255, 255, 255, 0.05);
+}
+
+.fld__prefix {
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
+.fld__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 0.9rem;
+  caret-color: var(--accent-text);
+}
+
+.fld__input:focus-visible {
+  outline: none;
+}
+
+.fld__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-ctl);
+  box-shadow: inset 0 0 0 1.5px var(--accent-spot);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fld.is-invalid .fld__box {
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+}
+
+.fld.is-invalid .fld__ring {
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+}
+
+.fld__msg {
+  display: block;
+  height: 0;
+  overflow: hidden;
+  font-size: 0.68rem;
+  color: var(--danger);
+}
+
+.fld__msg > span {
+  display: block;
+  padding-top: 0.1rem;
+}
+
+.btn--secondary {
+  background: var(--btn-2, rgba(14, 14, 16, 0.07));
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .btn--secondary {
+  --btn-2: rgba(255, 255, 255, 0.09);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--accent-text);
+}
+
+.btn--ghost:hover {
+  background: var(--accent-soft);
+}
+
+.btn--danger {
+  background: transparent;
+  color: var(--danger);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--danger) 40%, transparent);
+}
+
+.btn--danger:hover {
+  background: color-mix(in oklab, var(--danger) 10%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sel__glass,
+  .sel__btn,
+  .fld__box {
+    transition: none;
+  }
+}

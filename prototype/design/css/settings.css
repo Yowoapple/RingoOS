@@ -1,0 +1,328 @@
+.wm-window[data-app-id="settings"] {
+  --set-side-w: 10.5rem;
+  --side-fill: var(--paper-2);
+}
+
+.wm-window[data-app-id="settings"].is-narrow {
+  --set-side-w: 0px;
+}
+
+:root[data-style="a"] .wm-window[data-app-id="settings"] {
+  --side-fill: rgba(var(--glass-rgb), 0.5);
+}
+
+:root[data-style="a"][data-fx="lite"] .wm-window[data-app-id="settings"],
+:root[data-style="a"][data-fx="solid"] .wm-window[data-app-id="settings"] {
+  --side-fill: var(--glass-solid);
+}
+
+.wm-window[data-app-id="settings"] .wm-window__frame {
+  background: transparent;
+}
+
+.wm-window[data-app-id="settings"] .wm-window__chrome {
+  position: relative;
+}
+
+.wm-window[data-app-id="settings"] .wm-window__chrome::before,
+.wm-window[data-app-id="settings"] .wm-window__chrome::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.wm-window[data-app-id="settings"] .wm-window__chrome::before {
+  left: 0;
+  width: var(--set-side-w);
+  background: var(--side-fill);
+  box-shadow: inset -1px 0 0 var(--line);
+}
+
+:root[data-style="a"][data-fx="full"] .wm-window[data-app-id="settings"]:not(.is-morphing) .wm-window__chrome::before {
+  -webkit-backdrop-filter: var(--fx-glass);
+  backdrop-filter: var(--fx-glass);
+}
+
+.wm-window[data-app-id="settings"].is-morphing .wm-window__chrome::before {
+  background: var(--glass-solid);
+}
+
+.wm-window[data-app-id="settings"] .wm-window__chrome::after {
+  left: var(--set-side-w);
+  right: 0;
+  background: var(--paper);
+}
+
+.wm-window[data-app-id="settings"] .wm-window__body {
+  z-index: 1;
+}
+
+.wm-window__body--settings {
+  display: flex;
+  overflow: hidden;
+}
+
+.set {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--set-side-w, 10.5rem) minmax(0, 1fr);
+}
+
+.set.is-narrow {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.set__side {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.25rem 0.55rem 0.8rem;
+}
+
+.set.is-narrow .set__side {
+  display: none;
+}
+
+.set__platter {
+  position: absolute;
+  left: 0.55rem;
+  right: 0.55rem;
+  top: 0;
+  border-radius: var(--r-ctl);
+  background: var(--accent-soft);
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  will-change: transform, height;
+}
+
+.set__nav {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  height: 1.95rem;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: var(--r-ctl);
+  background: none;
+  color: var(--ink-2);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-align: left;
+  transition: color 200ms ease;
+}
+
+.set__nav:hover {
+  color: var(--ink);
+}
+
+.set__nav[aria-current="page"] {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.set__nav svg {
+  flex: none;
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.set__main {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.set__tabs-wrap {
+  display: none;
+  padding: 0.2rem 1rem 0.5rem;
+}
+
+.set.is-narrow .set__tabs-wrap {
+  display: block;
+}
+
+.set__pages {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.2rem 1.3rem 1.3rem;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.set__pages:hover {
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.set.is-narrow .set__pages {
+  padding: 0.2rem 1rem 1rem;
+}
+
+.set__page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  will-change: transform, opacity;
+}
+
+.set__page[hidden] {
+  display: none;
+}
+
+.set__page.is-leaving {
+  position: absolute;
+  top: 0.2rem;
+  left: 1.3rem;
+  right: 1.3rem;
+  pointer-events: none;
+}
+
+.set.is-narrow .set__page.is-leaving {
+  left: 1rem;
+  right: 1rem;
+}
+
+.set__title {
+  margin: -0.35rem 0 0;
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.set__group {
+  display: flex;
+  flex-direction: column;
+  padding: 0.15rem 0.9rem;
+  border-radius: var(--r-win);
+  background: var(--group-bg, rgba(14, 14, 16, 0.035));
+}
+
+:root[data-theme="dark"] .set__group {
+  --group-bg: rgba(255, 255, 255, 0.04);
+}
+
+.set__group:has(> .fld),
+.set__group:has(> .set__buttons) {
+  gap: 0.4rem;
+  padding: 0.8rem 0.9rem;
+}
+
+.set__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2.9rem;
+  padding: 0.45rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.set__row:first-child {
+  border-top: 0;
+}
+
+.set__row--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  padding-bottom: 0.6rem;
+}
+
+.set__row--stack .sld {
+  margin-top: 1.2rem;
+}
+
+.set__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.set__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.set__hint {
+  font-size: 0.66rem;
+  color: var(--ink-3);
+  text-wrap: pretty;
+}
+
+.set__hint:empty {
+  display: none;
+}
+
+.set__seg {
+  flex: none;
+  width: 8.4rem;
+}
+
+.set__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.set__buttons .btn {
+  height: 2.1rem;
+  font-size: 0.78rem;
+}
+
+.acc {
+  position: relative;
+  flex: none;
+  display: flex;
+  gap: 0.55rem;
+  padding: 0.2rem;
+}
+
+.acc__ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 1.7rem;
+  border-radius: var(--r-pill);
+  box-shadow: inset 0 0 0 2px var(--ink);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, width;
+}
+
+.acc__dot {
+  position: relative;
+  width: 1.3rem;
+  height: 1.3rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+}
+
+.acc__dot--auto {
+  background: conic-gradient(from -30deg, #c8f03c 0 120deg, #ff5a1f 0 240deg, #2b3bff 0);
+}
+
+.acc__dot--apple { background: #c8f03c; }
+.acc__dot--signal { background: #ff5a1f; }
+.acc__dot--ultramarine { background: #2b3bff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .set__nav {
+    transition: none;
+  }
+}

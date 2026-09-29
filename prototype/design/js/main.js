@@ -10,17 +10,25 @@ import { createNotices } from './notices.js';
 import { createIsland } from './island.js';
 import { flip, enter, pressable } from './motion-kit.js';
 import { startPerfMeter } from './perf.js';
+import { Fx } from './fx-tier.js';
+import { createSettings } from './settings.js';
 import { createLabDesktop } from './desktop.js';
 import { createMenubar } from './menubar.js';
 import { baseThickness, sampleGlassThickness, presetAccent, wallpaperAccent } from './wall-tone.js';
 
-MotionSettings.usePreset('hyperos');
-MotionSettings.setSpring('dock', { response: 0.32, damping: 0.66 });
-MotionSettings.setSpring('focus', { response: 0.34, damping: 0.62 });
+function usePreset(name) {
+  MotionSettings.usePreset(name);
+  if (name !== 'hyperos') return;
+  MotionSettings.setSpring('dock', { response: 0.32, damping: 0.66 });
+  MotionSettings.setSpring('focus', { response: 0.34, damping: 0.62 });
+}
+
+usePreset('hyperos');
+Fx.boot();
 
 const STATE_KEY = 'yoworingo.design-lab.v3';
 const SOFT = { response: 0.55, damping: 0.62 };
-const BUDGET = 24000;
+let BUDGET = 24000;
 const INCOME = 42000;
 const CATEGORIES = {
   expense: ['餐飲', '交通', '居住', '娛樂', '醫療', '教育', '其他'],
@@ -46,7 +54,6 @@ const STUB_NOTES = {
   weather: '氣象署資料與動態天氣背景',
   calculator: '四則運算與鍵盤操作',
   radio: '唱片機與選台清單',
-  settings: '側欄分頁與強調色',
 };
 
 const root = document.documentElement;
@@ -202,6 +209,7 @@ function collectContent(app) {
   return {
     titlebar: titlebar ? Array.from(titlebar.children) : [],
     body: Array.from(source.children).filter((node) => node !== titlebar),
+    bodyClass: app.id === 'settings' ? 'wm-window__body--settings' : null,
   };
 }
 
@@ -274,6 +282,52 @@ const menubar = createMenubar({
   titles: TITLES,
   onOpen: (id) => wm.open(id),
 });
+
+function handleSetting(key, value) {
+  if (key === 'motion') {
+    usePreset(value === 'ios' ? 'ios' : 'hyperos');
+    return;
+  }
+  if (key === 'reduced') {
+    MotionSettings.setReduced(value);
+    return;
+  }
+  if (key === 'budget') {
+    BUDGET = value;
+    $('ov-budget-legend').textContent = `預算 NT$ ${formatAmount(value)}`;
+    renderOverview();
+    return;
+  }
+  if (state[key] === value) return;
+  state[key] = value;
+  applyState();
+  save();
+}
+
+const settings = createSettings({
+  root: $('settings'),
+  state,
+  menuHost: $('desk'),
+  dock: desktop.dock,
+  onChange: handleSetting,
+});
+
+function syncFxButtons() {
+  const names = { full: '完整', lite: '精簡', solid: '實色' };
+  document.querySelectorAll('[data-fx-choice]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.fxChoice === Fx.choice));
+  });
+  $('lab-fx-auto').textContent = `自動 · ${names[Fx.auto]}`;
+}
+
+document.querySelectorAll('[data-fx-choice]').forEach((button) => {
+  button.addEventListener('click', () => Fx.set(button.dataset.fxChoice));
+});
+Fx.subscribe(() => {
+  syncFxButtons();
+  settings.sync(state);
+});
+syncFxButtons();
 
 function syncReminders(count) {
   menubar.setReminders(count);
@@ -383,6 +437,7 @@ function applyAccent() {
   root.dataset.accent = resolved;
   const names = { apple: '青蘋果', signal: '信號橘', ultramarine: '群青' };
   $('lab-accent-auto').textContent = `自動 · ${names[autoAccent]}`;
+  settings.setAccentHint(state.accent === 'auto' ? `跟隨桌布 · 目前是${names[autoAccent]}` : '');
 }
 
 function refreshTones() {
@@ -425,6 +480,7 @@ function applyState() {
   island.relayout();
   entrySeg.measure();
   refreshTones();
+  settings.sync(state);
 }
 
 document.querySelectorAll('[data-set]').forEach((button) => {
