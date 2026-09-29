@@ -7,6 +7,10 @@ let flushScheduled = false;
 let writeChain = Promise.resolve();
 
 const OPEN_TIMEOUT = 4000;
+const CHANNEL = 'yoworingo-storage';
+const tabId = Math.random().toString(36).slice(2);
+const listeners = new Set();
+let channel = null;
 
 function withTimeout(promise, ms) {
   return Promise.race([
@@ -22,6 +26,7 @@ async function init() {
     all.forEach((value, key) => cache.set(key, value));
     mode = 'indexeddb';
     requestPersistence();
+    openChannel();
   } catch (err) {
     console.warn('RingoOS: IndexedDB unavailable, data will not persist', err);
     mode = 'memory';
@@ -31,6 +36,30 @@ async function init() {
     if (document.visibilityState === 'hidden') flush();
   });
   return mode;
+}
+
+function openChannel() {
+  if (typeof BroadcastChannel === 'undefined') return;
+  channel = new BroadcastChannel(CHANNEL);
+  channel.onmessage = (event) => {
+    const message = event.data;
+    if (!message || message.from === tabId || !Array.isArray(message.keys)) return;
+    Idb.readKeys(message.keys).then((values) => {
+      const changed = [];
+      values.forEach((value, key) => {
+        if (pending.has(key)) return;
+        if (value === undefined) cache.delete(key);
+        else cache.set(key, value);
+        changed.push(key);
+      });
+      if (changed.length) listeners.forEach((listener) => listener({ keys: changed, external: true }));
+    }).catch((err) => console.warn('RingoOS: could not read changes from another tab', err));
+  };
+}
+
+function subscribe(listener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 }
 
 function requestPersistence() {
@@ -73,6 +102,9 @@ function flush() {
   pending.clear();
   writeChain = writeChain
     .then(() => Idb.write(entries))
+    .then(() => {
+      if (channel) channel.postMessage({ from: tabId, keys: entries.map(([key]) => key) });
+    })
     .catch((err) => console.error('RingoOS: storage write failed', err));
   return writeChain;
 }
@@ -113,4 +145,4 @@ function getMode() {
   return mode;
 }
 
-export const Storage = { KEY_PREFIX, init, has, get, set, remove, flush, readLegacy, importLegacyPrefs, getMode };
+export const Storage = { KEY_PREFIX, init, has, get, set, remove, flush, readLegacy, importLegacyPrefs, getMode, subscribe };

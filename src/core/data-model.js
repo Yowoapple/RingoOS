@@ -20,6 +20,7 @@ function generateId() {
 
 let state = createDefaultStore();
 const subscribers = [];
+let watching = false;
 
 function readLegacyDraft() {
   const raw = Storage.readLegacy(LEGACY_DRAFT_KEY);
@@ -32,7 +33,29 @@ function readLegacyDraft() {
   }
 }
 
+function watchOtherTabs() {
+  if (watching || typeof Storage.subscribe !== 'function') return;
+  watching = true;
+  Storage.subscribe(({ keys }) => {
+    if (keys.includes(LEDGER_KEY)) reloadFromStorage();
+  });
+}
+
+function reloadFromStorage() {
+  const doc = Storage.get(LEDGER_KEY, null);
+  if (!doc) return false;
+  try {
+    state = migrateLedger(doc);
+  } catch (err) {
+    console.warn('RingoOS: ledger from another tab could not be read', err);
+    return false;
+  }
+  subscribers.forEach((cb) => cb(state));
+  return true;
+}
+
 function hydrate() {
+  watchOtherTabs();
   const stored = Storage.get(LEDGER_KEY, null);
   const source = stored ? 'storage' : 'legacy';
   const doc = stored || readLegacyDraft();
@@ -409,6 +432,7 @@ function replaceStore(newStore) {
 export const Data = {
   SCHEMA_VERSION,
   hydrate,
+  reloadFromStorage,
   createDefaultStore,
   generateId,
   getState,

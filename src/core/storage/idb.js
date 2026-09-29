@@ -63,4 +63,12 @@ async function write(entries) {
   });
 }
 
-export const Idb = { DB_NAME, open, readAll, write };
+async function readKeys(keys) {
+  const db = await open();
+  const tx = db.transaction(STORE, 'readonly');
+  const store = tx.objectStore(STORE);
+  const values = await Promise.all(keys.map((key) => requestToPromise(store.get(key))));
+  return new Map(keys.map((key, index) => [key, values[index]]));
+}
+
+export const Idb = { DB_NAME, open, readAll, readKeys, write };

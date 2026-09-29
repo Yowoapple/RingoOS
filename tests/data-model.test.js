@@ -66,3 +66,21 @@ describe('entries', () => {
     expect(Data.updateEntry(DAY, 'expense', 'missing', { amount: 1 })).toBe(null);
   });
 });
+
+describe('changes from another tab', () => {
+  it('reloads the ledger from storage and notifies without saving over it', async () => {
+    const { Storage } = await import('../src/core/storage/storage.js');
+    Data.addExpenseEntry(DAY, { amount: 10, category: '餐飲' });
+    const external = JSON.parse(JSON.stringify(Data.getState()));
+    external.days[DAY].expenses.push({ id: 'from-other-tab', amount: 99, category: '交通', note: '', recurring: false, necessity: null });
+    external.meta.lastModified = '2000-01-01T00:00:00.000Z';
+    Storage.set('yoworingo.ledger', external);
+    let calls = 0;
+    const stop = Data.subscribe(() => { calls += 1; });
+    expect(Data.reloadFromStorage()).toBe(true);
+    stop();
+    expect(calls).toBe(1);
+    expect(Data.getDayEntries(DAY).expenses.map((e) => e.amount)).toEqual([10, 99]);
+    expect(Storage.get('yoworingo.ledger').meta.lastModified).toBe('2000-01-01T00:00:00.000Z');
+  });
+});
