@@ -128,6 +128,8 @@
 }
 
 :root[data-accent="ultramarine"] {
+  --accent-ink-light: #2b3bff;
+  --accent-ink-dark: #8e97ff;
   --accent: #2b3bff;
   --accent-on: #ffffff;
   --accent-text: #2b3bff;
@@ -140,6 +142,8 @@
 }
 
 :root[data-accent="apple"] {
+  --accent-ink-light: #4b6800;
+  --accent-ink-dark: #c8f03c;
   --accent: #c8f03c;
   --accent-on: #0e0e10;
   --accent-text: #4b6800;
@@ -151,6 +155,8 @@
 }
 
 :root[data-accent="signal"] {
+  --accent-ink-light: #d4440d;
+  --accent-ink-dark: #ff8452;
   --accent: #ff5a1f;
   --accent-on: #ffffff;
   --accent-text: #d4440d;

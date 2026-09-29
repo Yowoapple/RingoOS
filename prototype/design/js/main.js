@@ -12,6 +12,7 @@ import { flip, enter, pressable } from './motion-kit.js';
 import { startPerfMeter } from './perf.js';
 import { createLabDesktop } from './desktop.js';
 import { createMenubar } from './menubar.js';
+import { presetTones, sampleWallTones } from './wall-tone.js';
 
 MotionSettings.usePreset('hyperos');
 MotionSettings.setSpring('dock', { response: 0.32, damping: 0.66 });
@@ -356,6 +357,45 @@ $('island-panel').addEventListener('submit', (event) => {
   input.value = '';
 });
 
+let photoUrl = null;
+let toneToken = 0;
+
+function applyTones({ bar, dock }) {
+  root.dataset.barTone = bar.tone;
+  root.dataset.barBusy = bar.busy ? '1' : '0';
+  root.dataset.dockTone = dock.tone;
+  root.dataset.dockBusy = dock.busy ? '1' : '0';
+}
+
+function toneRegions() {
+  const bar = $('menubar').getBoundingClientRect();
+  const dockBg = $('dock').querySelector('.dock__bg');
+  const dock = dockBg ? dockBg.getBoundingClientRect() : { left: 0, top: window.innerHeight - 80, width: window.innerWidth, height: 80 };
+  return {
+    bar: { x: 0, y: 0, w: window.innerWidth, h: bar.height },
+    dock: { x: dock.left, y: dock.top, w: dock.width, h: dock.height },
+  };
+}
+
+function refreshTones() {
+  const mine = ++toneToken;
+  if (state.wall !== 'photo' || !photoUrl) {
+    applyTones(presetTones(state.theme));
+    return;
+  }
+  sampleWallTones(photoUrl, toneRegions()).then((tones) => {
+    if (mine === toneToken) applyTones(tones);
+  }).catch(() => {
+    if (mine === toneToken) applyTones(presetTones(state.theme));
+  });
+}
+
+let toneTimer = 0;
+window.addEventListener('resize', () => {
+  window.clearTimeout(toneTimer);
+  toneTimer = window.setTimeout(refreshTones, 200);
+});
+
 function applyState() {
   root.dataset.style = state.style;
   root.dataset.accent = state.accent;
@@ -370,6 +410,7 @@ function applyState() {
   applyLens(entrySeg.lens, state.style === 'a');
   island.relayout();
   entrySeg.measure();
+  refreshTones();
 }
 
 document.querySelectorAll('[data-set]').forEach((button) => {
@@ -387,7 +428,9 @@ document.querySelectorAll('[data-set]').forEach((button) => {
 $('lab-photo-input').addEventListener('change', (event) => {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
-  root.style.setProperty('--wall-photo', `url("${URL.createObjectURL(file)}")`);
+  if (photoUrl) URL.revokeObjectURL(photoUrl);
+  photoUrl = URL.createObjectURL(file);
+  root.style.setProperty('--wall-photo', `url("${photoUrl}")`);
   state.wall = 'photo';
   applyState();
 });

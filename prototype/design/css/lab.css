@@ -668,6 +668,10 @@ button {
   font-size: 0.7rem;
 }
 
+:root[data-style="a"] .lab.chrome {
+  background: var(--glass-fill-strong);
+}
+
 :root[data-lab="closed"] .lab__body {
   display: none;
 }
