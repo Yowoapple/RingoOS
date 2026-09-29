@@ -33,6 +33,49 @@
 
 .island[data-mode="open"] .island__pill {
   cursor: default;
+  pointer-events: none;
+}
+
+.island__pill {
+  z-index: 4;
+}
+
+.island__plus,
+.island__label-text {
+  display: inline-block;
+  will-change: transform;
+}
+
+.island__label {
+  pointer-events: none;
+}
+
+.island__label svg {
+  transition: color 220ms ease;
+}
+
+.island[data-mode="open"] .island__label svg {
+  color: #d9d8d4;
+}
+
+.island__close {
+  position: absolute;
+  z-index: 3;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #1f1f22;
+  opacity: 0;
+  pointer-events: none;
+  transition: background-color 160ms ease;
+}
+
+.island__close:hover {
+  background: #2e2e33;
+}
+
+.island[data-mode="open"] .island__close {
+  pointer-events: auto;
 }
 
 .island__label {

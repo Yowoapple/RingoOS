@@ -65,10 +65,11 @@
     <div class="island" id="island" data-mode="idle">
       <button type="button" class="island__pill" id="island-pill" aria-expanded="false" aria-controls="island-panel">
         <span class="island__label" id="island-label">
-          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          記一筆
+          <svg class="island__plus" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <span class="island__label-text">記一筆</span>
         </span>
       </button>
+      <button type="button" class="island__close" id="island-close" aria-label="收起" tabindex="-1"></button>
       <form class="island__panel" id="island-panel" aria-label="快速記一筆">
         <label class="island__row island__amount">
           <span class="island__cur mono">NT$</span>
@@ -118,6 +119,7 @@
         <div class="lab__group">
           <span class="tag">Accent · 簽名色</span>
           <div class="lab__opts">
+            <button type="button" class="lab__opt" data-set="accent" data-value="auto" id="lab-accent-auto">自動</button>
             <button type="button" class="lab__opt" data-set="accent" data-value="apple"><span class="lab__swatch lab__swatch--apple"></span>青蘋果</button>
             <button type="button" class="lab__opt" data-set="accent" data-value="signal"><span class="lab__swatch lab__swatch--signal"></span>信號橘</button>
             <button type="button" class="lab__opt" data-set="accent" data-value="ultramarine"><span class="lab__swatch lab__swatch--ultramarine"></span>群青</button>
