@@ -1,6 +1,7 @@
 import { createMotion } from '../../../src/motion/animator.js';
 import { MotionSettings } from '../../../src/motion/presets.js';
 import { rubberband } from '../../../src/wm/geometry.js';
+import { createGlass } from './glass.js';
 
 const LEAD = { response: 0.26, damping: 0.6 };
 const TRAIL = { response: 0.46, damping: 0.72 };
@@ -32,10 +33,14 @@ export function createSegmented(root, { onChange, onLayout } = {}) {
     const radius = Math.max(0, height / 2 - squash);
     blob.style.clipPath = `inset(${squash}px ${Math.max(0, width - right)}px ${squash}px ${left}px round ${radius}px)`;
     const glassy = document.documentElement.dataset.style === 'a';
-    platter.style.opacity = glassy ? String(1 - g * 0.85) : '';
+    platter.style.opacity = glassy ? '0' : '';
     const center = (left + right) / 2;
-    lens.style.transform = `translate3d(${center - button / 2}px, 0, 0) scale(${1 + LIFT * g})`;
-    lens.style.opacity = String(g);
+    const lift = 1 + LIFT * g;
+    const span = Math.max(1, right - left);
+    const sx = (span / Math.max(1, button)) * lift;
+    const sy = (height > 0 ? (height - squash * 2) / height : 1) * lift;
+    lens.style.transform = `translate3d(${center - (button * sx) / 2}px, 0, 0) scale(${sx}, ${sy})`;
+    lens.style.opacity = glassy ? '1' : '0';
     const centerIndex = (l + r) / 2;
     buttons.forEach((el, i) => {
       const w = Math.max(0, 1 - Math.abs(centerIndex - i));
@@ -95,7 +100,7 @@ export function createSegmented(root, { onChange, onLayout } = {}) {
 
   root.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return;
-    drag = { id: event.pointerId, startX: event.clientX, moved: false, samples: [] };
+    drag = { id: event.pointerId, startX: event.clientX, moved: false, samples: [], hit: buttons.findIndex((el) => el.contains(event.target)) };
     try { root.setPointerCapture(event.pointerId); } catch (err) {}
     if (buttons[index].contains(event.target)) glass.to({ g: 1 }, { response: 0.24, damping: 0.8 });
   });
@@ -120,8 +125,7 @@ export function createSegmented(root, { onChange, onLayout } = {}) {
     try { root.releasePointerCapture(event.pointerId); } catch (err) {}
     glass.to({ g: 0 }, { response: 0.4, damping: 0.85 });
     if (!state.moved) {
-      const hit = buttons.findIndex((el) => el.contains(event.target));
-      if (hit >= 0) select(hit);
+      if (state.hit >= 0) select(state.hit);
       return;
     }
     const samples = state.samples;
@@ -155,11 +159,22 @@ export function createSegmented(root, { onChange, onLayout } = {}) {
 
   new ResizeObserver(measure).observe(root);
   measure();
+  const refraction = createGlass(lens, {
+    variable: '--lens-seg',
+    observe: root,
+    band: 6,
+    strength: 7,
+    measure: () => ({ w: lens.offsetWidth, h: lens.offsetHeight, r: lens.offsetHeight / 2 }),
+  });
 
   return {
     get index() { return index; },
     select,
     measure,
     lens,
+    refreshGlass() {
+      measure();
+      refraction.rebuild();
+    },
   };
 }
