@@ -172,6 +172,21 @@
   color: #8e8d89;
 }
 
+.island__lid {
+  transform-box: fill-box;
+  transform-origin: 100% 100%;
+}
+
+.island__toast-detail {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #b9b8b4;
+}
+
+.island__toast-detail[hidden] {
+  display: none;
+}
+
 .island__toast-text {
   max-width: 11rem;
   overflow: hidden;

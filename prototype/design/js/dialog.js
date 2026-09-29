@@ -80,6 +80,9 @@ export function createDialogHost(host) {
     shape.style.height = `${Math.max(0, h)}px`;
     shape.style.borderRadius = `${from.r + (to.r - from.r) * q}px`;
     shape.style.visibility = t > 0.001 || open ? 'visible' : 'hidden';
+    const blend = clamp(t / 0.35, 0, 1);
+    shape.style.opacity = String(blend);
+    if (origin) origin.style.opacity = blend >= 0.999 ? '0' : String(1 - blend);
   });
   dim.onUpdate(({ d }) => {
     scrim.style.opacity = String(clamp(d, 0, 1));
@@ -159,7 +162,6 @@ export function createDialogHost(host) {
       open = true;
       box.classList.add('is-open');
       scrim.classList.add('is-open');
-      source.style.opacity = '0';
       geo.set({ t: 0.0011 });
       geo.to({ t: 1 }, soft(GROW));
       dim.to({ d: 1 }, soft({ response: 0.32, damping: 1 }));

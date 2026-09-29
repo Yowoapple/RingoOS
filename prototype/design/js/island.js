@@ -42,7 +42,13 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
   const toastEl = root.querySelector('.island__toast');
   const toastText = toastEl.querySelector('.island__toast-text');
   const toastAction = toastEl.querySelector('.island__toast-action');
-  const toastMotions = [toastEl.querySelector('.island__toast-icon'), toastText, toastAction].map(bindRow);
+  const toastDetail = toastEl.querySelector('.island__toast-detail');
+  const lid = toastEl.querySelector('.island__lid');
+  const toastMotions = [toastEl.querySelector('.island__toast-icon'), toastText, toastDetail, toastAction].map(bindRow);
+  const lidMotion = createMotion({ r: 0, y: 0 }, { response: 0.3, damping: 0.6, restDelta: 0.05 });
+  lidMotion.onUpdate(({ r, y }) => {
+    lid.style.transform = Math.abs(r) < 0.05 && Math.abs(y) < 0.05 ? '' : `translate(0, ${y}px) rotate(${r}deg)`;
+  });
   let toastHandler = null;
   let toastTimer = 0;
   let toastDeadline = 0;
@@ -242,7 +248,7 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     toastTimer = window.setTimeout(collapse, ms);
   }
 
-  function toast({ text: message, action, onAction, duration = 4000 }) {
+  function toast({ text: message, detail = '', action, onAction, duration = 4000, icon = 'trash' }) {
     clearTimers();
     measure();
     const from = mode;
@@ -255,6 +261,10 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     morphTo(false, { response: 0.3, damping: 1 });
     if (document.activeElement && root.contains(document.activeElement)) document.activeElement.blur();
     toastText.textContent = message;
+    toastDetail.textContent = detail;
+    toastDetail.hidden = !detail;
+    toastEl.querySelector('.island__toast-icon').style.display = icon ? '' : 'none';
+    lidMotion.set({ r: 0, y: 0 });
     toastAction.textContent = action || '';
     toastAction.hidden = !action;
     toastHandler = onAction || null;
@@ -265,6 +275,11 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     const start = from === 'open' ? 70 : 0;
     later(() => toShape({ w: width, h: size.ah }, WIDE_W, WIDE_H, 30), start);
     rowsIn(toastMotions, start + 140, 40);
+    if (icon === 'trash' && !MotionSettings.reduced) {
+      later(() => lidMotion.to({ r: -34, y: -1.6 }, { response: 0.2, damping: 0.62 }).then((opened) => {
+        if (opened && mode === 'toast') lidMotion.to({ r: 0, y: 0 }, { response: 0.34, damping: 0.38 });
+      }), start + 200);
+    }
     armToast(duration + start);
   }
 

@@ -10,6 +10,7 @@ import { createIsland } from './island.js';
 import { pressable } from './motion-kit.js';
 import { createRowList } from './rows.js';
 import { createDialogHost } from './dialog.js';
+import { createDatePicker } from './datepicker.js';
 import { startPerfMeter } from './perf.js';
 import { Fx } from './fx-tier.js';
 import { createSettings } from './settings.js';
@@ -97,10 +98,62 @@ function pad(n) {
   return String(n).padStart(2, '0');
 }
 
+const WEEKDAY = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+let entryDate = null;
+let dateSwap = null;
+let todayPop = null;
+
+function todayStart() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function isToday(date) {
+  return !date || date.getTime() === todayStart().getTime();
+}
+
+function renderEntryDate() {
+  const tag = $('entry-date');
+  const date = entryDate || todayStart();
+  const text = `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${WEEKDAY[date.getDay()]}`;
+  const past = !isToday(entryDate);
+  tag.classList.toggle('is-past', past);
+  if (!dateSwap) {
+    dateSwap = createMotion({ e: 1 }, { response: 0.3, damping: 1, restDelta: 0.002 });
+    dateSwap.onUpdate(({ e }) => {
+      const t = Math.max(0, Math.min(1, e));
+      tag.style.opacity = t > 0.999 ? '' : String(t);
+      tag.style.filter = t < 0.98 && Fx.tier !== 'solid' ? `blur(${((1 - t) * 3).toFixed(2)}px)` : '';
+    });
+  }
+  if (!tag.textContent || MotionSettings.reduced) tag.textContent = text;
+  else if (tag.textContent !== text) {
+    dateSwap.to({ e: 0 }, { response: 0.14, damping: 1 }).then(() => {
+      tag.textContent = text;
+      dateSwap.to({ e: 1 }, { response: 0.34, damping: 0.8 });
+    });
+  }
+  const button = $('entry-today');
+  if (!todayPop) {
+    todayPop = createMotion({ s: 0 }, { response: 0.36, damping: 0.55, restDelta: 0.002 });
+    todayPop.onUpdate(({ s }) => {
+      const t = Math.max(0, s);
+      button.style.opacity = String(Math.min(1, t));
+      button.style.transform = `scale(${0.6 + 0.4 * t})`;
+      if (t < 0.01 && !past) button.hidden = true;
+    });
+  }
+  if (past) {
+    button.hidden = false;
+    todayPop.to({ s: 1 }, MotionSettings.reduced ? MotionSettings.spring('focus') : { response: 0.36, damping: 0.55 });
+  } else if (!button.hidden) {
+    todayPop.to({ s: 0 }, { response: 0.2, damping: 1 });
+  }
+}
+
 function renderDates() {
   const now = new Date();
-  const day = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][now.getDay()];
-  $('entry-date').textContent = `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${day}`;
+  renderEntryDate();
   $('overview-month').textContent = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
   const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   $('overview-range').textContent = `${pad(now.getMonth() + 1)}.01 — ${pad(now.getMonth() + 1)}.${pad(last)}`;
@@ -326,7 +379,8 @@ function handleDelete(row, index, { silent } = {}) {
   applyToLedger(row, -1);
   if (rowList.size === 0) showView('empty');
   if (silent) return;
-  island.toast({ text: `已刪除 · ${row.note || row.category}`, action: '復原', onAction: () => restoreRow(row, index) });
+  const sign = row.type === 'income' ? '+' : '−';
+  island.toast({ text: `已刪除 ${row.category}`, detail: `${sign}${formatAmount(row.amount)}`, action: '復原', onAction: () => restoreRow(row, index) });
 }
 
 function restoreRow(row, index) {
@@ -443,7 +497,7 @@ $('entry-retry').addEventListener('click', () => simulateLoad('ok'));
 $('set-clear').addEventListener('click', async () => {
   const count = rowList.size;
   if (!count) {
-    island.toast({ text: '今天沒有可以清除的紀錄' });
+    island.toast({ text: '今天沒有可以清除的紀錄', icon: '' });
     return;
   }
   const ok = await dialogs.confirm({
@@ -464,13 +518,47 @@ $('set-clear').addEventListener('click', async () => {
   });
 });
 
+function recordPast({ type, amount, category, date }) {
+  const diff = Math.round((todayStart() - date) / 86400000);
+  const sameMonth = date.getMonth() === todayStart().getMonth() && date.getFullYear() === todayStart().getFullYear();
+  if (type === 'expense') {
+    if (sameMonth) {
+      ledger.expense += amount;
+      expenseOdo.set(ledger.expense);
+      renderOverview();
+    }
+    if (diff > 0 && diff <= TODAY_INDEX) chart.add(TODAY_INDEX - diff, amount);
+  }
+  island.celebrate({ label: `已補記 · ${date.getMonth() + 1}/${date.getDate()} ${category}`, amount, income: type === 'income' });
+}
+
+const datePicker = createDatePicker({
+  trigger: $('entry-date'),
+  host: $('desk'),
+  value: todayStart(),
+  onChange(date) {
+    entryDate = isToday(date) ? null : date;
+    renderEntryDate();
+  },
+});
+
+$('entry-today').addEventListener('click', () => {
+  entryDate = null;
+  datePicker.set(todayStart());
+  renderEntryDate();
+});
+
 function syncReminders(count) {
   menubar.setReminders(count);
   desktop.setBadge('calendar', count);
 }
 
-function addEntry({ type, amount, category, note }) {
+function addEntry({ type, amount, category, note, backfill = false }) {
   const now = new Date();
+  if (backfill && !isToday(entryDate)) {
+    recordPast({ type, amount, category, date: entryDate });
+    return;
+  }
   const row = { time: `${pad(now.getHours())}:${pad(now.getMinutes())}`, category, note, amount, type };
   if (stageView !== 'rows') showView('rows');
   rowList.prepend(row);
@@ -508,6 +596,7 @@ $('entry-add').addEventListener('click', () => {
     amount,
     category: pickedChip(document.querySelector('[data-chips="entry"]')),
     note: $('entry-note').value.trim(),
+    backfill: true,
   });
   input.value = '';
   $('entry-note').value = '';
