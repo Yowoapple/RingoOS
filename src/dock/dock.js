@@ -16,7 +16,8 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
   label.setAttribute('aria-hidden', 'true');
   root.append(bg, itemsEl, label);
 
-  let layout = LAYOUTS.desktop;
+  const layouts = { desktop: { ...LAYOUTS.desktop }, phone: { ...LAYOUTS.phone } };
+  let layout = layouts.desktop;
   let mode = 'launcher';
   let pointerX = null;
   let anchor = { x: 0, y: 0 };
@@ -218,7 +219,7 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
     button.addEventListener('pointerleave', release);
     button.addEventListener('click', () => onActivate(app.id));
     button.addEventListener('pointerenter', () => {
-      if (layout === LAYOUTS.phone) return;
+      if (layout === layouts.phone) return;
       label.textContent = app.title;
       const rect = getIconRect(app.id);
       const rootTop = anchor.y - layout.size - layout.pad;
@@ -258,7 +259,7 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
       syncState();
     },
     setLayout(name) {
-      layout = LAYOUTS[name] || LAYOUTS.desktop;
+      layout = layouts[name] || layouts.desktop;
       root.dataset.layout = name;
       root.style.setProperty('--dock-size', `${layout.size}px`);
       root.style.setProperty('--dock-pad', `${layout.pad}px`);
@@ -280,6 +281,11 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
     },
     reveal(id) {
       if (mode === 'minimized') motion.to({ [`${id}.p`]: 1 }, MotionSettings.spring('dock'));
+    },
+    get magnify() { return layouts.desktop.magnify; },
+    setMagnify(value) {
+      layouts.desktop.magnify = Math.min(2.2, Math.max(1, value));
+      magnifyTargets();
     },
     get autoHide() { return autoHide; },
     setAutoHide(value) {
