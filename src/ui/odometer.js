@@ -1,5 +1,5 @@
-import { createMotion } from '../../../src/motion/animator.js';
-import { MotionSettings } from '../../../src/motion/presets.js';
+import { createMotion } from '../motion/animator.js';
+import { MotionSettings } from '../motion/presets.js';
 
 const DIGITS = '0123456789';
 const REST = 0.0005;

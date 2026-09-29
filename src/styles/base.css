@@ -1,0 +1,133 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 130%;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--desk-mono);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tag {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.desk {
+  position: fixed;
+  inset: 0;
+}
+
+.wall {
+  position: absolute;
+  inset: 0;
+  background: var(--desk-mono);
+}
+
+.wall::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+:root[data-wall="aurora"] .wall {
+  background:
+    radial-gradient(55% 48% at 12% 8%, #b3adf6 0%, transparent 62%),
+    radial-gradient(48% 44% at 88% 16%, #9fd3ee 0%, transparent 60%),
+    radial-gradient(62% 52% at 28% 82%, #d8cdf4 0%, transparent 64%),
+    radial-gradient(52% 50% at 82% 88%, #b9d6ee 0%, transparent 62%),
+    linear-gradient(160deg, #e8e5f7 0%, #dfe8f4 100%);
+}
+
+:root[data-theme="dark"][data-wall="aurora"] .wall {
+  background:
+    radial-gradient(55% 48% at 12% 8%, #3b2f96 0%, transparent 62%),
+    radial-gradient(48% 44% at 88% 16%, #0f4c6a 0%, transparent 60%),
+    radial-gradient(62% 52% at 28% 82%, #2c1f55 0%, transparent 64%),
+    radial-gradient(52% 50% at 82% 88%, #123a55 0%, transparent 62%),
+    linear-gradient(160deg, #111024 0%, #0b1420 100%);
+}
+
+:root[data-wall="photo"] .wall {
+  background: var(--wall-photo, var(--desk-mono)) center / cover no-repeat;
+}
+
+.chrome {
+  position: relative;
+}
+
+:root[data-style="a"] .chrome {
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: var(--fx-glass);
+  backdrop-filter: var(--fx-glass);
+  box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-rim-soft), 0 10px 30px var(--glass-shade);
+}
+
+:root[data-style="a"] .chrome::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--glass-rim) 0%, transparent 38%, transparent 62%, var(--glass-rim-soft) 100%);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+:root[data-style="c"] .chrome {
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--line), 0 10px 30px rgba(14, 14, 16, 0.06);
+}

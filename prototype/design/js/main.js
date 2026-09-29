@@ -1,22 +1,22 @@
 import '@fontsource-variable/geist-mono';
 import { createMotion, Animator } from '../../../src/motion/animator.js';
 import { MotionSettings } from '../../../src/motion/presets.js';
-import { APPS, renderIcon } from './icons.js';
-import { createSegmented } from './segmented.js';
-import { createOdometer, formatAmount } from './odometer.js';
-import { createBarChart } from './chart.js';
-import { createNotices } from './notices.js';
-import { createIsland } from './island.js';
-import { pressable } from './motion-kit.js';
-import { createRowList } from './rows.js';
-import { createDialogHost } from './dialog.js';
-import { createDatePicker } from './datepicker.js';
+import { APPS, renderIcon } from '../../../src/ui/icons.js';
+import { createSegmented } from '../../../src/ui/segmented.js';
+import { createOdometer, formatAmount } from '../../../src/ui/odometer.js';
+import { createBarChart } from '../../../src/ui/chart.js';
+import { createNotices } from '../../../src/ui/notices.js';
+import { createIsland } from '../../../src/ui/island.js';
+import { pressable } from '../../../src/ui/motion-kit.js';
+import { createRowList } from '../../../src/ui/rows.js';
+import { createDialogHost } from '../../../src/ui/dialog.js';
+import { createDatePicker } from '../../../src/ui/datepicker.js';
 import { startPerfMeter } from './perf.js';
-import { Fx } from './fx-tier.js';
-import { createSettings } from './settings.js';
-import { createLabDesktop } from './desktop.js';
-import { createMenubar } from './menubar.js';
-import { baseThickness, sampleGlassThickness, presetAccent, wallpaperAccent } from './wall-tone.js';
+import { Fx } from '../../../src/ui/fx-tier.js';
+import { createSettings } from '../../../src/shell/settings.js';
+import { createLabDesktop } from '../../../src/shell/desktop.js';
+import { createMenubar } from '../../../src/shell/menubar.js';
+import { baseThickness, sampleGlassThickness, presetAccent, wallpaperAccent } from '../../../src/ui/wall-tone.js';
 
 function usePreset(name) {
   MotionSettings.usePreset(name);

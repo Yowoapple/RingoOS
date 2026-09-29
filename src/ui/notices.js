@@ -1,5 +1,5 @@
-import { createMotion } from '../../../src/motion/animator.js';
-import { MotionSettings } from '../../../src/motion/presets.js';
+import { createMotion } from '../motion/animator.js';
+import { MotionSettings } from '../motion/presets.js';
 
 const LIFETIME = 7000;
 const MAX = 3;

@@ -1,4 +1,4 @@
-import { Animator } from '../../../src/motion/animator.js';
+import { Animator } from '../motion/animator.js';
 
 const KEY = 'yoworingo.fx';
 const ORDER = ['full', 'lite', 'solid'];

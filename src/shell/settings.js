@@ -1,8 +1,8 @@
-import { createMotion } from '../../../src/motion/animator.js';
-import { MotionSettings } from '../../../src/motion/presets.js';
-import { createSegmented } from './segmented.js';
-import { createToggle, createSlider, createSelect, createField } from './controls.js';
-import { Fx } from './fx-tier.js';
+import { createMotion } from '../motion/animator.js';
+import { MotionSettings } from '../motion/presets.js';
+import { createSegmented } from '../ui/segmented.js';
+import { createToggle, createSlider, createSelect, createField } from '../ui/controls.js';
+import { Fx } from '../ui/fx-tier.js';
 
 const LEAD = { response: 0.26, damping: 0.6 };
 const TRAIL = { response: 0.46, damping: 0.72 };

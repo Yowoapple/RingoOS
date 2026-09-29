@@ -1,7 +1,7 @@
-import { createMotion } from '../../../src/motion/animator.js';
-import { MotionSettings } from '../../../src/motion/presets.js';
-import { Fx } from './fx-tier.js';
-import { createOdometer } from './odometer.js';
+import { createMotion } from '../motion/animator.js';
+import { MotionSettings } from '../motion/presets.js';
+import { Fx } from '../ui/fx-tier.js';
+import { createOdometer } from '../ui/odometer.js';
 
 const LEAD = { response: 0.26, damping: 0.6 };
 const TRAIL = { response: 0.46, damping: 0.72 };

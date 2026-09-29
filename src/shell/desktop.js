@@ -1,9 +1,9 @@
-import { createMotion } from '../../../src/motion/animator.js';
-import { MotionSettings } from '../../../src/motion/presets.js';
-import { Fx } from './fx-tier.js';
-import { createWindowStore } from '../../../src/wm/store.js';
-import { createWindowManager } from '../../../src/wm/window-manager.js';
-import { createDock } from '../../../src/dock/dock.js';
+import { createMotion } from '../motion/animator.js';
+import { MotionSettings } from '../motion/presets.js';
+import { Fx } from '../ui/fx-tier.js';
+import { createWindowStore } from '../wm/store.js';
+import { createWindowManager } from '../wm/window-manager.js';
+import { createDock } from '../dock/dock.js';
 
 const CONTROL_GLYPHS = {
   close: '<path d="M4.15 4.15l3.7 3.7M7.85 4.15l-3.7 3.7" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" fill="none"/>',

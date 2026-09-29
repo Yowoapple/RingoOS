@@ -1,6 +1,6 @@
-import { createMotion } from '../../../src/motion/animator.js';
-import { MotionSettings } from '../../../src/motion/presets.js';
-import { rubberband } from '../../../src/wm/geometry.js';
+import { createMotion } from '../motion/animator.js';
+import { MotionSettings } from '../motion/presets.js';
+import { rubberband } from '../wm/geometry.js';
 import { createOdometer } from './odometer.js';
 import { Fx } from './fx-tier.js';
 import { createGlass } from './glass.js';
