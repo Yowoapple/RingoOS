@@ -165,6 +165,16 @@
   display: none;
 }
 
+.wm-backdrop-dim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+
 .wm--phone .wm-area {
   inset: var(--wm-area-top, 30px) 0 0 0;
 }

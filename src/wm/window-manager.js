@@ -21,6 +21,7 @@ const PHONE_BREAKPOINT = 768;
 const WINDOW_RADIUS = { desktop: 12, phone: 0 };
 const ICON_RADIUS_RATIO = 0.225;
 const VELOCITY_WINDOW = 90;
+const BACKDROP_DIM = 0.08;
 
 function capture(el, pointerId) {
   try {
@@ -67,10 +68,17 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
     preview.style.opacity = String(clamp(v.o, 0, 1));
   });
 
+  let dimEl = null;
+  if (backdropEl) {
+    dimEl = document.createElement('div');
+    dimEl.className = 'wm-backdrop-dim';
+    dimEl.setAttribute('aria-hidden', 'true');
+    backdropEl.appendChild(dimEl);
+  }
+
   backdrop.onUpdate(({ b }) => {
-    if (!backdropEl) return;
-    backdropEl.style.transform = b > 0.001 ? `scale(${1 - 0.03 * b})` : '';
-    backdropEl.style.filter = b > 0.001 ? `blur(${(8 * b).toFixed(2)}px)` : '';
+    if (!dimEl) return;
+    dimEl.style.opacity = b > 0.001 ? (BACKDROP_DIM * b).toFixed(4) : '';
   });
 
   function measureArea() {
