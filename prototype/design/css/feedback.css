@@ -150,8 +150,8 @@
   height: 2.15rem;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0 0.35rem 0 0.8rem;
+  gap: 0.5rem;
+  padding: 0 0.35rem;
   white-space: nowrap;
   pointer-events: none;
 }
@@ -160,40 +160,110 @@
   pointer-events: auto;
 }
 
-.island__toast > * {
+.island__toast > .island__toast-text,
+.island__toast > .island__toast-note,
+.island__toast > .island__toast-amount,
+.island__toast > .island__toast-action {
   opacity: 0;
   will-change: transform, opacity;
 }
 
-.island__toast-icon {
+.island__undo {
   flex: none;
-  width: 0.9rem;
-  height: 0.9rem;
-  color: #8e8d89;
+  width: 1.45rem;
+  height: 1.45rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  opacity: 0;
+  will-change: transform, opacity;
 }
 
-.island__lid {
-  transform-box: fill-box;
-  transform-origin: 100% 100%;
+.island__undo[hidden] {
+  display: none;
 }
 
-.island__toast-detail {
+.island__undo svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.island__undo-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 2;
+}
+
+.island__undo-ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.island__undo-arrow {
+  fill: none;
+  stroke: #f2f1ed;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.island__undo:focus-visible {
+  outline: 2px solid #f2f1ed;
+  outline-offset: 2px;
+}
+
+.island__toast-text {
+  flex: 1;
   font-size: 0.72rem;
+  font-weight: 700;
+  color: #f2f1ed;
+}
+
+.island__undo[hidden] + .island__toast-text {
+  padding-left: 0.6rem;
+}
+
+.island__toast-note {
+  font-size: 0.8rem;
   font-weight: 600;
   color: #b9b8b4;
 }
 
-.island__toast-detail[hidden] {
+.island__toast-note[hidden],
+.island__toast-amount[hidden] {
   display: none;
 }
 
-.island__toast-text {
-  max-width: 11rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.72rem;
-  font-weight: 700;
+.island__toast-amount {
+  position: relative;
+  display: inline-flex;
+  font-size: 0.95rem;
+  font-weight: 600;
   color: #f2f1ed;
+  transition: color 260ms ease;
+}
+
+.island__toast-amount.is-struck {
+  color: #7d7c78;
+}
+
+.island__strike {
+  position: absolute;
+  left: -0.12rem;
+  right: -0.12rem;
+  top: 52%;
+  height: 1.5px;
+  border-radius: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
 }
 
 .island__toast-action {
@@ -216,7 +286,6 @@
   outline: 2px solid #f2f1ed;
   outline-offset: 2px;
 }
-
 .btn--danger-fill {
   background: var(--danger);
   color: #fff;

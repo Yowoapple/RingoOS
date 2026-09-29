@@ -379,8 +379,7 @@ function handleDelete(row, index, { silent } = {}) {
   applyToLedger(row, -1);
   if (rowList.size === 0) showView('empty');
   if (silent) return;
-  const sign = row.type === 'income' ? '+' : '−';
-  island.toast({ text: `已刪除 ${row.category}`, detail: `${sign}${formatAmount(row.amount)}`, action: '復原', onAction: () => restoreRow(row, index) });
+  island.toast({ text: `已刪除 · ${row.category}`, amount: row.amount, income: row.type === 'income', action: '復原', onAction: () => restoreRow(row, index) });
 }
 
 function restoreRow(row, index) {
@@ -497,7 +496,7 @@ $('entry-retry').addEventListener('click', () => simulateLoad('ok'));
 $('set-clear').addEventListener('click', async () => {
   const count = rowList.size;
   if (!count) {
-    island.toast({ text: '今天沒有可以清除的紀錄', icon: '' });
+    island.toast({ text: '今天沒有可以清除的紀錄' });
     return;
   }
   const ok = await dialogs.confirm({
@@ -511,7 +510,8 @@ $('set-clear').addEventListener('click', async () => {
   const snapshot = ledger.rows.slice();
   rowList.removeAll().then(() => {
     island.toast({
-      text: `已清除 ${count} 筆紀錄`,
+      text: '已清除',
+      note: `${count} 筆`,
       action: '復原',
       onAction: () => snapshot.forEach((row, i) => window.setTimeout(() => restoreRow(row, i), MotionSettings.reduced ? 0 : i * 60)),
     });

@@ -42,17 +42,43 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
   const toastEl = root.querySelector('.island__toast');
   const toastText = toastEl.querySelector('.island__toast-text');
   const toastAction = toastEl.querySelector('.island__toast-action');
-  const toastDetail = toastEl.querySelector('.island__toast-detail');
-  const lid = toastEl.querySelector('.island__lid');
-  const toastMotions = [toastEl.querySelector('.island__toast-icon'), toastText, toastDetail, toastAction].map(bindRow);
-  const lidMotion = createMotion({ r: 0, y: 0 }, { response: 0.3, damping: 0.6, restDelta: 0.05 });
-  lidMotion.onUpdate(({ r, y }) => {
-    lid.style.transform = Math.abs(r) < 0.05 && Math.abs(y) < 0.05 ? '' : `translate(0, ${y}px) rotate(${r}deg)`;
+  const undoBadge = toastEl.querySelector('.island__undo');
+  const undoRing = toastEl.querySelector('.island__undo-ring');
+  const undoArrow = toastEl.querySelector('.island__undo-arrow');
+  const toastAmount = toastEl.querySelector('.island__toast-amount');
+  const toastStrike = toastEl.querySelector('.island__strike');
+  const toastNote = toastEl.querySelector('.island__toast-note');
+  let toastSign = '−';
+  const toastOdometer = createOdometer(toastAmount.querySelector('.odo-host'), { value: 0, format: (value) => `${toastSign}${formatAmount(value)}` });
+  const toastMotions = [toastText, toastAmount, toastNote, toastAction].map(bindRow);
+  const undoMotion = createMotion({ s: 0, a: 0, k: 0 }, { response: 0.34, damping: 0.6, restDelta: 0.002 });
+  undoMotion.onUpdate(({ s, a, k }) => {
+    undoBadge.style.transform = `scale(${Math.max(0, s)})`;
+    undoBadge.style.opacity = String(Math.max(0, Math.min(1, s * 1.5)));
+    undoArrow.style.strokeDashoffset = String(1 - Math.max(0, Math.min(1, a)));
+    toastStrike.style.transform = `scaleX(${Math.max(0, Math.min(1, k))})`;
+    toastAmount.classList.toggle('is-struck', k > 0.5);
   });
   let toastHandler = null;
   let toastTimer = 0;
   let toastDeadline = 0;
   let toastRemaining = 0;
+  let toastTotal = 1;
+  let countdownFrame = 0;
+
+  function paintCountdown() {
+    const left = mode === 'toast' ? Math.max(0, Math.min(1, toastRemaining / toastTotal)) : 0;
+    undoRing.style.strokeDasharray = `${left.toFixed(4)} 1`;
+    undoRing.style.strokeDashoffset = String(-(1 - left));
+  }
+
+  function tickCountdown() {
+    countdownFrame = 0;
+    if (mode !== 'toast') return;
+    if (toastDeadline) toastRemaining = Math.max(0, toastDeadline - performance.now());
+    paintCountdown();
+    if (toastDeadline) countdownFrame = window.requestAnimationFrame(tickCountdown);
+  }
 
   let mode = 'idle';
   let hovering = false;
@@ -208,6 +234,9 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
   function hideActivity() {
     rowsOut(activityMotions);
     rowsOut(toastMotions);
+    undoMotion.to({ s: 0, a: 0, k: 0 }, spring({ response: 0.16, damping: 1 }));
+    toastDeadline = 0;
+    toastHandler = null;
     done.to({ ring: 0, fill: 0, tick: 0 }, spring({ response: 0.18, damping: 1 }));
   }
 
@@ -246,9 +275,17 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     toastRemaining = ms;
     toastDeadline = performance.now() + ms;
     toastTimer = window.setTimeout(collapse, ms);
+    if (!countdownFrame) countdownFrame = window.requestAnimationFrame(tickCountdown);
   }
 
-  function toast({ text: message, detail = '', action, onAction, duration = 4000, icon = 'trash' }) {
+  function pauseToast() {
+    toastRemaining = Math.max(0, toastDeadline - performance.now());
+    toastDeadline = 0;
+    window.clearTimeout(toastTimer);
+    paintCountdown();
+  }
+
+  function toast({ text: message, amount = null, income = false, note = '', action, onAction, duration = 4000 }) {
     clearTimers();
     measure();
     const from = mode;
@@ -261,26 +298,34 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     morphTo(false, { response: 0.3, damping: 1 });
     if (document.activeElement && root.contains(document.activeElement)) document.activeElement.blur();
     toastText.textContent = message;
-    toastDetail.textContent = detail;
-    toastDetail.hidden = !detail;
-    toastEl.querySelector('.island__toast-icon').style.display = icon ? '' : 'none';
-    lidMotion.set({ r: 0, y: 0 });
+    toastAmount.hidden = amount === null;
+    toastNote.hidden = !note;
+    toastNote.textContent = note;
+    toastSign = income ? '+' : '−';
+    if (amount !== null) toastOdometer.set(amount, { from: amount });
+    const undoable = !!action;
+    undoBadge.hidden = !undoable;
+    undoBadge.disabled = !undoable;
     toastAction.textContent = action || '';
-    toastAction.hidden = !action;
+    toastAction.hidden = !undoable;
     toastHandler = onAction || null;
+    undoMotion.set({ s: 0, a: 0, k: 0 });
+    toastTotal = duration;
+    toastRemaining = duration;
+    paintCountdown();
     toastEl.style.width = 'auto';
-    const width = Math.min(size.W, Math.ceil(toastEl.scrollWidth));
+    const width = Math.min(size.W, Math.max(size.aw, Math.ceil(toastEl.scrollWidth)));
     toastEl.style.width = `${width}px`;
     toastEl.style.marginLeft = `${-width / 2}px`;
     const start = from === 'open' ? 70 : 0;
     later(() => toShape({ w: width, h: size.ah }, WIDE_W, WIDE_H, 30), start);
-    rowsIn(toastMotions, start + 140, 40);
-    if (icon === 'trash' && !MotionSettings.reduced) {
-      later(() => lidMotion.to({ r: -34, y: -1.6 }, { response: 0.2, damping: 0.62 }).then((opened) => {
-        if (opened && mode === 'toast') lidMotion.to({ r: 0, y: 0 }, { response: 0.34, damping: 0.38 });
-      }), start + 200);
+    if (undoable) {
+      later(() => undoMotion.to({ s: 1 }, spring({ response: 0.34, damping: 0.55 })), start + 120);
+      later(() => undoMotion.to({ a: 1 }, spring({ response: 0.3, damping: 1 })), start + 260);
     }
-    armToast(duration + start);
+    rowsIn(toastMotions, start + 150, 50);
+    if (amount !== null) later(() => undoMotion.to({ k: 1 }, spring({ response: 0.32, damping: 1 })), start + 480);
+    later(() => armToast(duration), start + 300);
   }
 
   function celebrate({ label: message, amount, income }) {
@@ -346,19 +391,19 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     if (mode !== 'open') open();
   });
   closeButton.addEventListener('click', collapse);
-  toastAction.addEventListener('click', () => {
+  const runUndo = () => {
     const handler = toastHandler;
     toastHandler = null;
     collapse();
     if (handler) handler();
-  });
+  };
+  toastAction.addEventListener('click', runUndo);
+  undoBadge.addEventListener('click', runUndo);
   root.addEventListener('pointerenter', () => {
-    if (mode !== 'toast') return;
-    toastRemaining = Math.max(600, toastDeadline - performance.now());
-    window.clearTimeout(toastTimer);
+    if (mode === 'toast' && toastDeadline) pauseToast();
   });
   root.addEventListener('pointerleave', () => {
-    if (mode === 'toast') armToast(toastRemaining);
+    if (mode === 'toast' && !toastDeadline) armToast(Math.max(600, toastRemaining));
   });
 
   document.addEventListener('keydown', (event) => {
