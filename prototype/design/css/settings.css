@@ -347,13 +347,3 @@
     transition: none;
   }
 }
-
-:root[data-fix-kick="on"][data-style="a"][data-fx="full"] .wm-window[data-app-id="settings"].fx-kick .wm-window__frame::before {
-  -webkit-backdrop-filter: blur(21.9px) saturate(1.9);
-  backdrop-filter: blur(21.9px) saturate(1.9);
-}
-
-:root[data-fix-layer="on"] .wm-window[data-app-id="settings"] .wm-window__frame::before {
-  will-change: transform;
-  transform: translateZ(0);
-}

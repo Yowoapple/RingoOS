@@ -329,30 +329,6 @@ $('lab-blur').addEventListener('click', () => {
   $('lab-blur').textContent = off ? '模糊 關' : '模糊 開';
 });
 
-function bindFix(id, key, label) {
-  $(id).addEventListener('click', () => {
-    const on = root.dataset[key] !== 'on';
-    if (on) root.dataset[key] = 'on';
-    else delete root.dataset[key];
-    $(id).setAttribute('aria-pressed', String(on));
-    $(id).textContent = `${label} ${on ? '開' : '關'}`;
-  });
-}
-
-bindFix('lab-fix-kick', 'fixKick', '修正 A');
-bindFix('lab-fix-layer', 'fixLayer', '修正 B');
-
-const settingsWin = document.querySelector('.wm-window[data-app-id="settings"]');
-let kickTimer = 0;
-new MutationObserver(() => {
-  if (settingsWin.classList.contains('is-morphing') || root.dataset.fixKick !== 'on') return;
-  window.clearTimeout(kickTimer);
-  kickTimer = window.setTimeout(() => {
-    settingsWin.classList.add('fx-kick');
-    requestAnimationFrame(() => requestAnimationFrame(() => settingsWin.classList.remove('fx-kick')));
-  }, 320);
-}).observe(settingsWin, { attributes: true, attributeFilter: ['class'] });
-
 function syncFxButtons() {
   const names = { full: '完整', lite: '精簡', solid: '實色' };
   document.querySelectorAll('[data-fx-choice]').forEach((button) => {
