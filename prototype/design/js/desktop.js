@@ -1,5 +1,6 @@
 import { createMotion } from '../../../src/motion/animator.js';
 import { MotionSettings } from '../../../src/motion/presets.js';
+import { Fx } from './fx-tier.js';
 import { createWindowStore } from '../../../src/wm/store.js';
 import { createWindowManager } from '../../../src/wm/window-manager.js';
 import { createDock } from '../../../src/dock/dock.js';
@@ -19,7 +20,6 @@ const TIP_MOVE = { response: 0.3, damping: 0.8 };
 const TIP_MORPH = { response: 0.34, damping: 0.7 };
 const DOCK_SIZE = 54;
 const DOCK_PAD = 10;
-const DOCK_MAGNIFY = 1.55;
 
 function rem() {
   return parseFloat(getComputedStyle(document.documentElement).fontSize) || 20.8;
@@ -135,7 +135,7 @@ function createDockTip({ dockEl, dock, apps, host }) {
 
   function measureY() {
     const bottom = dockEl.getBoundingClientRect().bottom;
-    baseY = bottom - DOCK_PAD - DOCK_SIZE * DOCK_MAGNIFY - 0.5 * rem() - tip.offsetHeight;
+    baseY = bottom - DOCK_PAD - DOCK_SIZE * dock.magnify - 0.5 * rem() - tip.offsetHeight;
   }
 
   motion.onUpdate(({ x, w, o, s, e }) => {
@@ -146,7 +146,7 @@ function createDockTip({ dockEl, dock, apps, host }) {
     tip.style.transform = `translate3d(${x - width / 2}px, ${baseY + (1 - shown) * 5}px, 0) scale(${s})`;
     const t = Math.max(0, Math.min(1, e));
     text.style.opacity = String(t);
-    text.style.filter = t < 0.98 ? `blur(${((1 - t) * 4).toFixed(2)}px)` : '';
+    text.style.filter = t < 0.98 && Fx.tier !== 'solid' ? `blur(${((1 - t) * 4).toFixed(2)}px)` : '';
   });
 
   function show(id) {

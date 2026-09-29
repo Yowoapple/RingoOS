@@ -182,3 +182,26 @@
   --ico-tile-lo: #222227;
   --ico-edge: rgba(255, 255, 255, 0.12);
 }
+
+:root {
+  --fx-glass: blur(22px) saturate(1.9);
+  --fx-glass-strong: blur(30px) saturate(1.9);
+  --glass-solid: rgba(248, 248, 246, 0.97);
+}
+:root[data-theme="dark"] {
+  --glass-solid: rgba(30, 30, 35, 0.97);
+}
+:root[data-fx="lite"] {
+  --fx-glass: blur(10px) saturate(1.6);
+  --fx-glass-strong: blur(14px) saturate(1.6);
+}
+:root[data-fx="solid"] {
+  --fx-glass: none;
+  --fx-glass-strong: none;
+}
+:root {
+  --danger: #d92d2d;
+}
+:root[data-theme="dark"] {
+  --danger: #ff6b6b;
+}

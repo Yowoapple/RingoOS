@@ -1,5 +1,6 @@
 import { createMotion } from '../../../src/motion/animator.js';
 import { MotionSettings } from '../../../src/motion/presets.js';
+import { Fx } from './fx-tier.js';
 import { createOdometer, formatAmount } from './odometer.js';
 
 const OPEN_W = { response: 0.42, damping: 0.6 };
@@ -58,7 +59,7 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     const blur = Math.max(0, (1 - Math.min(1, t)) * 5);
     el.style.opacity = String(Math.min(1, t));
     el.style.transform = `translate3d(0, ${(1 - t) * 6}px, 0) scale(${0.9 + 0.1 * t})`;
-    el.style.filter = blur > 0.1 ? `blur(${blur.toFixed(2)}px)` : '';
+    el.style.filter = blur > 0.1 && Fx.tier !== 'solid' ? `blur(${blur.toFixed(2)}px)` : '';
   }
 
   function measure() {
@@ -252,7 +253,7 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
   morph.onUpdate(paintMorph);
   labelMotion.onUpdate(({ e }) => {
     label.style.opacity = String(Math.max(0, Math.min(1, e)));
-    label.style.filter = e < 0.98 && e > 0.02 && mode === 'activity' ? `blur(${((1 - e) * 4).toFixed(2)}px)` : '';
+    label.style.filter = e < 0.98 && e > 0.02 && mode === 'activity' && Fx.tier !== 'solid' ? `blur(${((1 - e) * 4).toFixed(2)}px)` : '';
   });
   done.onUpdate(({ ring: r, fill: f, tick: t, spin }) => {
     const clamp = (value) => Math.max(0, Math.min(1, value));

@@ -1,5 +1,6 @@
 import { createMotion } from '../../../src/motion/animator.js';
 import { MotionSettings } from '../../../src/motion/presets.js';
+import { Fx } from './fx-tier.js';
 import { createOdometer } from './odometer.js';
 
 const LEAD = { response: 0.26, damping: 0.6 };
@@ -96,7 +97,7 @@ function createAppTitle(el) {
   motion.onUpdate(({ e }) => {
     const t = Math.max(0, Math.min(1, e));
     el.style.opacity = String(t);
-    el.style.filter = t < 0.98 ? `blur(${((1 - t) * 5).toFixed(2)}px)` : '';
+    el.style.filter = t < 0.98 && Fx.tier !== 'solid' ? `blur(${((1 - t) * 5).toFixed(2)}px)` : '';
     el.style.transform = t < 0.999 ? `translate3d(0, ${direction * (1 - t) * 6}px, 0) scale(${0.94 + 0.06 * t})` : '';
   });
 
@@ -151,7 +152,7 @@ function createRadio(wrap, onLayout) {
     wrap.style.width = `${Math.max(0, w)}px`;
     const t = Math.max(0, Math.min(1, e));
     inner.style.opacity = String(t);
-    inner.style.filter = t < 0.98 ? `blur(${((1 - t) * 4).toFixed(2)}px)` : '';
+    inner.style.filter = t < 0.98 && Fx.tier !== 'solid' ? `blur(${((1 - t) * 4).toFixed(2)}px)` : '';
     onLayout();
   });
 
