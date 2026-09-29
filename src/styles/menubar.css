@@ -97,6 +97,10 @@
   transition: color 160ms ease;
 }
 
+.mb-item[hidden] {
+  display: none;
+}
+
 .mb-item:hover,
 .mb-item:focus-visible {
   color: var(--ink);

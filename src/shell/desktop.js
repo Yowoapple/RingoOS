@@ -203,7 +203,7 @@ function createDockTip({ dockEl, dock, apps, host }) {
   window.addEventListener('resize', hide);
 }
 
-export function createLabDesktop({ desk, areaEl, dockEl, wallEl, apps, renderIcon }) {
+export function createDesktop({ desk, areaEl, dockEl, wallEl, apps, renderIcon }) {
   const store = createWindowStore();
   let wm = null;
   const dock = createDock({
@@ -254,3 +254,5 @@ export function createLabDesktop({ desk, areaEl, dockEl, wallEl, apps, renderIco
 
   return { wm, store, dock, setBadge };
 }
+
+export const createLabDesktop = createDesktop;

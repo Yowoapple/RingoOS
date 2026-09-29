@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-style="a" data-accent="apple" data-theme="dark" data-wall="mono">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>RingoOS</title>
+  <meta name="author" content="YoWoRingo">
+  <link rel="stylesheet" href="/src/css/system/wm.css">
+  <link rel="stylesheet" href="/src/css/system/dock-launcher.css">
+  <link rel="stylesheet" href="/src/styles/tokens.css">
+  <link rel="stylesheet" href="/src/styles/base.css">
+  <link rel="stylesheet" href="/src/styles/components.css">
+  <link rel="stylesheet" href="/src/styles/desktop.css">
+  <link rel="stylesheet" href="/src/styles/menubar.css">
+  <link rel="stylesheet" href="/src/styles/controls.css">
+  <link rel="stylesheet" href="/src/styles/settings.css">
+  <link rel="stylesheet" href="/src/styles/feedback.css">
+  <link rel="stylesheet" href="/src/styles/island.css">
+</head>
+<body>
+  <svg class="sr-only" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="ico-light" x1="0" y1="0" x2="1" y2="1">
+        <stop class="ico-light-hi" offset="0"/>
+        <stop class="ico-light-lo" offset="1"/>
+      </linearGradient>
+      <linearGradient id="ico-rim" x1="0" y1="0" x2="0" y2="1">
+        <stop class="ico-rim-hi" offset="0"/>
+        <stop class="ico-rim-lo" offset="0.4"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="desk" id="desk">
+    <div class="wall" id="wall" aria-hidden="true"></div>
+
+    <header class="menubar chrome" id="menubar">
+      <span class="menubar__platter" aria-hidden="true"></span>
+      <button type="button" class="mb-item mb-brand" data-mb aria-label="RingoOS"><span class="mb-brand__mark">Ringo<span class="mb-brand__os">OS</span></span></button>
+      <span class="mb-app"><span class="mb-app__text">桌面</span></span>
+      <span class="mb-spacer"></span>
+      <span class="mb-radio">
+        <button type="button" class="mb-item" data-mb data-open="radio" aria-label="電台播放中">
+          <span class="mb-radio__inner">
+            <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span>電台</span>
+          </span>
+        </button>
+      </span>
+      <button type="button" class="mb-item mb-weather" data-mb data-open="weather" aria-label="天氣" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="i-acc" cx="15" cy="9" r="4"/><path d="M7.5 19h9a3.5 3.5 0 0 0 .4-7 5 5 0 0 0-9.6 1.2A2.9 2.9 0 0 0 7.5 19z" fill="currentColor"/></svg>
+        <span class="mb-temp">27°</span>
+      </button>
+      <button type="button" class="mb-item mb-bell" data-mb data-open="calendar" aria-label="日程提醒">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2a1.3 1.3 0 0 1 1.3 1.3v.6a5.6 5.6 0 0 1 4.3 5.5v3.6l1.5 2.2a.8.8 0 0 1-.7 1.3H5.6a.8.8 0 0 1-.7-1.3l1.5-2.2v-3.6a5.6 5.6 0 0 1 4.3-5.5v-.6A1.3 1.3 0 0 1 12 3.2zM9.8 19h4.4a2.2 2.2 0 0 1-4.4 0z" fill="currentColor"/></svg>
+        <span class="mb-badge" hidden><span class="odo-host"></span></span>
+      </button>
+      <button type="button" class="mb-item mb-clock" data-mb data-open="calendar">
+        <span class="mb-clock__line"><span class="mb-clock__date"></span><span class="mb-clock__time"></span></span>
+      </button>
+    </header>
+
+    <div class="island" id="island" data-mode="idle">
+      <button type="button" class="island__pill" id="island-pill" aria-expanded="false" aria-controls="island-panel">
+        <span class="island__label" id="island-label">
+          <svg class="island__plus" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <span class="island__label-text">記一筆</span>
+        </span>
+      </button>
+      <button type="button" class="island__close" id="island-close" aria-label="收起" tabindex="-1"></button>
+      <form class="island__panel" id="island-panel" aria-label="快速記一筆">
+        <label class="island__row island__amount">
+          <span class="island__cur mono">NT$</span>
+          <input class="island__input mono" id="island-amount" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="金額">
+        </label>
+        <div class="island__row island__chips" role="radiogroup" aria-label="分類" data-chips="island">
+          <button type="button" class="chip" role="radio" aria-checked="true">餐飲</button>
+          <button type="button" class="chip" role="radio" aria-checked="false">交通</button>
+          <button type="button" class="chip" role="radio" aria-checked="false">娛樂</button>
+          <button type="button" class="chip" role="radio" aria-checked="false">其他</button>
+        </div>
+        <div class="island__row island__actions">
+          <button type="button" class="island__btn" id="island-cancel">取消</button>
+          <button type="submit" class="island__btn island__btn--go" data-press>記下</button>
+        </div>
+      </form>
+      <div class="island__activity" id="island-activity" aria-live="polite">
+        <svg class="island__badge" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="island__ring" cx="12" cy="12" r="10.6" pathLength="1" transform="rotate(-90 12 12)"/>
+          <circle class="island__fill" cx="12" cy="12" r="11.2"/>
+          <path class="island__tick" d="M7.3 12.3l3.1 3.1 6.3-6.8" pathLength="1"/>
+        </svg>
+        <span class="island__activity-text"></span>
+        <span class="island__activity-amount mono"><span class="odo-host"></span></span>
+      </div>
+      <div class="island__toast" aria-live="polite">
+        <button type="button" class="island__undo" aria-label="復原">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="island__undo-track" cx="12" cy="12" r="10.6"/>
+            <circle class="island__undo-ring" cx="12" cy="12" r="10.6" pathLength="1" transform="rotate(-90 12 12)"/>
+            <path class="island__undo-arrow" d="M9.6 7.4L6.8 10.2l2.8 2.8M7 10.2h6.2a3.6 3.6 0 0 1 0 7.2h-2.6" pathLength="1"/>
+          </svg>
+        </button>
+        <span class="island__toast-text"></span>
+        <span class="island__toast-note mono"></span>
+        <span class="island__toast-amount mono"><span class="odo-host"></span><span class="island__strike" aria-hidden="true"></span></span>
+        <button type="button" class="island__toast-action" hidden></button>
+      </div>
+    </div>
+
+    <main class="wm-area" id="wm-area"></main>
+
+    <div class="notices" id="notices" aria-live="polite"></div>
+
+    <nav class="dock" id="dock" aria-label="Dock"></nav>
+
+  </div>
+
+  <div class="app-sources" id="app-sources" hidden>
+    <div class="app-source" data-app-id="settings">
+      <div class="set" id="settings">
+        <nav class="set__side" aria-label="設定分類">
+          <span class="set__platter" aria-hidden="true"></span>
+          <button type="button" class="set__nav" data-page="appearance" aria-current="page">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2z" fill="currentColor"/></svg>
+            <span>外觀</span>
+          </button>
+          <button type="button" class="set__nav" data-page="motion">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.8 10.5c1.6 0 1.9-5 3.6-5s2 5 3.6 5 1.9-5 3.6-5c.8 0 1.2.6 1.6 1.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span>動態</span>
+          </button>
+          <button type="button" class="set__nav" data-page="notify">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2a3.8 3.8 0 0 1 3.8 3.8v2.5l1.1 1.7a.6.6 0 0 1-.5.9H3.6a.6.6 0 0 1-.5-.9l1.1-1.7V6A3.8 3.8 0 0 1 8 2.2zM6.5 12.4h3a1.5 1.5 0 0 1-3 0z" fill="currentColor"/></svg>
+            <span>通知</span>
+          </button>
+          <button type="button" class="set__nav" data-page="data">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="8" cy="4" rx="5" ry="1.9" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3 4v8c0 1 2.2 1.9 5 1.9s5-.9 5-1.9V4M3 8c0 1 2.2 1.9 5 1.9S13 9 13 8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+            <span>資料</span>
+          </button>
+        </nav>
+        <div class="set__main">
+          <div class="set__tabs-wrap">
+            <div class="seg set__tabs" role="tablist" aria-label="設定分類">
+              <span class="seg__platter" aria-hidden="true"><span class="seg__blob"></span></span>
+              <span class="seg__lens" aria-hidden="true"></span>
+              <button type="button" class="seg__btn" role="tab" aria-selected="true">外觀</button>
+              <button type="button" class="seg__btn" role="tab" aria-selected="false">動態</button>
+              <button type="button" class="seg__btn" role="tab" aria-selected="false">通知</button>
+              <button type="button" class="seg__btn" role="tab" aria-selected="false">資料</button>
+            </div>
+          </div>
+          <div class="set__pages">
+            <section class="set__page is-current" data-page="appearance" aria-label="外觀">
+              <h3 class="set__title">外觀</h3>
+              <div class="set__group">
+                <div class="set__row">
+                  <div class="set__text"><span class="set__label">風格</span><span class="set__hint">混合玻璃讓浮在上面的東西透出桌布</span></div>
+                  <div class="sel" data-select="style"><button type="button" class="sel__btn"><span class="sel__value"></span><svg class="sel__chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+                </div>
+                <div class="set__row">
+                  <div class="set__text"><span class="set__label">外觀</span></div>
+                  <div class="seg set__seg" role="tablist" aria-label="深淺色" data-seg="theme">
+                    <span class="seg__platter" aria-hidden="true"><span class="seg__blob"></span></span>
+                    <span class="seg__lens" aria-hidden="true"></span>
+                    <button type="button" class="seg__btn" role="tab" aria-selected="true">自動</button>
+                    <button type="button" class="seg__btn" role="tab" aria-selected="false">淺色</button>
+                    <button type="button" class="seg__btn" role="tab" aria-selected="false">深色</button>
+                  </div>
+                </div>
+                <div class="set__row">
+                  <div class="set__text"><span class="set__label">強調色</span><span class="set__hint" id="set-accent-hint"></span></div>
+                  <div class="acc" role="radiogroup" aria-label="強調色">
+                    <span class="acc__ring" aria-hidden="true"></span>
+                    <button type="button" class="acc__dot acc__dot--auto" role="radio" data-value="auto" aria-label="自動，跟隨桌布"></button>
+                    <button type="button" class="acc__dot acc__dot--apple" role="radio" data-value="apple" aria-label="青蘋果"></button>
+                    <button type="button" class="acc__dot acc__dot--signal" role="radio" data-value="signal" aria-label="信號橘"></button>
+                    <button type="button" class="acc__dot acc__dot--ultramarine" role="radio" data-value="ultramarine" aria-label="群青"></button>
+                  </div>
+                </div>
+                <div class="set__row">
+                  <div class="set__text"><span class="set__label">效果等級</span><span class="set__hint">自動會依裝置與實際順暢度調整玻璃與模糊</span></div>
+                  <div class="sel" data-select="fx"><button type="button" class="sel__btn"><span class="sel__value"></span><svg class="sel__chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+                </div>
+                <div class="set__row">
+                  <div class="set__text"><span class="set__label">桌布</span><span class="set__hint">照片會壓縮後存在這台電腦的瀏覽器裡</span></div>
+                  <div class="sel" data-select="wall"><button type="button" class="sel__btn"><span class="sel__value"></span><svg class="sel__chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+                </div>
+                <div class="set__row set__row--stack">
+                  <div class="set__text"><span class="set__label">字級</span><span class="set__hint">整個介面一起等比放大，預設 130%</span></div>
+                  <div class="sld" tabindex="0" data-slider="scale" aria-label="字級">
+                    <span class="sld__track"><span class="sld__fill"></span></span>
+                    <span class="sld__thumb"></span>
+                    <span class="sld__bubble"><span class="odo-host"></span></span>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="set__page" data-page="motion" aria-label="動態" hidden>
+              <h3 class="set__title">動態</h3>
+              <div class="set__group">
+                <div class="set__row">
+                  <div class="set__text"><span class="set__label">動畫風格</span><span class="set__hint">澎湃 OS 較軟、iOS 較俐落</span></div>
+                  <div class="sel" data-select="motion"><button type="button" class="sel__btn"><span class="sel__value"></span><svg class="sel__chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+                </div>
+                <div class="set__row">
+                  <div class="set__text"><span class="set__label">減少動態效果</span><span class="set__hint">改用短淡入，不做擠壓與模糊</span></div>
+                  <button type="button" class="tgl" data-toggle="reduced" aria-label="減少動態效果"><span class="tgl__knob"></span></button>
+                </div>
+                <div class="set__row set__row--stack">
+                  <div class="set__text"><span class="set__label">Dock 放大程度</span></div>
+                  <div class="sld" tabindex="0" data-slider="magnify" aria-label="Dock 放大程度">
+                    <span class="sld__track"><span class="sld__fill"></span></span>
+                    <span class="sld__thumb"></span>
+                    <span class="sld__bubble"><span class="odo-host"></span></span>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="set__page" data-page="notify" aria-label="通知" hidden>
+              <h3 class="set__title">通知</h3>
+              <div class="set__group">
+                <div class="set__row"><div class="set__text"><span class="set__label">還在搬移中</span><span class="set__hint">記帳提醒、預算警告與日曆提醒會跟著各個 App 一起接上</span></div></div>
+              </div>
+            </section>
+            <section class="set__page" data-page="data" aria-label="資料" hidden>
+              <h3 class="set__title">資料</h3>
+              <div class="set__group">
+                <div class="set__row"><div class="set__text"><span class="set__label">還在搬移中</span><span class="set__hint">匯入、匯出、預算與分類會在搬移設定時接上；在那之前請用 1.0 管理</span></div></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/shell/boot.js"></script>
+</body>
+</html>

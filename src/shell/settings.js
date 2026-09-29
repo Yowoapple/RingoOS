@@ -100,7 +100,7 @@ function createAccentPicker(root, { value, onChange }) {
   };
 }
 
-export function createSettings({ root, state, menuHost, dock, onChange }) {
+export function createSettings({ root, state, menuHost, dock, onChange, scale = null, hasPhoto = () => false }) {
   const win = root.closest('.wm-window');
   const nav = root.querySelector('.set__side');
   const navButtons = Array.from(nav.querySelectorAll('.set__nav'));
@@ -200,8 +200,10 @@ export function createSettings({ root, state, menuHost, dock, onChange }) {
     }),
   };
 
-  const theme = createSegmented(root.querySelector('[data-seg="theme"]'), {
-    onChange: (i) => onChange('theme', i === 0 ? 'light' : 'dark'),
+  const themeEl = root.querySelector('[data-seg="theme"]');
+  const themeValues = themeEl.querySelectorAll('.seg__btn').length === 3 ? ['auto', 'light', 'dark'] : ['light', 'dark'];
+  const theme = createSegmented(themeEl, {
+    onChange: (i) => onChange('theme', themeValues[i]),
   });
   const accent = createAccentPicker(root.querySelector('.acc'), {
     value: state.accent,
@@ -226,7 +228,26 @@ export function createSettings({ root, state, menuHost, dock, onChange }) {
     onInput: (v) => dock.setMagnify(v),
   });
 
-  createField(root.querySelector('[data-field="budget"]'), {
+  const wallEl = root.querySelector('[data-select="wall"]');
+  const wall = wallEl ? createSelect(wallEl, {
+    options: [{ value: 'mono', label: '單色' }, { value: 'aurora', label: '極光' }, { value: 'photo', label: '我的圖片' }, { value: 'upload', label: '選擇圖片…' }],
+    value: state.wall,
+    menuHost,
+    onChange: (v) => onChange('wall', v),
+  }) : null;
+
+  const scaleEl = root.querySelector('[data-slider="scale"]');
+  const scaleSlider = scaleEl && scale !== null ? createSlider(scaleEl, {
+    min: 100,
+    max: 200,
+    step: 10,
+    value: Math.round(scale * 100),
+    format: (v) => `${Math.round(v)}%`,
+    onInput: (v) => onChange('scale', v / 100),
+  }) : null;
+
+  const budgetEl = root.querySelector('[data-field="budget"]');
+  if (budgetEl) createField(budgetEl, {
     validate(text) {
       const value = Number(String(text).replace(/[,\s]/g, ''));
       if (!String(text).trim()) return '請輸入每月預算';
@@ -250,7 +271,9 @@ export function createSettings({ root, state, menuHost, dock, onChange }) {
       selects.style.set(next.style);
       selects.motion.set(MotionSettings.presetName);
       selects.fx.set(Fx.choice);
-      theme.select(next.theme === 'light' ? 0 : 1);
+      theme.select(Math.max(0, themeValues.indexOf(next.theme)));
+      if (wall) wall.set(next.wall === 'photo' && !hasPhoto() ? 'mono' : next.wall);
+      if (scaleSlider && next.scale) scaleSlider.set(Math.round(next.scale * 100));
       accent.set(next.accent);
       toggles.reduced.set(MotionSettings.reduced);
       fxLabel();

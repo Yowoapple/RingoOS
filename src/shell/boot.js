@@ -1,0 +1,266 @@
+import '@fontsource-variable/geist-mono';
+import { Animator, createMotion } from '../motion/animator.js';
+import { MotionSettings } from '../motion/presets.js';
+import { Storage } from '../core/storage/storage.js';
+import { Data } from '../core/data-model.js';
+import { sanitizeSession, serializeSession } from '../wm/session.js';
+import { scaledApps } from '../system/apps.js';
+import { APPS, renderIcon } from '../ui/icons.js';
+import { Fx } from '../ui/fx-tier.js';
+import { createIsland } from '../ui/island.js';
+import { pressable } from '../ui/motion-kit.js';
+import { createNotices } from '../ui/notices.js';
+import { createDesktop } from './desktop.js';
+import { createMenubar } from './menubar.js';
+import { createSettings } from './settings.js';
+import { createAppearance } from './appearance.js';
+
+const SESSION_KEY = 'yoworingo.v2.windows';
+const MOTION_KEY = 'yoworingo.motion-style';
+const REDUCED_KEY = 'yoworingo.reduced-motion';
+const MAGNIFY_KEY = 'yoworingo.v2.dock-magnify';
+const SAVE_DELAY = 300;
+const ACCENT_NAMES = { apple: '青蘋果', signal: '信號橘', ultramarine: '群青' };
+const MOVING_IN = {
+  'daily-entry': '記帳正在從 1.0 搬進 RingoOS，下一步就會接上',
+  overview: '收支總覽會在記帳之後接上',
+  'life-reminder': '週報、月報與推薦卡片',
+  calendar: '月曆、代辦與 QR 匯出',
+  weather: '氣象署資料與動態天氣',
+  calculator: '四則運算與鍵盤操作',
+  radio: '唱片機與選台清單',
+};
+
+const root = document.documentElement;
+const $ = (id) => document.getElementById(id);
+
+function usePreset(name) {
+  MotionSettings.usePreset(name);
+  if (name !== 'hyperos') return;
+  MotionSettings.setSpring('dock', { response: 0.32, damping: 0.66 });
+  MotionSettings.setSpring('focus', { response: 0.34, damping: 0.62 });
+}
+
+function domReady() {
+  if (document.readyState !== 'loading') return Promise.resolve();
+  return new Promise((resolve) => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
+}
+
+function todayKey() {
+  return Data.toDateKey(new Date());
+}
+
+function stubBody(app) {
+  const body = document.createElement('div');
+  body.className = 'win__body';
+  body.innerHTML = '<div class="stub"><div class="stub__icon"></div><p class="stub__title"></p><p class="stub__note"></p><span class="tag">2.0 · Moving in</span></div>';
+  body.querySelector('.stub__icon').innerHTML = renderIcon(app.id);
+  body.querySelector('.stub__title').textContent = app.title;
+  body.querySelector('.stub__note').textContent = `${MOVING_IN[app.id] || ''}。在那之前，請繼續使用 1.0`;
+  return body;
+}
+
+function collectContent(app) {
+  const source = document.querySelector(`.app-source[data-app-id="${app.id}"]`);
+  if (!source) return { titlebar: [], body: [stubBody(app)], bodyClass: 'wm-window__body--stub' };
+  return {
+    titlebar: [],
+    body: Array.from(source.children),
+    bodyClass: app.id === 'settings' ? 'wm-window__body--settings' : null,
+  };
+}
+
+function readReduced() {
+  const stored = Storage.get(REDUCED_KEY, 'system');
+  if (stored === 'on') return true;
+  if (stored === 'off') return false;
+  return !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function shake(element) {
+  if (MotionSettings.reduced) return;
+  const motion = createMotion({ x: 0 }, { response: 0.3, damping: 0.3, restDelta: 0.05 });
+  motion.onUpdate(({ x }) => {
+    element.style.transform = Math.abs(x) < 0.05 ? '' : `translate3d(${x}px, 0, 0)`;
+  });
+  motion.to({ x: 0 }, { velocity: { x: 600 } });
+}
+
+function start() {
+  usePreset(Storage.get(MOTION_KEY, 'hyperos') === 'ios' ? 'ios' : 'hyperos');
+  MotionSettings.setReduced(readReduced());
+  Fx.boot();
+
+  const appearance = createAppearance({
+    root,
+    regions() {
+      const bar = $('menubar').getBoundingClientRect();
+      const dockBg = document.querySelector('.dock__bg');
+      const dock = dockBg ? dockBg.getBoundingClientRect() : { left: 0, top: window.innerHeight - 80, width: window.innerWidth, height: 80 };
+      return { bar: { x: 0, y: 0, w: window.innerWidth, h: bar.height }, dock: { x: dock.left, y: dock.top, w: dock.width, h: dock.height } };
+    },
+  });
+
+  const sizes = new Map(scaledApps(appearance.scale).map((app) => [app.id, app]));
+  const apps = APPS.map((app) => ({
+    id: app.id,
+    title: app.title,
+    frame: { ...sizes.get(app.id).size },
+    min: { ...sizes.get(app.id).min },
+    divider: app.id === 'settings',
+    content: collectContent(app),
+  }));
+  const titles = new Map(APPS.map((app) => [app.id, app.title]));
+
+  const desktop = createDesktop({ desk: $('desk'), areaEl: $('wm-area'), dockEl: $('dock'), wallEl: $('wall'), apps, renderIcon });
+  const { wm, store, dock } = desktop;
+  const magnify = parseFloat(Storage.get(MAGNIFY_KEY, 'NaN'));
+  if (Number.isFinite(magnify)) dock.setMagnify(magnify);
+  $('app-sources').remove();
+
+  const notices = createNotices($('notices'), renderIcon);
+  const menubar = createMenubar({ root: $('menubar'), store, titles, onOpen: (id) => wm.open(id) });
+
+  const island = createIsland({
+    root: $('island'),
+    pill: $('island-pill'),
+    label: $('island-label'),
+    panel: $('island-panel'),
+    activity: $('island-activity'),
+    onOpen() {
+      $('island-amount').focus({ preventScroll: true });
+    },
+  });
+  const chips = document.querySelector('[data-chips="island"]');
+  chips.textContent = '';
+  Data.getState().settings.expenseCategories.slice(0, 4).forEach((name, i) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip';
+    chip.setAttribute('role', 'radio');
+    chip.setAttribute('aria-checked', String(i === 0));
+    chip.textContent = name;
+    chips.appendChild(chip);
+  });
+  chips.addEventListener('click', (event) => {
+    const chip = event.target.closest('.chip');
+    if (!chip) return;
+    chips.querySelectorAll('.chip').forEach((other) => other.setAttribute('aria-checked', String(other === chip)));
+  });
+  $('island-cancel').addEventListener('click', () => island.close());
+  $('island-panel').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const input = $('island-amount');
+    const amount = Number(String(input.value).replace(/[^\d]/g, ''));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      shake(input.closest('.island__amount'));
+      input.focus();
+      return;
+    }
+    const picked = chips.querySelector('.chip[aria-checked="true"]');
+    const category = picked ? picked.textContent : '其他';
+    Data.addExpenseEntry(todayKey(), { amount, category, note: '' });
+    island.celebrate({ label: `已記下 · ${category}`, amount, income: false });
+    input.value = '';
+  });
+
+  function syncReminders() {
+    const open = Data.getDayTasks(todayKey()).filter((task) => !task.done).length;
+    menubar.setReminders(open);
+    desktop.setBadge('calendar', open);
+  }
+  Data.subscribe(syncReminders);
+  syncReminders();
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/*';
+  fileInput.hidden = true;
+  document.body.appendChild(fileInput);
+
+  const settings = createSettings({
+    root: $('settings'),
+    state: appearance.state,
+    menuHost: $('desk'),
+    scale: appearance.scale,
+    hasPhoto: () => appearance.hasPhoto,
+    dock: {
+      get magnify() { return dock.magnify; },
+      setMagnify(value) {
+        dock.setMagnify(value);
+        Storage.set(MAGNIFY_KEY, String(value));
+      },
+    },
+    onChange(key, value) {
+      if (key === 'motion') {
+        const next = value === 'ios' ? 'ios' : 'hyperos';
+        usePreset(next);
+        Storage.set(MOTION_KEY, next);
+      } else if (key === 'reduced') {
+        MotionSettings.setReduced(value);
+        Storage.set(REDUCED_KEY, value ? 'on' : 'off');
+      } else if (key === 'scale') {
+        appearance.setScale(value);
+      } else if (key === 'wall' && (value === 'upload' || (value === 'photo' && !appearance.hasPhoto))) {
+        fileInput.click();
+        syncSettings();
+      } else {
+        appearance.set(key, value);
+      }
+    },
+  });
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files && fileInput.files[0];
+    fileInput.value = '';
+    if (!file) return;
+    appearance.setPhoto(file).catch((err) => {
+      notices.push({ app: 'settings', title: '桌布沒有換成功', body: err.message, meta: '設定' });
+    });
+  });
+
+  function syncSettings() {
+    settings.sync({ ...appearance.state, scale: appearance.scale });
+    const state = appearance.state;
+    settings.setAccentHint(state.accent === 'auto' ? `跟隨桌布 · 目前是${ACCENT_NAMES[appearance.autoAccent]}` : '');
+  }
+  appearance.subscribe(syncSettings);
+  Fx.subscribe(syncSettings);
+  syncSettings();
+
+  store.subscribe(({ type, id }) => {
+    if ((type === 'open' || type === 'restore') && id === 'settings') settings.refreshGlass();
+  });
+
+  let saveTimer = 0;
+  const saveSession = () => {
+    window.clearTimeout(saveTimer);
+    saveTimer = 0;
+    Storage.set(SESSION_KEY, serializeSession(store));
+  };
+  wm.restoreSession(sanitizeSession(Storage.get(SESSION_KEY, null), APPS.map((app) => app.id)));
+  store.subscribe(() => {
+    window.clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(saveSession, SAVE_DELAY);
+  });
+  window.addEventListener('pagehide', saveSession);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && saveTimer) saveSession();
+  });
+
+  document.querySelectorAll('[data-press]').forEach(pressable);
+
+  if (Storage.getMode() === 'memory') {
+    notices.push({ app: 'settings', title: '資料庫暫時打不開', body: '這次的變更不會被儲存，請關掉其他 RingoOS 分頁後重新整理', meta: '系統' });
+  }
+
+  console.info('%cRingoOS%c 2.0 by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
+  if (new URLSearchParams(window.location.search).has('debug')) {
+    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island };
+  }
+}
+
+Promise.all([Storage.init().then(() => {
+  Storage.importLegacyPrefs();
+  Data.hydrate();
+}), domReady()]).then(start).catch((err) => console.error('RingoOS: boot failed', err));
