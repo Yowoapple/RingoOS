@@ -7,11 +7,12 @@ import { createOdometer, formatAmount } from './odometer.js';
 import { createBarChart } from './chart.js';
 import { createNotices } from './notices.js';
 import { createIsland } from './island.js';
-import { flip, enter, pressable } from './motion-kit.js';
+import { pressable } from './motion-kit.js';
+import { createRowList } from './rows.js';
+import { createDialogHost } from './dialog.js';
 import { startPerfMeter } from './perf.js';
 import { Fx } from './fx-tier.js';
 import { createSettings } from './settings.js';
-import { setRefraction, refractionOn } from './glass.js';
 import { createLabDesktop } from './desktop.js';
 import { createMenubar } from './menubar.js';
 import { baseThickness, sampleGlassThickness, presetAccent, wallpaperAccent } from './wall-tone.js';
@@ -149,16 +150,16 @@ function pickedChip(container) {
   return chip ? chip.textContent : '';
 }
 
-function rowElement(row) {
-  const el = document.createElement('div');
-  el.className = `row row--${row.type}`;
+function rowContent(row) {
+  const holder = document.createElement('template');
+  holder.innerHTML = '<span class="row__time mono"></span><span class="row__main"><span class="row__cat"></span><span class="row__note"></span></span><span class="row__amt mono"></span>';
+  const fragment = holder.content;
   const sign = row.type === 'income' ? '+' : '−';
-  el.innerHTML = '<span class="row__time mono"></span><span class="row__main"><span class="row__cat"></span><span class="row__note"></span></span><span class="row__amt mono"></span>';
-  el.querySelector('.row__time').textContent = row.time;
-  el.querySelector('.row__cat').textContent = row.category;
-  el.querySelector('.row__note').textContent = row.note || '沒有備註';
-  el.querySelector('.row__amt').textContent = `${sign}${formatAmount(row.amount)}`;
-  return el;
+  fragment.querySelector('.row__time').textContent = row.time;
+  fragment.querySelector('.row__cat').textContent = row.category;
+  fragment.querySelector('.row__note').textContent = row.note || '沒有備註';
+  fragment.querySelector('.row__amt').textContent = `${sign}${formatAmount(row.amount)}`;
+  return fragment;
 }
 
 function todayTotal() {
@@ -186,9 +187,7 @@ function renderRank() {
 }
 
 function renderRows() {
-  const container = $('entry-rows');
-  container.textContent = '';
-  ledger.rows.forEach((row) => container.appendChild(rowElement(row)));
+  rowList.reset(ledger.rows);
   renderTotal();
 }
 
@@ -248,8 +247,97 @@ const entrySeg = createSegmented($('entry-seg'), {
 buildChips(document.querySelector('[data-chips="entry"]'), CATEGORIES.expense);
 wireChips(document.querySelector('[data-chips="entry"]'));
 wireChips(document.querySelector('[data-chips="island"]'));
-renderRows();
-renderRank();
+let stageView = 'rows';
+const rowList = createRowList($('entry-rows'), { render: rowContent, onDelete: handleDelete });
+const stage = $('entry-stage');
+const views = new Map(Array.from(stage.querySelectorAll('.list__view')).map((view) => [view.dataset.view, view]));
+const stageHeight = createMotion({ h: 0 }, { response: 0.42, damping: 0.74, restDelta: 0.5 });
+stageHeight.onUpdate(({ h }) => {
+  stage.style.height = `${Math.max(0, h)}px`;
+});
+const viewMotions = new Map(Array.from(views.entries()).map(([name, view]) => {
+  const motion = createMotion({ e: 1 }, { response: 0.3, damping: 0.8, restDelta: 0.002 });
+  motion.onUpdate(({ e }) => {
+    const t = Math.max(0, Math.min(1, e));
+    view.style.opacity = t > 0.999 ? '' : String(t);
+    view.style.transform = t > 0.999 ? '' : `translate3d(0, ${(1 - t) * 8}px, 0)`;
+    view.style.filter = t < 0.98 && Fx.tier !== 'solid' ? `blur(${((1 - t) * 4).toFixed(2)}px)` : '';
+  });
+  return [name, motion];
+}));
+
+function showView(name) {
+  if (name === stageView || !views.has(name)) return;
+  const from = views.get(stageView);
+  const to = views.get(name);
+  const start = stage.offsetHeight;
+  stageView = name;
+  document.querySelectorAll('[data-list-view]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.listView === name));
+  });
+  from.style.position = 'absolute';
+  from.style.left = '0';
+  from.style.right = '0';
+  from.style.top = '0';
+  to.hidden = false;
+  stage.style.height = '';
+  const end = to.offsetHeight;
+  stage.style.overflow = 'hidden';
+  if (MotionSettings.reduced) {
+    from.hidden = true;
+    from.style.position = '';
+    stage.style.overflow = '';
+    viewMotions.get(name).set({ e: 1 });
+    return;
+  }
+  stageHeight.set({ h: start });
+  stageHeight.to({ h: end }).then((done) => {
+    if (!done) return;
+    stage.style.height = '';
+    stage.style.overflow = '';
+  });
+  viewMotions.get(stageView === name ? name : name).set({ e: 0 });
+  viewMotions.get(name).to({ e: 1 }, { response: 0.36, damping: 0.78 });
+  const leaving = from;
+  const leavingName = Array.from(views.entries()).find(([, view]) => view === leaving)[0];
+  viewMotions.get(leavingName).to({ e: 0 }, { response: 0.16, damping: 1 }).then(() => {
+    if (views.get(stageView) === leaving) return;
+    leaving.hidden = true;
+    leaving.style.position = '';
+    leaving.style.left = '';
+    leaving.style.right = '';
+    leaving.style.top = '';
+    viewMotions.get(leavingName).set({ e: 1 });
+  });
+}
+
+function applyToLedger(row, direction) {
+  renderTotal();
+  if (row.type !== 'expense') return;
+  ledger.expense += row.amount * direction;
+  expenseOdo.set(ledger.expense);
+  chart.add(TODAY_INDEX, row.amount * direction);
+  renderOverview();
+}
+
+function handleDelete(row, index, { silent } = {}) {
+  const at = ledger.rows.indexOf(row);
+  if (at >= 0) ledger.rows.splice(at, 1);
+  applyToLedger(row, -1);
+  if (rowList.size === 0) showView('empty');
+  if (silent) return;
+  island.toast({ text: `已刪除 · ${row.note || row.category}`, action: '復原', onAction: () => restoreRow(row, index) });
+}
+
+function restoreRow(row, index) {
+  if (stageView !== 'rows') showView('rows');
+  const at = Math.min(index, ledger.rows.length);
+  ledger.rows.splice(at, 0, row);
+  rowList.restore(row, at);
+  applyToLedger(row, 1);
+}
+
+renderRows();renderRank();
 renderOverview({ animate: false });
 
 const LAB_APPS = APPS.map((app) => ({
@@ -315,20 +403,6 @@ store.subscribe(({ type, id }) => {
   if (id === 'daily-entry') entrySeg.refreshGlass();
 });
 
-$('lab-lens').addEventListener('click', () => {
-  setRefraction(!refractionOn());
-  $('lab-lens').setAttribute('aria-pressed', String(refractionOn()));
-  $('lab-lens').textContent = refractionOn() ? '折射 開' : '折射 關';
-});
-
-$('lab-blur').addEventListener('click', () => {
-  const off = root.dataset.blur !== 'off';
-  if (off) root.dataset.blur = 'off';
-  else delete root.dataset.blur;
-  $('lab-blur').setAttribute('aria-pressed', String(!off));
-  $('lab-blur').textContent = off ? '模糊 關' : '模糊 開';
-});
-
 function syncFxButtons() {
   const names = { full: '完整', lite: '精簡', solid: '實色' };
   document.querySelectorAll('[data-fx-choice]').forEach((button) => {
@@ -346,6 +420,50 @@ Fx.subscribe(() => {
 });
 syncFxButtons();
 
+const dialogs = createDialogHost($('desk'));
+let loadTimer = 0;
+
+function simulateLoad(result) {
+  window.clearTimeout(loadTimer);
+  showView('loading');
+  loadTimer = window.setTimeout(() => showView(result === 'error' ? 'error' : rowList.size ? 'rows' : 'empty'), 900);
+}
+
+document.querySelectorAll('[data-list-view]').forEach((button) => {
+  button.addEventListener('click', () => {
+    window.clearTimeout(loadTimer);
+    const view = button.dataset.listView;
+    if (view === 'rows') showView(rowList.size ? 'rows' : 'empty');
+    else showView(view);
+  });
+});
+
+$('entry-retry').addEventListener('click', () => simulateLoad('ok'));
+
+$('set-clear').addEventListener('click', async () => {
+  const count = rowList.size;
+  if (!count) {
+    island.toast({ text: '今天沒有可以清除的紀錄' });
+    return;
+  }
+  const ok = await dialogs.confirm({
+    source: $('set-clear'),
+    frame: document.querySelector('.wm-window[data-app-id="settings"] .wm-window__frame'),
+    title: '清除今天的示範資料？',
+    text: `今天的 ${count} 筆紀錄會被移除，4 秒內可以在靈動島復原。`,
+    confirmLabel: '清除',
+  });
+  if (!ok) return;
+  const snapshot = ledger.rows.slice();
+  rowList.removeAll().then(() => {
+    island.toast({
+      text: `已清除 ${count} 筆紀錄`,
+      action: '復原',
+      onAction: () => snapshot.forEach((row, i) => window.setTimeout(() => restoreRow(row, i), MotionSettings.reduced ? 0 : i * 60)),
+    });
+  });
+});
+
 function syncReminders(count) {
   menubar.setReminders(count);
   desktop.setBadge('calendar', count);
@@ -354,19 +472,10 @@ function syncReminders(count) {
 function addEntry({ type, amount, category, note }) {
   const now = new Date();
   const row = { time: `${pad(now.getHours())}:${pad(now.getMinutes())}`, category, note, amount, type };
-  const container = $('entry-rows');
-  const existing = Array.from(container.children);
-  const el = rowElement(row);
-  flip(existing, () => container.prepend(el));
-  enter(el, -14);
+  if (stageView !== 'rows') showView('rows');
+  rowList.prepend(row);
   ledger.rows.unshift(row);
-  renderTotal();
-  if (type === 'expense') {
-    ledger.expense += amount;
-    expenseOdo.set(ledger.expense);
-    chart.add(TODAY_INDEX, amount);
-    renderOverview();
-  }
+  applyToLedger(row, 1);
   island.celebrate({ label: `已記下 · ${category}`, amount, income: type === 'income' });
   if (type === 'expense' && ledger.expense / BUDGET >= 0.8) {
     window.setTimeout(() => notices.push({ app: 'overview', title: '預算快用完了', body: `本月已用 ${Math.round((ledger.expense / BUDGET) * 100)}%，還剩 NT$ ${formatAmount(BUDGET - ledger.expense)}` }), 900);

@@ -205,8 +205,3 @@
 :root[data-theme="dark"] {
   --danger: #ff6b6b;
 }
-
-:root[data-blur="off"] {
-  --fx-glass: none;
-  --fx-glass-strong: none;
-}

@@ -338,16 +338,6 @@ button {
   color: var(--ink-2);
 }
 
-.row {
-  display: grid;
-  grid-template-columns: 3rem 1fr auto;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 0;
-  border-top: 1px solid var(--line);
-  will-change: transform;
-}
-
 .row__time {
   font-size: 0.65rem;
   color: var(--ink-3);

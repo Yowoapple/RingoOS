@@ -39,6 +39,14 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
   const done = createMotion({ ring: 0, fill: 0, tick: 0, spin: 0 }, { response: 0.4, damping: 1, restDelta: 0.001 });
   const rowMotions = rows.map(bindRow);
   const activityMotions = activityRows.map(bindRow);
+  const toastEl = root.querySelector('.island__toast');
+  const toastText = toastEl.querySelector('.island__toast-text');
+  const toastAction = toastEl.querySelector('.island__toast-action');
+  const toastMotions = [toastEl.querySelector('.island__toast-icon'), toastText, toastAction].map(bindRow);
+  let toastHandler = null;
+  let toastTimer = 0;
+  let toastDeadline = 0;
+  let toastRemaining = 0;
 
   let mode = 'idle';
   let hovering = false;
@@ -161,6 +169,7 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
   function clearTimers() {
     timers.forEach((id) => window.clearTimeout(id));
     timers = [];
+    window.clearTimeout(toastTimer);
   }
 
   function later(fn, ms) {
@@ -192,6 +201,7 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
 
   function hideActivity() {
     rowsOut(activityMotions);
+    rowsOut(toastMotions);
     done.to({ ring: 0, fill: 0, tick: 0 }, spring({ response: 0.18, damping: 1 }));
   }
 
@@ -223,6 +233,39 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     toShape({ w: size.W, h: size.H }, OPEN_W, OPEN_H, 40);
     rowsIn(rowMotions, 60, 28);
     later(() => { if (onOpen) onOpen(); }, 300);
+  }
+
+  function armToast(ms) {
+    window.clearTimeout(toastTimer);
+    toastRemaining = ms;
+    toastDeadline = performance.now() + ms;
+    toastTimer = window.setTimeout(collapse, ms);
+  }
+
+  function toast({ text: message, action, onAction, duration = 4000 }) {
+    clearTimers();
+    measure();
+    const from = mode;
+    setMode('toast');
+    rowsOut(rowMotions);
+    rowsOut(activityMotions);
+    done.to({ ring: 0, fill: 0, tick: 0 }, spring({ response: 0.18, damping: 1 }));
+    labelMotion.to({ e: 0 }, spring({ response: 0.16, damping: 1 }));
+    morph.to({ c: 0 }, spring({ response: 0.16, damping: 1 }));
+    morphTo(false, { response: 0.3, damping: 1 });
+    if (document.activeElement && root.contains(document.activeElement)) document.activeElement.blur();
+    toastText.textContent = message;
+    toastAction.textContent = action || '';
+    toastAction.hidden = !action;
+    toastHandler = onAction || null;
+    toastEl.style.width = 'auto';
+    const width = Math.min(size.W, Math.ceil(toastEl.scrollWidth));
+    toastEl.style.width = `${width}px`;
+    toastEl.style.marginLeft = `${-width / 2}px`;
+    const start = from === 'open' ? 70 : 0;
+    later(() => toShape({ w: width, h: size.ah }, WIDE_W, WIDE_H, 30), start);
+    rowsIn(toastMotions, start + 140, 40);
+    armToast(duration + start);
   }
 
   function celebrate({ label: message, amount, income }) {
@@ -288,6 +331,20 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     if (mode !== 'open') open();
   });
   closeButton.addEventListener('click', collapse);
+  toastAction.addEventListener('click', () => {
+    const handler = toastHandler;
+    toastHandler = null;
+    collapse();
+    if (handler) handler();
+  });
+  root.addEventListener('pointerenter', () => {
+    if (mode !== 'toast') return;
+    toastRemaining = Math.max(600, toastDeadline - performance.now());
+    window.clearTimeout(toastTimer);
+  });
+  root.addEventListener('pointerleave', () => {
+    if (mode === 'toast') armToast(toastRemaining);
+  });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && mode === 'open') collapse();
@@ -309,6 +366,7 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     open,
     close: collapse,
     celebrate,
+    toast,
     formatAmount,
     relayout() {
       measure();

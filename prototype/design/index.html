@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="./css/menubar.css">
   <link rel="stylesheet" href="./css/controls.css">
   <link rel="stylesheet" href="./css/settings.css">
+  <link rel="stylesheet" href="./css/feedback.css">
   <link rel="stylesheet" href="./css/island.css">
 </head>
 <body>
@@ -91,6 +92,11 @@
         <span class="island__activity-text"></span>
         <span class="island__activity-amount mono"><span class="odo-host"></span></span>
       </div>
+      <div class="island__toast" aria-live="polite">
+        <svg class="island__toast-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5h4M3 4.5h10M4.5 4.5l.6 8.1a1 1 0 0 0 1 .9h3.8a1 1 0 0 0 1-.9l.6-8.1" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="island__toast-text"></span>
+        <button type="button" class="island__toast-action" hidden></button>
+      </div>
     </div>
 
     <main class="wm-area" id="wm-area"></main>
@@ -155,10 +161,12 @@
           </div>
         </div>
         <div class="lab__group">
-          <span class="tag">Debug · 診斷</span>
+          <span class="tag">List · 清單狀態</span>
           <div class="lab__opts">
-            <button type="button" class="lab__opt" id="lab-lens" aria-pressed="true">折射 開</button>
-            <button type="button" class="lab__opt" id="lab-blur" aria-pressed="true">模糊 開</button>
+            <button type="button" class="lab__opt" data-list-view="rows" aria-pressed="true">正常</button>
+            <button type="button" class="lab__opt" data-list-view="empty">空</button>
+            <button type="button" class="lab__opt" data-list-view="loading">載入中</button>
+            <button type="button" class="lab__opt" data-list-view="error">錯誤</button>
           </div>
         </div>
         <div class="lab__actions">
@@ -193,7 +201,27 @@
             <span class="tag">Today · 今天</span>
             <span class="list__total mono" id="entry-total"></span>
           </div>
-          <div id="entry-rows"></div>
+          <div class="list__stage" id="entry-stage">
+            <div class="list__view" data-view="rows" id="entry-rows" role="list" aria-label="今天的紀錄"></div>
+            <div class="list__view" data-view="empty" hidden>
+              <div class="list__state">
+                <span class="list__state-title">今天還沒有記帳</span>
+                <span class="list__state-hint">從上面輸入金額，或按選單列的「記一筆」</span>
+              </div>
+            </div>
+            <div class="list__view" data-view="loading" aria-busy="true" aria-label="載入中" hidden>
+              <div class="skel"><i></i><i></i><i></i></div>
+              <div class="skel"><i></i><i></i><i></i></div>
+              <div class="skel"><i></i><i></i><i></i></div>
+            </div>
+            <div class="list__view" data-view="error" hidden>
+              <div class="list__state">
+                <span class="list__state-title">讀不到今天的紀錄</span>
+                <span class="list__state-hint">可能是瀏覽器的儲存空間暫時讀不到，重試通常就會回來</span>
+                <button type="button" class="btn btn--secondary" id="entry-retry" data-press>重試</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -4,17 +4,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const REBUILD_DELAY = 140;
 let counter = 0;
 let defs = null;
-let lensOn = true;
-const instances = new Set();
 
-export function setRefraction(on) {
-  lensOn = !!on;
-  instances.forEach((sync) => sync());
-}
-
-export function refractionOn() {
-  return lensOn;
-}
 
 export function supportsRefraction() {
   const brands = navigator.userAgentData && navigator.userAgentData.brands;
@@ -117,7 +107,7 @@ export function createGlass(holder, { measure, observe, band = 6, strength = 6, 
   let enabled = false;
 
   function wanted() {
-    return lensOn && Fx.tier === 'full' && supportsRefraction();
+    return Fx.tier === 'full' && supportsRefraction();
   }
 
   function build() {
@@ -159,7 +149,6 @@ export function createGlass(holder, { measure, observe, band = 6, strength = 6, 
   if (observer) observer.observe(observe);
   window.addEventListener('resize', schedule);
   const unsubscribe = Fx.subscribe(sync);
-  instances.add(sync);
   sync();
 
   return {
@@ -178,7 +167,6 @@ export function createGlass(holder, { measure, observe, band = 6, strength = 6, 
       if (observer) observer.disconnect();
       window.removeEventListener('resize', schedule);
       unsubscribe();
-      instances.delete(sync);
       holder.style.removeProperty(variable);
       parts.filter.remove();
     },
