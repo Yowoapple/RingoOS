@@ -11,6 +11,7 @@ import { flip, enter, pressable } from './motion-kit.js';
 import { startPerfMeter } from './perf.js';
 import { Fx } from './fx-tier.js';
 import { createSettings } from './settings.js';
+import { setRefraction, refractionOn } from './glass.js';
 import { createLabDesktop } from './desktop.js';
 import { createMenubar } from './menubar.js';
 import { baseThickness, sampleGlassThickness, presetAccent, wallpaperAccent } from './wall-tone.js';
@@ -312,6 +313,20 @@ store.subscribe(({ type, id }) => {
   if (type !== 'open' && type !== 'restore') return;
   if (id === 'settings') settings.refreshGlass();
   if (id === 'daily-entry') entrySeg.refreshGlass();
+});
+
+$('lab-lens').addEventListener('click', () => {
+  setRefraction(!refractionOn());
+  $('lab-lens').setAttribute('aria-pressed', String(refractionOn()));
+  $('lab-lens').textContent = refractionOn() ? '折射 開' : '折射 關';
+});
+
+$('lab-blur').addEventListener('click', () => {
+  const off = root.dataset.blur !== 'off';
+  if (off) root.dataset.blur = 'off';
+  else delete root.dataset.blur;
+  $('lab-blur').setAttribute('aria-pressed', String(!off));
+  $('lab-blur').textContent = off ? '模糊 關' : '模糊 開';
 });
 
 function syncFxButtons() {
