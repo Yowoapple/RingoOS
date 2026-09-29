@@ -49,7 +49,7 @@ function createVelocityTracker() {
   };
 }
 
-export function createWindowManager({ root, areaEl, backdropEl, apps, store, dock, renderIcon }) {
+export function createWindowManager({ root, areaEl, backdropEl, apps, store, dock, renderIcon, radius }) {
   let area = { left: 0, top: 0, w: 0, h: 0 };
   let layout = 'desktop';
   const windows = new Map();
@@ -84,7 +84,8 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
   }
 
   function windowRadius() {
-    return WINDOW_RADIUS[layout];
+    if (typeof radius === 'function') return radius(layout);
+    return (radius || WINDOW_RADIUS)[layout];
   }
 
   function buildWindow(app) {

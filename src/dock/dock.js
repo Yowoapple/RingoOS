@@ -2,7 +2,7 @@ import { createMotion } from '../motion/animator.js';
 import { MotionSettings } from '../motion/presets.js';
 
 const LAYOUTS = {
-  desktop: { size: 54, gap: 10, pad: 10, magnify: 1.55, range: 170 },
+  desktop: { size: 54, gap: 10, pad: 10, magnify: 1.55, range: 170, divider: 12 },
   phone: { size: 58, gap: 22, pad: 14, magnify: 1, range: 0, columns: 4, rowGap: 18 },
 };
 
@@ -63,12 +63,19 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
     button.dataset.appId = app.id;
     button.setAttribute('aria-label', app.title);
     button.innerHTML = `<span class="dock__icon">${renderIcon(app)}</span><span class="dock__badge" hidden></span><span class="dock__dot"></span>`;
+    let divider = null;
+    if (app.divider) {
+      divider = document.createElement('span');
+      divider.className = 'dock__divider';
+      divider.setAttribute('aria-hidden', 'true');
+      itemsEl.appendChild(divider);
+    }
     itemsEl.appendChild(button);
     initial[`${app.id}.p`] = 1;
     initial[`${app.id}.m`] = 1;
     initial[`${app.id}.y`] = 0;
     initial[`${app.id}.s`] = 1;
-    return { app, button, dot: button.querySelector('.dock__dot'), badge: button.querySelector('.dock__badge') };
+    return { app, button, divider, dot: button.querySelector('.dock__dot'), badge: button.querySelector('.dock__badge') };
   });
 
   const motion = createMotion(initial, { response: 0.25, damping: 0.9, restDelta: 0.0005 });
@@ -108,11 +115,15 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
   function computeSlots(values, magnified = true) {
     if (layout.columns) return computeGrid(values);
     const { size, gap, pad } = layout;
+    const dividerSpace = layout.divider || 0;
+    let seen = 0;
     const slots = items.map((item) => {
       const id = item.app.id;
       const p = Math.max(0, values[`${id}.p`]);
       const m = magnified ? values[`${id}.m`] : 1;
-      return { item, p, m, span: (size * m + gap) * p };
+      const lead = item.divider && seen > 0.01 ? dividerSpace * p * Math.min(1, seen) : 0;
+      seen += p;
+      return { item, p, m, lead, span: (size * m + gap) * p + lead };
     });
     const visibleSpan = slots.reduce((sum, slot) => sum + slot.span, 0);
     const totalP = slots.reduce((sum, slot) => sum + slot.p, 0);
@@ -120,7 +131,8 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
     const width = inner + pad * 2;
     let cursor = -inner / 2;
     slots.forEach((slot) => {
-      slot.cx = cursor + (size * slot.m * slot.p) / 2;
+      slot.dx = cursor + (slot.lead - gap) / 2;
+      slot.cx = cursor + slot.lead + (size * slot.m * slot.p) / 2;
       slot.cy = 0;
       cursor += slot.span;
     });
@@ -133,8 +145,13 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
     bg.style.width = `${width}px`;
     bg.style.height = `${height}px`;
     bg.style.opacity = width > pad * 2 + 1 ? '1' : '0';
-    slots.forEach(({ item, p, m, cx, cy }) => {
+    slots.forEach(({ item, p, m, cx, cy, lead, dx }) => {
       const id = item.app.id;
+      if (item.divider) {
+        const shown = lead > 0.5 ? Math.min(1, lead / (layout.divider || 1)) : 0;
+        item.divider.style.transform = `translate3d(${dx || 0}px, 0, 0) scaleY(${shown})`;
+        item.divider.style.opacity = String(shown);
+      }
       const y = values[`${id}.y`] + cy;
       const s = values[`${id}.s`];
       item.button.style.transform = `translate3d(${cx - size / 2}px, ${y}px, 0) scale(${Math.max(0, m * p * s)})`;
