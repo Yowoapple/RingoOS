@@ -416,6 +416,7 @@ button {
 }
 
 .odo__col {
+  position: relative;
   display: inline-block;
   height: 1.08em;
   overflow: hidden;
@@ -426,6 +427,28 @@ button {
   display: flex;
   flex-direction: column;
   will-change: transform;
+}
+
+.odo__still {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 1.08em;
+  line-height: 1.08em;
+  display: none;
+}
+
+.odo__col.is-rest {
+  mask: none;
+}
+
+.odo__col.is-rest .odo__strip {
+  visibility: hidden;
+  will-change: auto;
+}
+
+.odo__col.is-rest .odo__still {
+  display: block;
 }
 
 .odo__strip span,
@@ -592,7 +615,7 @@ button {
 .i-base { fill: url(#ico-light); }
 .i-tile { fill: var(--ico-tile); }
 .i-ink { fill: var(--ico-ink); }
-.i-acc { fill: var(--accent); }
+.i-acc { fill: var(--accent-spot); }
 .s-tile { stroke: var(--ico-tile); }
 .s-ink { stroke: var(--ico-ink); }
 .s-on { stroke: var(--accent-on); }

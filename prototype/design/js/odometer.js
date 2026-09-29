@@ -2,6 +2,7 @@ import { createMotion } from '../../../src/motion/animator.js';
 import { MotionSettings } from '../../../src/motion/presets.js';
 
 const DIGITS = '0123456789';
+const REST = 0.0005;
 
 export function formatAmount(value) {
   return Math.round(Math.abs(value)).toLocaleString('en-US');
@@ -41,18 +42,34 @@ export function createOdometer(element, { value = 0, format = formatAmount } = {
         cell.textContent = digit;
         strip.appendChild(cell);
       });
-      column.appendChild(strip);
+      const still = document.createElement('span');
+      still.className = 'odo__still';
+      column.append(strip, still);
       element.appendChild(column);
       const start = startDigits ? startDigits[digitIndex] ?? 0 : Number(char);
+      const entry = { motion: null, digit: Number(char), column, strip, still };
       const motion = createMotion({ d: start }, { response: 0.6, damping: 0.86, restDelta: 0.001 });
-      motion.onUpdate(({ d }) => {
-        strip.style.transform = `translate3d(0, ${-d * 1.08}em, 0)`;
-      });
-      strip.style.transform = `translate3d(0, ${-start * 1.08}em, 0)`;
-      columns.push({ motion, digit: Number(char) });
+      motion.onUpdate(({ d }) => paint(entry, d));
+      entry.motion = motion;
+      paint(entry, start);
+      columns.push(entry);
       digitIndex += 1;
     });
     shape = shapeOf(text);
+  }
+
+  function paint(entry, d) {
+    const resting = Math.abs(d - entry.digit) < REST;
+    if (resting) {
+      if (!entry.column.classList.contains('is-rest')) {
+        entry.still.textContent = String(entry.digit);
+        entry.strip.style.transform = '';
+        entry.column.classList.add('is-rest');
+      }
+      return;
+    }
+    entry.column.classList.remove('is-rest');
+    entry.strip.style.transform = `translate3d(0, ${-d * 1.08}em, 0)`;
   }
 
   function digitsOf(text) {
@@ -72,10 +89,12 @@ export function createOdometer(element, { value = 0, format = formatAmount } = {
     }
     const digits = digitsOf(text);
     const count = columns.length;
-    columns.forEach((column, i) => {
-      column.digit = digits[i];
+    columns.forEach((entry, i) => {
+      const changed = entry.digit !== digits[i];
+      entry.digit = digits[i];
+      if (changed || !entry.column.classList.contains('is-rest')) paint(entry, entry.motion.get('d'));
       const spring = MotionSettings.reduced ? MotionSettings.spring('focus') : { response: 0.5 + (count - i) * 0.06, damping: 0.68 };
-      column.motion.to({ d: digits[i] }, spring);
+      entry.motion.to({ d: digits[i] }, spring);
     });
     current = next;
   }
