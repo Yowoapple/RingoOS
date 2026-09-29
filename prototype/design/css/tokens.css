@@ -82,6 +82,7 @@
 
   --dock-surface: #ecece8;
   --dock-shadow: 0 0 0 1px var(--line), 0 12px 34px rgba(14, 14, 16, 0.1);
+  --accent-spot: var(--accent);
   --tip: #000000;
   --tip-ink: #f2f1ed;
 
@@ -150,6 +151,9 @@
   --accent-on: #0e0e10;
   --accent-text: #4b6800;
   --accent-soft: rgba(150, 196, 0, 0.18);
+}
+:root[data-accent="apple"]:not([data-theme="dark"]) {
+  --accent-spot: #86bc12;
 }
 :root[data-theme="dark"][data-accent="apple"] {
   --accent-text: #c8f03c;

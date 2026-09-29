@@ -12,13 +12,13 @@ import { flip, enter, pressable } from './motion-kit.js';
 import { startPerfMeter } from './perf.js';
 import { createLabDesktop } from './desktop.js';
 import { createMenubar } from './menubar.js';
-import { baseThickness, sampleGlassThickness } from './wall-tone.js';
+import { baseThickness, sampleGlassThickness, presetAccent, wallpaperAccent } from './wall-tone.js';
 
 MotionSettings.usePreset('hyperos');
 MotionSettings.setSpring('dock', { response: 0.32, damping: 0.66 });
 MotionSettings.setSpring('focus', { response: 0.34, damping: 0.62 });
 
-const STATE_KEY = 'yoworingo.design-lab.v2';
+const STATE_KEY = 'yoworingo.design-lab.v3';
 const SOFT = { response: 0.55, damping: 0.62 };
 const BUDGET = 24000;
 const INCOME = 42000;
@@ -53,8 +53,8 @@ const root = document.documentElement;
 const $ = (id) => document.getElementById(id);
 
 const state = {
-  style: 'c',
-  accent: 'apple',
+  style: 'a',
+  accent: 'auto',
   theme: 'dark',
   wall: 'mono',
   lab: window.innerWidth < 768 ? 'closed' : 'open',
@@ -361,8 +361,9 @@ let photoUrl = null;
 let toneToken = 0;
 
 function applyTones({ bar, dock }) {
-  root.style.setProperty('--bar-alpha', bar.toFixed(2));
-  root.style.setProperty('--dock-alpha', dock.toFixed(2));
+  root.style.setProperty('--bar-alpha', bar.alpha.toFixed(2));
+  root.style.setProperty('--dock-alpha', dock.alpha.toFixed(2));
+  root.dataset.barSolid = bar.solid ? '1' : '0';
 }
 
 function toneRegions() {
@@ -375,10 +376,21 @@ function toneRegions() {
   };
 }
 
+let autoAccent = presetAccent(state.wall);
+
+function applyAccent() {
+  const resolved = state.accent === 'auto' ? autoAccent : state.accent;
+  root.dataset.accent = resolved;
+  const names = { apple: '青蘋果', signal: '信號橘', ultramarine: '群青' };
+  $('lab-accent-auto').textContent = `自動 · ${names[autoAccent]}`;
+}
+
 function refreshTones() {
   const mine = ++toneToken;
   if (state.wall !== 'photo' || !photoUrl) {
     applyTones(baseThickness(state.theme));
+    autoAccent = presetAccent(state.wall);
+    applyAccent();
     return;
   }
   sampleGlassThickness(photoUrl, toneRegions(), state.theme).then((tones) => {
@@ -386,6 +398,11 @@ function refreshTones() {
   }).catch(() => {
     if (mine === toneToken) applyTones(baseThickness(state.theme));
   });
+  wallpaperAccent(photoUrl).then((name) => {
+    if (mine !== toneToken) return;
+    autoAccent = name;
+    applyAccent();
+  }).catch(() => {});
 }
 
 let toneTimer = 0;
@@ -396,7 +413,6 @@ window.addEventListener('resize', () => {
 
 function applyState() {
   root.dataset.style = state.style;
-  root.dataset.accent = state.accent;
   root.dataset.theme = state.theme;
   root.dataset.wall = state.wall;
   root.dataset.lab = state.lab;

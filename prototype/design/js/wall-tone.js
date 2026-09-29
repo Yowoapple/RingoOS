@@ -76,18 +76,71 @@ function thickness(values, glass) {
   const worst = values[Math.min(values.length - 1, Math.floor(values.length * pick))];
   const wallGray = toGamma(worst);
   const glassGray = toGamma(luminance(...glass.rgb));
+  const behind = (alpha) => toLinear(wallGray * (1 - alpha) + glassGray * alpha);
   let alpha = glass.alpha;
-  while (alpha < MAX_ALPHA) {
-    const mixed = toLinear(wallGray * (1 - alpha) + glassGray * alpha);
-    if (contrast(mixed, glass.ink) >= TARGET_CONTRAST && contrast(mixed, glass.ink2) >= SECONDARY_CONTRAST) break;
-    alpha += ALPHA_STEP;
+  while (alpha < MAX_ALPHA && contrast(behind(alpha), glass.ink) < TARGET_CONTRAST) alpha += ALPHA_STEP;
+  alpha = Math.min(MAX_ALPHA, alpha);
+  return { alpha, solid: contrast(behind(alpha), glass.ink2) < SECONDARY_CONTRAST };
+}
+
+const ACCENT_HUES = { apple: 75, signal: 16, ultramarine: 236 };
+const PRESET_ACCENT = { mono: 'apple', aurora: 'ultramarine' };
+const HUE_SAMPLE = 48;
+const MIN_SATURATION = 0.25;
+const MIN_CHROMA_SHARE = 0.12;
+
+function hueOf(r, g, b) {
+  const max = Math.max(r, g, b) / 255;
+  const min = Math.min(r, g, b) / 255;
+  const lightness = (max + min) / 2;
+  const delta = max - min;
+  if (delta === 0) return null;
+  const saturation = delta / (1 - Math.abs(2 * lightness - 1));
+  if (saturation < MIN_SATURATION || lightness < 0.12 || lightness > 0.9) return null;
+  let hue;
+  if (max === r / 255) hue = ((g - b) / 255 / delta) % 6;
+  else if (max === g / 255) hue = (b - r) / 255 / delta + 2;
+  else hue = (r - g) / 255 / delta + 4;
+  return { hue: (hue * 60 + 360) % 360, weight: saturation };
+}
+
+function hueDistance(a, b) {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+}
+
+export function presetAccent(wall) {
+  return PRESET_ACCENT[wall] || 'apple';
+}
+
+export async function wallpaperAccent(url) {
+  const img = await loadImage(url);
+  const canvas = document.createElement('canvas');
+  canvas.width = HUE_SAMPLE;
+  canvas.height = Math.max(1, Math.round((HUE_SAMPLE * img.naturalHeight) / img.naturalWidth));
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const votes = { apple: 0, signal: 0, ultramarine: 0 };
+  let chromatic = 0;
+  const pixels = data.length / 4;
+  for (let i = 0; i < data.length; i += 4) {
+    const sample = hueOf(data[i], data[i + 1], data[i + 2]);
+    if (!sample) continue;
+    chromatic += 1;
+    let best = 'apple';
+    Object.entries(ACCENT_HUES).forEach(([name, hue]) => {
+      if (hueDistance(sample.hue, hue) < hueDistance(sample.hue, ACCENT_HUES[best])) best = name;
+    });
+    votes[best] += sample.weight;
   }
-  return Math.min(MAX_ALPHA, alpha);
+  if (chromatic / pixels < MIN_CHROMA_SHARE) return 'apple';
+  return Object.entries(votes).sort((a, b) => b[1] - a[1])[0][0];
 }
 
 export function baseThickness(theme) {
   const alpha = GLASS[theme === 'dark' ? 'dark' : 'light'].alpha;
-  return { bar: alpha, dock: alpha };
+  return { bar: { alpha, solid: false }, dock: { alpha, solid: false } };
 }
 
 export async function sampleGlassThickness(url, regions, theme) {

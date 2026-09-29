@@ -228,7 +228,7 @@
   height: 19px;
   padding: 0 5px;
   border-radius: 10px;
-  background: var(--accent);
+  background: var(--accent-spot);
   color: var(--accent-on);
   font-family: var(--font-mono);
   font-size: 11px;

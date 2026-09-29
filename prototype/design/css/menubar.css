@@ -45,6 +45,23 @@
   color: var(--accent-text);
 }
 
+:root[data-style="a"] .menubar :is(.mb-item, .mb-brand__os, .mb-clock__date, .mb-app) {
+  transition: color 300ms ease, font-weight 300ms ease;
+}
+
+:root[data-style="a"][data-bar-solid="1"] .menubar {
+  --ink-2: var(--ink);
+  --ink-3: var(--ink);
+}
+
+:root[data-style="a"][data-bar-solid="1"] .mb-app {
+  font-weight: 700;
+}
+
+:root[data-style="a"][data-bar-solid="1"] .mb-clock__time {
+  font-weight: 600;
+}
+
 .menubar__platter {
   position: absolute;
   left: 0;
@@ -188,7 +205,7 @@
 }
 
 .mb-weather .i-acc {
-  fill: var(--accent);
+  fill: var(--accent-spot);
 }
 
 .mb-temp,
@@ -211,7 +228,7 @@
   padding: 0 0.26rem;
   margin-left: -0.08rem;
   border-radius: var(--r-pill);
-  background: var(--accent);
+  background: var(--accent-spot);
   color: var(--accent-on);
   font-family: var(--font-mono);
   font-size: 0.56rem;
