@@ -370,6 +370,13 @@ export function createOverviewApp({ root, periodTag, nowButton, prevButton, next
   return {
     refreshGlass: () => segment.refreshGlass(),
     measure: () => segment.measure(),
+    show(nextMode, anchorKey) {
+      const target = parseKey(anchorKey);
+      anchor = target > today() ? today() : target;
+      const index = MODES.indexOf(nextMode);
+      if (index >= 0 && index !== segment.index) segment.select(index);
+      else render({ stagger: true });
+    },
     intro() {
       if (MotionSettings.reduced) return;
       const keys = periodKeys();

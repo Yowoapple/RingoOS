@@ -32,6 +32,18 @@ const VOICES = {
       ['{p}手頭比較緊。', '接下來以必要開銷為主，其他的先緩一緩。'],
       ['收支落差有點大。', '這種時候本來就會有，先照顧好自己，再慢慢調整。'],
     ],
+    paceGood: [
+      ['{p}花得剛剛好。', '還在該有的步調裡，照這樣走就好。'],
+      ['{p}的開銷很節制。', '沒有多花的地方，這個節奏很好。'],
+    ],
+    paceWarn: [
+      ['{p}花得快了一點。', '還不用緊張，接下來留意一下就好。'],
+      ['{p}的支出有點多。', '先顧必要的開銷，很快就能拉回來。'],
+    ],
+    paceHigh: [
+      ['{p}花得有點兇。', '先停一下，看看哪幾筆其實可以省。'],
+      ['{p}的開銷超出步調了。', '接下來以必要開銷為主，其他的先緩一緩。'],
+    ],
   },
   maid: {
     emptyNow: [
@@ -53,6 +65,18 @@ const VOICES = {
       ['主人，{p}透支了。', '請先別自責，奴家陪您一起看看是哪裡花多了。'],
       ['{p}手頭比較緊。', '請以必要的開銷為優先，其他的奴家幫您記著。'],
       ['收支落差有點大。', '辛苦主人了，先照顧好自己，之後再慢慢調整回來。'],
+    ],
+    paceGood: [
+      ['主人{p}花得剛剛好呢。', '一切都在步調裡，奴家看了很安心。'],
+      ['{p}的開銷很節制。', '主人做得很好，請繼續保持。'],
+    ],
+    paceWarn: [
+      ['主人，{p}花得快了一點。', '還不用擔心，接下來奴家會幫您留意。'],
+      ['{p}的支出有點多了。', '主人請先顧好必要的開銷，奴家會提醒您。'],
+    ],
+    paceHigh: [
+      ['主人，{p}花得有點兇。', '請先停一下，奴家陪您看看哪幾筆可以省。'],
+      ['{p}的開銷超出步調了。', '接下來請以必要的開銷為優先，其他的奴家幫您記著。'],
     ],
   },
   wife: {
@@ -76,6 +100,18 @@ const VOICES = {
       ['{p}手頭比較緊。', '先顧必要的開銷，其他的等手頭鬆一點再說。'],
       ['收支落差有點大。', '辛苦你了，先照顧好自己，之後我們再慢慢調整。'],
     ],
+    paceGood: [
+      ['{p}花得剛剛好呢。', '都在步調裡，我看了也很放心。'],
+      ['{p}的開銷很節制。', '做得很好，我們繼續保持。'],
+    ],
+    paceWarn: [
+      ['{p}花得快了一點喔。', '還不用緊張，接下來我們一起留意。'],
+      ['{p}的支出有點多了。', '先顧必要的開銷，我們很快就能拉回來。'],
+    ],
+    paceHigh: [
+      ['{p}花得有點兇喔。', '先停一下，我們一起看看哪幾筆可以省，好嗎。'],
+      ['{p}的開銷超出步調了。', '先顧必要的開銷，其他的等手頭鬆一點再說。'],
+    ],
   },
   sister: {
     emptyNow: [
@@ -98,6 +134,18 @@ const VOICES = {
       ['{p}真的有點緊誒。', '先顧好必要的就好，其他的忍一忍啦。'],
       ['收支落差有點大喔。', '先照顧好自己比較重要，之後再慢慢調回來。'],
     ],
+    paceGood: [
+      ['{p}花得剛剛好耶。', '很會控制嘛，繼續保持喔 (๑˃ᴗ˂)ﻭ'],
+      ['{p}超節制的。', '沒有亂花耶，給你一個讚！'],
+    ],
+    paceWarn: [
+      ['{p}花得有點快喔。', '還好啦，接下來小心一點就好 (´・ω・`)'],
+      ['{p}的支出有點多誒。', '先顧必要的啦，很快就能拉回來。'],
+    ],
+    paceHigh: [
+      ['{p}花超兇的耶。', '先停一下啦，看看哪幾筆可以省 (＞﹏＜)'],
+      ['{p}的開銷爆表了啦。', '先顧好必要的就好，其他的忍一忍。'],
+    ],
   },
 };
 
@@ -117,7 +165,7 @@ function pick(pool, seed) {
 }
 
 function money(value, sign = false) {
-  return { n: Math.round(Math.abs(value)), kind: 'amount', sign: sign ? Math.sign(value) : 0 };
+  return { n: Math.round(Math.abs(value)), kind: 'amount', sign: sign ? Math.sign(value) : 0, signed: sign };
 }
 
 function count(value) {
@@ -277,6 +325,26 @@ function clues(ctx) {
   return list;
 }
 
+const PACE = { positive: 'paceGood', warning: 'paceWarn', danger: 'paceHigh' };
+const PACE_FLOOR = 0.25;
+
+function judge({ empty, summary, budget, elapsed, length, comparison }) {
+  if (empty) return { status: 'empty', pool: 'empty' };
+  if (summary.income > 0) {
+    const status = Calc.getNetStatus(summary.income, summary.expense).status;
+    return { status, pool: status };
+  }
+  let status = 'warning';
+  if (budget > 0) {
+    const ratio = summary.expense / ((budget * Math.max(elapsed, length * PACE_FLOOR)) / length);
+    status = ratio <= 1 ? 'positive' : ratio <= 1.2 ? 'warning' : 'danger';
+  } else if (comparison && comparison.previousExpense > 0) {
+    const ratio = summary.expense / comparison.previousExpense;
+    status = ratio <= 1 ? 'positive' : ratio <= 1.15 ? 'warning' : 'danger';
+  }
+  return { status, pool: PACE[status] };
+}
+
 export function buildInsight({ mode, anchorKey, persona = 'neutral', todayKey = Data.toDateKey(new Date()) }) {
   const voice = VOICES[persona] || VOICES.neutral;
   const { keys, monthKey, seed } = periodOf(mode, anchorKey);
@@ -285,11 +353,12 @@ export function buildInsight({ mode, anchorKey, persona = 'neutral', todayKey = 
   const elapsed = current ? index + 1 : keys.length;
   const summary = Calc.summarizeDateKeys(keys);
   const empty = summary.income === 0 && summary.expense === 0;
-  const status = empty ? 'empty' : Calc.getNetStatus(summary.income, summary.expense).status;
   const unit = mode === 'month' ? '月' : '週';
   const monthly = monthBudgetTotal(monthKey);
   const budget = mode === 'month' ? monthly : Math.round((monthly * 7) / Calc.getMonthDateKeys(monthKey).length);
   const comparison = empty ? null : comparisonOf(mode, keys, elapsed, summary);
+  const verdict = judge({ empty, summary, budget, elapsed, length: keys.length, comparison });
+  const status = verdict.status;
   const ctx = {
     mode,
     unit,
@@ -305,7 +374,7 @@ export function buildInsight({ mode, anchorKey, persona = 'neutral', todayKey = 
     over: mode === 'month' ? overBudgetOf(monthKey) : [],
     goal: mode === 'month' ? goalOf() : null,
   };
-  const poolName = empty ? (current ? 'emptyNow' : 'emptyPast') : status;
+  const poolName = empty ? (current ? 'emptyNow' : 'emptyPast') : verdict.pool;
   const [headline, advice] = pick(voice[poolName], `${seed}-${poolName}-${persona}`);
   const noun = periodNoun(mode, keys, current);
   const lead = headline.replace('{p}', noun);

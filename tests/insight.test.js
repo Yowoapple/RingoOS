@@ -55,6 +55,30 @@ describe('lead and voice', () => {
   });
 });
 
+describe('judging periods without income', () => {
+  it('does not call a frugal week without payday a loss', () => {
+    spend('2026-08-31', 2000);
+    spend('2026-09-07', 800);
+    const insight = buildInsight({ mode: 'week', anchorKey: TODAY, todayKey: TODAY });
+    expect(insight.status).toBe('positive');
+    expect(insight.lead).not.toContain('收支');
+  });
+
+  it('follows the budget pace when a budget exists', () => {
+    Data.setMonthlyBudget('2026-09', '餐飲', 3000);
+    spend('2026-09-02', 2500);
+    const insight = buildInsight({ mode: 'month', anchorKey: TODAY, todayKey: TODAY });
+    expect(insight.status).toBe('danger');
+    expect(insight.label).toBe('需要注意');
+  });
+
+  it('keeps the net verdict once income is recorded', () => {
+    earn('2026-09-01', 1000);
+    spend('2026-09-02', 2500);
+    expect(buildInsight({ mode: 'month', anchorKey: TODAY, todayKey: TODAY }).status).toBe('danger');
+  });
+});
+
 describe('evidence', () => {
   it('compares against the same stretch of last month', () => {
     earn('2026-09-01', 50000);

@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="/src/styles/island.css">
   <link rel="stylesheet" href="/src/styles/apps/ledger.css">
   <link rel="stylesheet" href="/src/styles/apps/overview.css">
+  <link rel="stylesheet" href="/src/styles/apps/reminder.css">
 </head>
 <body>
   <svg class="sr-only" aria-hidden="true" focusable="false">
@@ -236,6 +237,50 @@
             <div class="budget__legend"><span data-ov="need-amt"></span><span data-ov="want-amt"></span></div>
           </div>
         </section>
+      </div>
+    </div>
+    <div class="app-source" data-app-id="life-reminder">
+      <div class="app-source__titlebar">
+        <span class="date-pick" data-no-drag>
+          <button type="button" class="date-today" id="reminder-now" hidden>本月</button>
+          <span class="period-nav">
+            <button type="button" class="period-nav__btn" id="reminder-prev" aria-label="上一期"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+            <span class="tag period-nav__tag" id="reminder-period"></span>
+            <button type="button" class="period-nav__btn" id="reminder-next" aria-label="下一期"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+          </span>
+        </span>
+      </div>
+      <div class="rm" id="reminder">
+        <div class="rm__bar">
+          <div class="seg rm__mode" role="tablist" aria-label="看整月或整週" data-rm="mode">
+            <span class="seg__platter" aria-hidden="true"><span class="seg__blob"></span></span>
+            <span class="seg__lens" aria-hidden="true"></span>
+            <button type="button" class="seg__btn" role="tab" aria-selected="true">月</button>
+            <button type="button" class="seg__btn" role="tab" aria-selected="false">週</button>
+          </div>
+          <span class="rm__voice">
+            <span class="rm__voice-label">語氣</span>
+            <div class="sel" data-rm="voice"><button type="button" class="sel__btn" aria-label="提醒的語氣"><span class="sel__value"></span><svg class="sel__chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+          </span>
+        </div>
+        <div class="rm__cols">
+          <article class="rm__col is-active" data-rm-col="month" aria-label="這個月">
+            <header class="rm__head"><span class="tag" data-rm="range"></span><span class="rm__status" data-rm="status"></span></header>
+            <h3 class="rm__lead" data-rm="lead" aria-live="polite"></h3>
+            <p class="rm__sub" data-rm="sub" hidden></p>
+            <div class="rm__details" data-rm="details"></div>
+            <button type="button" class="btn btn--secondary rm__cta" data-rm="cta" hidden>打開每日記帳</button>
+            <div class="rm__clues" data-rm="clues" hidden></div>
+          </article>
+          <article class="rm__col" data-rm-col="week" aria-label="這週">
+            <header class="rm__head"><span class="tag" data-rm="range"></span><span class="rm__status" data-rm="status"></span></header>
+            <h3 class="rm__lead" data-rm="lead" aria-live="polite"></h3>
+            <p class="rm__sub" data-rm="sub" hidden></p>
+            <div class="rm__details" data-rm="details"></div>
+            <button type="button" class="btn btn--secondary rm__cta" data-rm="cta" hidden>打開每日記帳</button>
+            <div class="rm__clues" data-rm="clues" hidden></div>
+          </article>
+        </div>
       </div>
     </div>
     <div class="app-source" data-app-id="settings">
