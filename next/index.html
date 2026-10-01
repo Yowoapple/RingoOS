@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="/src/styles/apps/ledger.css">
   <link rel="stylesheet" href="/src/styles/apps/overview.css">
   <link rel="stylesheet" href="/src/styles/apps/reminder.css">
+  <link rel="stylesheet" href="/src/styles/apps/calendar.css">
 </head>
 <body>
   <svg class="sr-only" aria-hidden="true" focusable="false">
@@ -278,6 +279,61 @@
             <div class="rm__clues" data-rm="clues" hidden></div>
           </article>
         </div>
+      </div>
+    </div>
+    <div class="app-source" data-app-id="calendar">
+      <div class="app-source__titlebar">
+        <span class="date-pick" data-no-drag>
+          <button type="button" class="date-today" id="calendar-today" hidden>今天</button>
+          <span class="period-nav">
+            <button type="button" class="period-nav__btn" id="calendar-prev" aria-label="上個月"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+            <span class="tag period-nav__tag" id="calendar-period"></span>
+            <button type="button" class="period-nav__btn" id="calendar-next" aria-label="下個月"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+          </span>
+        </span>
+      </div>
+      <div class="cal" id="calendar">
+        <aside class="cal__rail" aria-label="接下來">
+          <h3 class="cal__rail-title">接下來</h3>
+          <div class="cal__up" data-cal="upcoming"></div>
+          <p class="cal__rail-empty" data-cal="upcoming-empty" hidden>接下來兩週沒有未完成的代辦</p>
+        </aside>
+        <section class="cal__month" aria-label="月曆">
+          <div class="cal__week" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+          <div class="cal__grid-wrap">
+            <span class="cal__ring" data-cal="ring" aria-hidden="true"></span>
+            <div class="cal__grid" data-cal="grid" role="grid" aria-label="日期"></div>
+          </div>
+        </section>
+        <section class="cal__day" aria-label="當天的代辦">
+          <header class="cal__day-head">
+            <span class="cal__day-num mono" data-cal="day-num"></span>
+            <span class="cal__day-meta">
+              <span class="cal__day-rel" data-cal="day-rel"></span>
+              <span class="cal__day-date" data-cal="day-date"></span>
+            </span>
+            <button type="button" class="cal__pick-btn" data-cal="pick" hidden>多選匯出</button>
+          </header>
+          <form class="cal__add" data-cal="add" novalidate>
+            <span class="cal__add-time mono" data-cal="add-time" hidden></span>
+            <input class="cal__add-input" data-cal="add-input" autocomplete="off" placeholder="新增代辦，例如「14:30 看牙醫」" aria-label="新增代辦">
+            <button type="submit" class="cal__add-go" aria-label="新增" data-press><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.8v8.4M1.8 6h8.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+          </form>
+          <div class="list__stage" data-cal="stage">
+            <div class="list__view" data-view="rows" data-cal="rows" role="list" aria-label="代辦"></div>
+            <div class="list__view" data-view="empty">
+              <div class="list__state">
+                <span class="list__state-title" data-cal="empty-title">這天沒有代辦</span>
+                <span class="list__state-hint">在上面輸入就能新增；打「下午3點」會自動變成時間。點一筆看詳情，往左滑刪除</span>
+              </div>
+            </div>
+          </div>
+          <div class="cal__export" data-cal="export" hidden>
+            <span class="cal__export-count" data-cal="export-count"></span>
+            <button type="button" class="btn btn--secondary" data-cal="export-cancel">取消</button>
+            <button type="button" class="btn btn--primary" data-cal="export-go">下載 .ics</button>
+          </div>
+        </section>
       </div>
     </div>
     <div class="app-source" data-app-id="settings">
