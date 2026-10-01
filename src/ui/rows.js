@@ -32,15 +32,17 @@ export function createRowList(container, { render, onDelete, onSelect }) {
     el.innerHTML = '<div class="row__action" aria-hidden="true"><span class="row__action-label">刪除</span></div><div class="row__slide"></div>';
     el.querySelector('.row__slide').appendChild(render(row));
     const entry = { row, el, slide: el.querySelector('.row__slide'), action: el.querySelector('.row__action'), label: el.querySelector('.row__action-label'), leaving: false };
-    entry.motion = createMotion({ x: 0, h: 1, o: 1 }, { response: 0.4, damping: 0.7, restDelta: { x: 0.05, h: 0.002, o: 0.002 } });
+    entry.motion = createMotion({ x: 0, y: 0, h: 1, o: 1 }, { response: 0.4, damping: 0.7, restDelta: { x: 0.05, y: 0.05, h: 0.002, o: 0.002 } });
     entry.motion.onUpdate((values) => paint(entry, values));
     bind(entry);
     return entry;
   }
 
-  function paint(entry, { x, h, o }) {
+  function paint(entry, { x, y, h, o }) {
     const width = entry.el.offsetWidth || 1;
     entry.slide.style.transform = Math.abs(x) < 0.05 ? '' : `translate3d(${x}px, 0, 0)`;
+    entry.el.style.transform = Math.abs(y) < 0.05 ? '' : `translate3d(0, ${y}px, 0)`;
+    entry.el.classList.toggle('is-moving', Math.abs(y) >= 0.05);
     const reveal = clamp(-x / width, 0, 1);
     const armed = reveal >= COMMIT_SHARE;
     entry.action.style.opacity = reveal > 0.001 ? String(clamp(reveal * 4, 0, 1)) : '0';
@@ -94,7 +96,7 @@ export function createRowList(container, { render, onDelete, onSelect }) {
   function bind(entry) {
     let drag = null;
     entry.el.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0 || entry.leaving) return;
+      if (event.button !== 0 || entry.leaving || event.target.closest('[data-row-own]')) return;
       drag = { id: event.pointerId, x: event.clientX, y: event.clientY, start: entry.motion.get('x'), swiping: false, samples: [] };
     });
     entry.el.addEventListener('pointermove', (event) => {
@@ -133,6 +135,7 @@ export function createRowList(container, { render, onDelete, onSelect }) {
     entry.el.addEventListener('pointerup', end);
     entry.el.addEventListener('pointercancel', end);
     entry.el.addEventListener('keydown', (event) => {
+      if (event.target !== entry.el) return;
       if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault();
         const next = entries[entries.indexOf(entry) + 1] || entries[entries.indexOf(entry) - 1];
@@ -202,6 +205,37 @@ export function createRowList(container, { render, onDelete, onSelect }) {
       return entry ? remove(entry, { report: false }) : Promise.resolve();
     },
     clearSelection: () => select(null),
+    selectId(id) {
+      const entry = find(id);
+      select(entry);
+    },
+    order(ids) {
+      const live = entries.filter((entry) => !entry.leaving);
+      const before = new Map(live.map((entry) => [entry, entry.el.getBoundingClientRect().top]));
+      const ranked = ids.map((id) => find(id)).filter(Boolean);
+      const final = [...ranked, ...live.filter((entry) => !ranked.includes(entry))];
+      if (final.every((entry, i) => live[i] === entry)) return;
+      const markers = live.map((entry) => {
+        const marker = document.createComment('');
+        entry.el.before(marker);
+        return marker;
+      });
+      markers.forEach((marker, i) => marker.replaceWith(final[i].el));
+      const slots = entries.map((entry) => (entry.leaving ? entry : null));
+      let next = 0;
+      entries.splice(0, entries.length, ...slots.map((slot) => slot || final[next++]));
+      if (MotionSettings.reduced) return;
+      final.forEach((entry) => {
+        const delta = before.get(entry) - entry.el.getBoundingClientRect().top;
+        if (Math.abs(delta) < 0.5) return;
+        entry.motion.set({ y: entry.motion.get('y') + delta });
+        entry.motion.to({ y: 0 }, { response: 0.5, damping: 0.72 });
+      });
+    },
+    element: (id) => {
+      const entry = find(id);
+      return entry ? entry.el : null;
+    },
     rows: () => entries.map((entry) => entry.row),
     reset(rows) {
       entries.splice(0).forEach((entry) => entry.el.remove());

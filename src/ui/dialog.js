@@ -30,13 +30,14 @@ export function createDialogHost(host) {
   box.setAttribute('aria-modal', 'true');
   box.setAttribute('aria-labelledby', 'dlg-title');
   box.setAttribute('aria-describedby', 'dlg-text');
-  box.innerHTML = '<h4 class="dlg__title" id="dlg-title"></h4><p class="dlg__text" id="dlg-text"></p><div class="dlg__actions"><button type="button" class="btn btn--secondary dlg__cancel"></button><button type="button" class="btn btn--danger-fill dlg__confirm"></button></div>';
+  box.innerHTML = '<h4 class="dlg__title" id="dlg-title"></h4><p class="dlg__text" id="dlg-text"></p><div class="dlg__body" hidden></div><div class="dlg__actions"></div>';
   host.append(scrim, shape, box);
   const titleEl = box.querySelector('.dlg__title');
   const textEl = box.querySelector('.dlg__text');
-  const cancel = box.querySelector('.dlg__cancel');
-  const confirm = box.querySelector('.dlg__confirm');
-  const items = [titleEl, textEl, box.querySelector('.dlg__actions')];
+  const bodyEl = box.querySelector('.dlg__body');
+  const actionsEl = box.querySelector('.dlg__actions');
+  const items = [titleEl, textEl, bodyEl, actionsEl];
+  let buttons = [];
   const geo = createMotion({ t: 0 }, { response: 0.4, damping: 0.7, restDelta: 0.0005 });
   const dim = createMotion({ d: 0 }, { response: 0.3, damping: 1, restDelta: 0.002 });
   const itemMotions = items.map((el) => {
@@ -116,59 +117,103 @@ export function createDialogHost(host) {
     if (resolve) resolve(result);
   }
 
+  let dismissValue = false;
+
+  function focusables() {
+    return Array.from(box.querySelectorAll('button, [href], input, select, textarea')).filter((el) => !el.disabled && !el.closest('[hidden]'));
+  }
+
   function onKey(event) {
     if (!open) return;
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
-      finish(false);
+      finish(dismissValue);
     } else if (event.key === 'Tab') {
       event.preventDefault();
-      (document.activeElement === cancel ? confirm : cancel).focus();
+      const list = focusables();
+      if (!list.length) return;
+      const at = list.indexOf(document.activeElement);
+      const step = event.shiftKey ? -1 : 1;
+      list[(at + step + list.length) % list.length].focus();
     }
   }
 
-  cancel.addEventListener('click', () => finish(false));
-  confirm.addEventListener('click', () => finish(true));
-  scrim.addEventListener('pointerdown', () => finish(false));
+  scrim.addEventListener('pointerdown', () => finish(dismissValue));
+
+  function present({ source, frame, title, text = '', content = null, actions, dismiss = null, width: maxRem = 20, role = 'dialog' }) {
+    if (open) return Promise.resolve(dismiss);
+    clearTimers();
+    dismissValue = dismiss;
+    box.setAttribute('role', role);
+    titleEl.textContent = title;
+    textEl.textContent = text;
+    textEl.hidden = !text;
+    bodyEl.textContent = '';
+    bodyEl.hidden = !content;
+    if (content) bodyEl.appendChild(content);
+    actionsEl.textContent = '';
+    let initial = null;
+    actions.forEach((action) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `btn ${action.className || 'btn--secondary'}`;
+      button.textContent = action.label;
+      button.addEventListener('click', () => {
+        if (action.onClick) action.onClick();
+        if (action.close !== false) finish(action.value);
+      });
+      actionsEl.appendChild(button);
+      if (action.focus || !initial) initial = action.focus ? button : initial || button;
+    });
+    origin = source;
+    const unit = rem();
+    const b = source.getBoundingClientRect();
+    const f = frame.getBoundingClientRect();
+    const width = Math.min(maxRem * unit, f.width - 2 * unit);
+    box.style.width = `${width}px`;
+    box.style.left = '0px';
+    box.style.top = '0px';
+    const height = box.offsetHeight;
+    const x = f.left + (f.width - width) / 2;
+    const y = f.top + Math.max(2.6 * unit, (f.height - height) / 2 - unit);
+    box.style.left = `${x}px`;
+    box.style.top = `${y}px`;
+    from = { x: b.left, y: b.top, w: b.width, h: b.height, r: parseFloat(getComputedStyle(source).borderTopLeftRadius) || 12 };
+    to = { x, y, w: width, h: height, r: parseFloat(getComputedStyle(box).borderTopLeftRadius) || 26 };
+    scrim.style.left = `${f.left}px`;
+    scrim.style.top = `${f.top}px`;
+    scrim.style.width = `${f.width}px`;
+    scrim.style.height = `${f.height}px`;
+    open = true;
+    box.classList.add('is-open');
+    scrim.classList.add('is-open');
+    geo.set({ t: 0.0011 });
+    geo.to({ t: 1 }, soft(GROW));
+    dim.to({ d: 1 }, soft({ response: 0.32, damping: 1 }));
+    items.forEach((el, i) => later(() => itemMotions[i].to({ e: 1 }, soft(ITEM_IN)), 90 + i * 40));
+    host.addEventListener('keydown', onKey, true);
+    later(() => { if (initial) initial.focus({ preventScroll: true }); }, 120);
+    return new Promise((resolve) => { resolver = resolve; });
+  }
 
   return {
+    present,
+    close: (value) => finish(value === undefined ? dismissValue : value),
     confirm({ source, frame, title, text, confirmLabel = '確定', cancelLabel = '取消' }) {
-      if (open) return Promise.resolve(false);
-      clearTimers();
-      titleEl.textContent = title;
-      textEl.textContent = text;
-      confirm.textContent = confirmLabel;
-      cancel.textContent = cancelLabel;
-      origin = source;
-      const unit = rem();
-      const b = source.getBoundingClientRect();
-      const f = frame.getBoundingClientRect();
-      const width = Math.min(20 * unit, f.width - 2 * unit);
-      box.style.width = `${width}px`;
-      box.style.left = '0px';
-      box.style.top = '0px';
-      const height = box.offsetHeight;
-      const x = f.left + (f.width - width) / 2;
-      const y = f.top + Math.max(2.6 * unit, (f.height - height) / 2 - unit);
-      box.style.left = `${x}px`;
-      box.style.top = `${y}px`;
-      from = { x: b.left, y: b.top, w: b.width, h: b.height, r: parseFloat(getComputedStyle(source).borderTopLeftRadius) || 12 };
-      to = { x, y, w: width, h: height, r: parseFloat(getComputedStyle(box).borderTopLeftRadius) || 26 };
-      scrim.style.left = `${f.left}px`;
-      scrim.style.top = `${f.top}px`;
-      scrim.style.width = `${f.width}px`;
-      scrim.style.height = `${f.height}px`;
-      open = true;
-      box.classList.add('is-open');
-      scrim.classList.add('is-open');
-      geo.set({ t: 0.0011 });
-      geo.to({ t: 1 }, soft(GROW));
-      dim.to({ d: 1 }, soft({ response: 0.32, damping: 1 }));
-      items.forEach((el, i) => later(() => itemMotions[i].to({ e: 1 }, soft(ITEM_IN)), 90 + i * 40));
-      host.addEventListener('keydown', onKey, true);
-      later(() => cancel.focus({ preventScroll: true }), 120);
-      return new Promise((resolve) => { resolver = resolve; });
+      return present({
+        source,
+        frame,
+        title,
+        text,
+        role: 'alertdialog',
+        dismiss: false,
+        actions: [
+          { label: cancelLabel, className: 'btn--secondary', value: false, focus: true },
+          { label: confirmLabel, className: 'btn--danger-fill', value: true },
+        ],
+      });
     },
   };
 }
+

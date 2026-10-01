@@ -310,8 +310,24 @@ function addTask(dateKey, text, time) {
   const trimmed = (text || '').trim();
   if (!trimmed) return;
   const day = ensureDay(dateKey);
-  day.tasks.push({ id: generateId(), text: trimmed, done: false, time: time || null });
+  const task = { id: generateId(), text: trimmed, done: false, time: time || null, createdAt: Date.now() };
+  day.tasks.push(task);
   notify();
+  return task.id;
+}
+
+function getTaskIndex(dateKey, taskId) {
+  return getDayTasks(dateKey).findIndex((t) => t.id === taskId);
+}
+
+function restoreTask(dateKey, task, index) {
+  if (!task || !task.id) return false;
+  const day = ensureDay(dateKey);
+  if (day.tasks.some((t) => t.id === task.id)) return false;
+  const at = Math.max(0, Math.min(day.tasks.length, Number.isInteger(index) ? index : day.tasks.length));
+  day.tasks.splice(at, 0, { ...task });
+  notify();
+  return true;
 }
 
 function setTaskTime(dateKey, taskId, time) {
@@ -450,6 +466,8 @@ export const Data = {
   getDayEntries,
   getDayTasks,
   addTask,
+  getTaskIndex,
+  restoreTask,
   setTaskTime,
   updateTaskDetails,
   toggleTask,
