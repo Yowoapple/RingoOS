@@ -4,6 +4,7 @@ import { Data } from '../../core/data-model.js';
 import { createRowList } from '../../ui/rows.js';
 import { createStage } from '../../ui/stage.js';
 import { createSelect } from '../../ui/controls.js';
+import { createSegmented } from '../../ui/segmented.js';
 import { createOdometer } from '../../ui/odometer.js';
 import { Fx } from '../../ui/fx-tier.js';
 import { DURATION_OPTIONS, REMINDER_OPTIONS, calendarText, download, effectiveDetail, fileName, qrSvg } from './ics.js';
@@ -518,7 +519,10 @@ export function createCalendarApp({ root, host, island, dialogs, periodTag, toda
     el.dataset.rowOwn = '';
     el.innerHTML = '<div class="tk-detail__inner">'
       + '<div class="tk-detail__grid">'
-      + '<div class="tk-field"><span class="tk-field__label">時間</span><input class="field tk-field__time mono" data-d="time" inputmode="numeric" maxlength="8" placeholder="整天" autocomplete="off" aria-label="時間，例如 14:30，留空是整天"></div>'
+      + '<div class="tk-field tk-field--wide"><span class="tk-field__label">時間</span><div class="tk-when">'
+      + '<div class="seg tk-when__seg" role="tablist" aria-label="整天或指定時間" data-d="when"><span class="seg__platter" aria-hidden="true"><span class="seg__blob"></span></span><span class="seg__lens" aria-hidden="true"></span><button type="button" class="seg__btn" role="tab" aria-selected="true">整天</button><button type="button" class="seg__btn" role="tab" aria-selected="false">指定時間</button></div>'
+      + '<div class="tk-clock" data-d="clock" hidden><input class="tk-clock__part mono" data-d="hh" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="小時，0 到 23"><span class="tk-clock__colon mono" aria-hidden="true">:</span><input class="tk-clock__part mono" data-d="mm" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="分鐘，0 到 59"><span class="tk-clock__hint">24 小時制</span></div>'
+      + '</div></div>'
       + '<div class="tk-field" data-d="reminder-wrap"><span class="tk-field__label">提醒</span><div class="sel" data-d="reminder"><button type="button" class="sel__btn" aria-label="提醒"><span class="sel__value"></span><svg class="sel__chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div>'
       + '<div class="tk-field" data-d="duration-wrap"><span class="tk-field__label">時長</span><div class="sel" data-d="duration"><button type="button" class="sel__btn" aria-label="時長"><span class="sel__value"></span><svg class="sel__chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div>'
       + '<div class="tk-field tk-field--wide"><span class="tk-field__label">地點</span><input class="field" data-d="location" placeholder="選填" aria-label="地點" autocomplete="off"></div>'
@@ -528,7 +532,9 @@ export function createCalendarApp({ root, host, island, dialogs, periodTag, toda
       + '</div>';
     const q = (name) => el.querySelector(`[data-d="${name}"]`);
     const inner = el.querySelector('.tk-detail__inner');
-    const timeInput = q('time');
+    const clock = q('clock');
+    const hhInput = q('hh');
+    const mmInput = q('mm');
     const location = q('location');
     const description = q('description');
     let task = null;
@@ -545,29 +551,146 @@ export function createCalendarApp({ root, host, island, dialogs, periodTag, toda
       menuHost: host,
       onChange: (value) => { if (task) Data.updateTaskDetails(dateKey, task.id, { reminderLead: value }); },
     });
-    timeInput.addEventListener('change', () => {
-      if (!task) return;
-      const raw = timeInput.value.trim();
-      if (!raw) {
-        Data.setTaskTime(dateKey, task.id, null);
-        return;
-      }
-      const digits = raw.replace(/\D/g, '');
-      const compact = /^\d{3,4}$/.test(raw) ? `${digits.slice(0, -2)}:${digits.slice(-2)}` : raw;
-      const { time } = parseTask(compact);
-      if (!time) {
-        timeInput.value = task.time || '';
-        shake(timeInput);
-        return;
-      }
-      timeInput.value = time;
-      Data.setTaskTime(dateKey, task.id, time);
+    let quiet = false;
+    let commitTimer = 0;
+    const clockMotion = createMotion({ e: 0 }, { response: 0.42, damping: 0.7, restDelta: 0.002 });
+    clockMotion.onUpdate(({ e }) => {
+      const t = clamp01(e);
+      clock.style.opacity = String(t);
+      clock.style.transform = t > 0.999 ? '' : `translate3d(${(1 - e) * -10}px, 0, 0) scale(${0.92 + 0.08 * t})`;
+      clock.style.filter = blur(t, 4);
+      if (e < 0.01 && !clock.dataset.on) clock.hidden = true;
     });
-    timeInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        timeInput.blur();
+
+    function showClock(on, animate = true) {
+      if (on === !!clock.dataset.on) return;
+      if (on) {
+        clock.dataset.on = '1';
+        clock.hidden = false;
+        if (!animate || MotionSettings.reduced) clockMotion.set({ e: 1 });
+        else clockMotion.to({ e: 1 }, { response: 0.42, damping: 0.66 });
+      } else {
+        delete clock.dataset.on;
+        if (!animate || MotionSettings.reduced) {
+          clockMotion.set({ e: 0 });
+          clock.hidden = true;
+        } else {
+          clockMotion.to({ e: 0 }, { response: 0.2, damping: 1 });
+        }
       }
+    }
+
+    function pop(input) {
+      if (MotionSettings.reduced) return;
+      const motion = createMotion({ s: 0.9 }, { response: 0.3, damping: 0.45, restDelta: 0.0005 });
+      motion.onUpdate(({ s }) => {
+        input.style.transform = Math.abs(s - 1) < 0.0005 ? '' : `scale(${s})`;
+      });
+      motion.to({ s: 1 }, { response: 0.3, damping: 0.45, velocity: { s: 2 } });
+    }
+
+    function partsOf(time) {
+      const [h, m] = (time || '09:00').split(':');
+      return { h: Number(h), m: Number(m) };
+    }
+
+    function writeClock(time) {
+      const { h, m } = partsOf(time);
+      if (document.activeElement !== hhInput) hhInput.value = pad(h);
+      if (document.activeElement !== mmInput) mmInput.value = pad(m);
+    }
+
+    function readClock() {
+      const h = Math.max(0, Math.min(23, Number(hhInput.value.replace(/\D/g, '')) || 0));
+      const m = Math.max(0, Math.min(59, Number(mmInput.value.replace(/\D/g, '')) || 0));
+      return `${pad(h)}:${pad(m)}`;
+    }
+
+    function commitClock(delay = 0) {
+      window.clearTimeout(commitTimer);
+      const run = () => {
+        if (!task || !clock.dataset.on) return;
+        const time = readClock();
+        hhInput.value = time.slice(0, 2);
+        mmInput.value = time.slice(3);
+        if (time !== task.time) Data.setTaskTime(dateKey, task.id, time);
+      };
+      if (delay) commitTimer = window.setTimeout(run, delay);
+      else run();
+    }
+
+    function defaultTime() {
+      const now = new Date();
+      if (dateKey === Data.toDateKey(now) && now.getHours() < 23) return `${pad(now.getHours() + 1)}:00`;
+      return '09:00';
+    }
+
+    const when = createSegmented(q('when'), {
+      onChange(index) {
+        if (quiet || !task) return;
+        if (index === 0) {
+          window.clearTimeout(commitTimer);
+          showClock(false);
+          Data.setTaskTime(dateKey, task.id, null);
+          return;
+        }
+        const time = defaultTime();
+        writeClock(time);
+        showClock(true);
+        Data.setTaskTime(dateKey, task.id, time);
+        window.setTimeout(() => hhInput.focus({ preventScroll: true }), MotionSettings.reduced ? 0 : 180);
+      },
+    });
+
+    function nudge(input, direction) {
+      const hour = input === hhInput;
+      const current = Number(input.value.replace(/\D/g, '')) || 0;
+      let next;
+      if (hour) next = (current + direction + 24) % 24;
+      else {
+        const snapped = direction > 0 ? Math.floor(current / 5) * 5 + 5 : Math.ceil(current / 5) * 5 - 5;
+        next = (snapped + 60) % 60;
+      }
+      input.value = pad(next);
+      pop(input);
+      commitClock(450);
+    }
+
+    [hhInput, mmInput].forEach((input) => {
+      input.addEventListener('focus', () => input.select());
+      input.addEventListener('input', () => {
+        input.value = input.value.replace(/\D/g, '').slice(0, 2);
+        if (input.value.length < 2) return;
+        const max = input === hhInput ? 23 : 59;
+        if (Number(input.value) > max) {
+          input.value = String(max);
+          pop(input);
+        }
+        commitClock(600);
+        if (input === hhInput) {
+          mmInput.focus();
+          mmInput.select();
+        }
+      });
+      input.addEventListener('change', () => commitClock());
+      input.addEventListener('blur', () => commitClock());
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+          event.preventDefault();
+          nudge(input, event.key === 'ArrowUp' ? 1 : -1);
+        } else if (event.key === 'Enter') {
+          event.preventDefault();
+          input.blur();
+        } else if (event.key === ':' && input === hhInput) {
+          event.preventDefault();
+          mmInput.focus();
+        }
+      });
+      input.addEventListener('wheel', (event) => {
+        if (document.activeElement !== input && !input.matches(':hover')) return;
+        event.preventDefault();
+        nudge(input, event.deltaY < 0 ? 1 : -1);
+      }, { passive: false });
     });
     location.addEventListener('change', () => { if (task) Data.updateTaskDetails(dateKey, task.id, { location: location.value }); });
     description.addEventListener('change', () => { if (task) Data.updateTaskDetails(dateKey, task.id, { description: description.value }); });
@@ -596,7 +719,14 @@ export function createCalendarApp({ root, host, island, dialogs, periodTag, toda
       task = next;
       dateKey = nextKey;
       const d = effectiveDetail(next);
-      if (document.activeElement !== timeInput) timeInput.value = next.time || '';
+      const timed = !!next.time;
+      if (when.index !== (timed ? 1 : 0)) {
+        quiet = true;
+        when.select(timed ? 1 : 0);
+        quiet = false;
+      }
+      showClock(timed, false);
+      if (timed) writeClock(next.time);
       if (document.activeElement !== location) location.value = d.location;
       if (document.activeElement !== description) description.value = d.description;
       duration.set(d.durationChoice);
@@ -610,10 +740,11 @@ export function createCalendarApp({ root, host, island, dialogs, periodTag, toda
         if (next) fill(next, key());
       },
       open(next, anchor) {
-        fill(next, key());
         anchor.after(el);
+        fill(next, key());
         shown = true;
         el.style.height = 'auto';
+        when.refreshGlass();
         natural = el.offsetHeight;
         if (MotionSettings.reduced) {
           motion.set({ h: natural, e: 1 });
@@ -626,6 +757,7 @@ export function createCalendarApp({ root, host, island, dialogs, periodTag, toda
       close(instant) {
         if (!shown) return;
         shown = false;
+        commitClock();
         duration.close();
         reminder.close();
         natural = el.offsetHeight;
