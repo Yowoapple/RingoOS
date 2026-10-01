@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="/src/styles/apps/overview.css">
   <link rel="stylesheet" href="/src/styles/apps/reminder.css">
   <link rel="stylesheet" href="/src/styles/apps/calendar.css">
+  <link rel="stylesheet" href="/src/styles/apps/weather.css">
 </head>
 <body>
   <svg class="sr-only" aria-hidden="true" focusable="false">
@@ -334,6 +335,62 @@
             <button type="button" class="btn btn--primary" data-cal="export-go">下載 .ics</button>
           </div>
         </section>
+      </div>
+    </div>
+    <div class="app-source" data-app-id="weather">
+      <div class="app-source__titlebar">
+        <span class="date-pick wx-bar" data-no-drag>
+          <span class="tag wx-updated" id="weather-updated"></span>
+          <button type="button" class="wx-place" id="weather-place" hidden aria-label="換地點"><span class="wx-place__text"></span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button type="button" class="period-nav__btn wx-refresh" id="weather-refresh" aria-label="重新整理" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.8v2.6h-2.6"/></svg></button>
+        </span>
+      </div>
+      <div class="wx" id="weather">
+        <section class="wx-setup" data-wx="setup" hidden>
+          <h2 class="wx-setup__title">想看哪裡的天氣？</h2>
+          <p class="wx-setup__hint">輸入城市或鄉鎮，中文、英文或當地語言都可以</p>
+          <div class="wx-search" data-wx="setup-search"></div>
+          <p class="wx-credit">地名來自 © OpenStreetMap 貢獻者與 GeoNames，天氣來自 Open-Meteo（CC BY 4.0）</p>
+        </section>
+        <section class="wx-error" data-wx="error" hidden>
+          <h2 class="wx-error__title">暫時抓不到天氣</h2>
+          <p class="wx-error__text" data-wx="error-text"></p>
+          <button type="button" class="btn btn--secondary" data-wx="retry">再試一次</button>
+        </section>
+        <div class="wx-main" data-wx="main" hidden>
+          <section class="wx-hero">
+            <button type="button" class="wx-alert" data-wx="alert" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2l6.2 11H1.8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6.4v3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.4" r=".9" fill="currentColor"/></svg><span data-wx="alert-text"></span></button>
+            <div class="wx-now">
+              <span class="wx-now__glyph" data-wx="glyph"></span>
+              <span class="wx-temp"><span class="wx-temp__num" data-wx="temp"></span><span class="wx-temp__deg">°</span></span>
+            </div>
+            <p class="wx-cond" data-wx="cond"></p>
+            <p class="wx-range" data-wx="range"></p>
+            <div class="wx-stats">
+              <div class="wx-stat"><span class="wx-stat__label">體感</span><span class="wx-stat__value mono" data-wx="apparent"></span></div>
+              <div class="wx-stat"><span class="wx-stat__label">濕度</span><span class="wx-stat__value mono" data-wx="humidity"></span></div>
+              <div class="wx-stat"><span class="wx-stat__label">降雨機率</span><span class="wx-stat__value mono" data-wx="pop"></span></div>
+              <div class="wx-stat" data-wx="uv-cell"><span class="wx-stat__label">紫外線</span><span class="wx-stat__value"><span class="mono" data-wx="uv"></span><span class="wx-stat__note" data-wx="uv-text"></span></span></div>
+            </div>
+            <div class="wx-sun" data-wx="sun"></div>
+          </section>
+          <section class="wx-side">
+            <div class="wx-block">
+              <div class="ov-head"><span class="ov-head__label">接下來 24 小時</span></div>
+              <div class="wx-hours" data-wx="hours" tabindex="0" aria-label="逐時預報"></div>
+              <div class="wx-chart" data-wx="chart" aria-hidden="true"></div>
+            </div>
+            <div class="wx-block">
+              <div class="ov-head"><span class="ov-head__label">未來一週</span></div>
+              <div class="wx-days" data-wx="days"></div>
+            </div>
+            <div class="wx-quip" data-wx="quip" hidden><img class="wx-quip__art" data-wx="quip-art" alt="" width="64" height="64"><p class="wx-quip__text" data-wx="quip-text"></p></div>
+          </section>
+          <footer class="wx-foot">
+            <span>天氣資料：Open-Meteo（CC BY 4.0）</span>
+            <span class="wx-foot__cwa" data-wx="cwa-wrap" hidden>臺灣特報：<button type="button" class="wx-link" data-wx="cwa"></button></span>
+          </footer>
+        </div>
       </div>
     </div>
     <div class="app-source" data-app-id="settings">

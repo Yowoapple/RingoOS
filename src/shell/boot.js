@@ -19,6 +19,8 @@ import { createOverviewApp } from '../apps/overview/overview-app.js';
 import { createReminderApp } from '../apps/reminder/reminder-app.js';
 import { createCalendarApp } from '../apps/calendar/calendar-app.js';
 import { createDialogHost } from '../ui/dialog.js';
+import { createWeatherApp } from '../apps/weather/weather-app.js';
+import { glyph } from '../apps/weather/glyphs.js';
 import { Calc } from '../core/calculations.js';
 
 const SESSION_KEY = 'yoworingo.v2.windows';
@@ -28,7 +30,6 @@ const MAGNIFY_KEY = 'yoworingo.v2.dock-magnify';
 const SAVE_DELAY = 300;
 const ACCENT_NAMES = { apple: '青蘋果', signal: '信號橘', ultramarine: '群青' };
 const MOVING_IN = {
-  weather: '氣象署資料與動態天氣',
   calculator: '四則運算與鍵盤操作',
   radio: '唱片機與選台清單',
 };
@@ -110,6 +111,7 @@ function start() {
   sizes.get('overview').size = { w: Math.round(780 * ratio), h: Math.round(620 * ratio) };
   sizes.get('life-reminder').size = { w: Math.round(800 * ratio), h: Math.round(600 * ratio) };
   sizes.get('calendar').size = { w: Math.round(940 * ratio), h: Math.round(640 * ratio) };
+  sizes.get('weather').size = { w: Math.round(880 * ratio), h: Math.round(640 * ratio) };
   const apps = APPS.map((app) => ({
     id: app.id,
     title: app.title,
@@ -217,6 +219,38 @@ function start() {
     nextButton: $('calendar-next'),
   });
 
+  const mbWeather = document.querySelector('.mb-weather');
+  const weather = createWeatherApp({
+    root: $('weather'),
+    host: $('desk'),
+    island,
+    dialogs,
+    placeButton: $('weather-place'),
+    refreshButton: $('weather-refresh'),
+    updatedTag: $('weather-updated'),
+    onData(info) {
+      if (!mbWeather) return;
+      if (!info) {
+        mbWeather.hidden = true;
+        return;
+      }
+      const icon = mbWeather.querySelector('svg');
+      const current = icon ? icon.dataset.glyph : null;
+      if (current !== info.current.glyph) {
+        const holder = document.createElement('span');
+        holder.innerHTML = glyph(info.current.glyph, 'wx-g mb-weather__glyph');
+        if (icon) icon.replaceWith(holder.firstElementChild);
+        else mbWeather.prepend(holder.firstElementChild);
+      }
+      mbWeather.querySelector('.mb-temp').textContent = `${Math.round(info.current.temperature)}°`;
+      mbWeather.setAttribute('aria-label', `${info.location.name} ${info.current.text} ${Math.round(info.current.temperature)} 度`);
+      mbWeather.hidden = false;
+    },
+    onAlert({ text }) {
+      island.toast({ text, action: '查看', duration: 6000, onAction: () => wm.open('weather') });
+    },
+  });
+
   function syncReminders() {
     const open = Calc.getUpcomingTaskSummary().count;
     menubar.setReminders(open);
@@ -289,6 +323,7 @@ function start() {
       overview.intro();
     }
     if ((type === 'open' || type === 'restore') && id === 'calendar') calendar.intro();
+    if ((type === 'open' || type === 'restore') && id === 'weather') weather.intro();
     if ((type === 'open' || type === 'restore') && id === 'life-reminder') {
       reminder.refreshGlass();
       reminder.intro();
@@ -319,7 +354,7 @@ function start() {
 
   console.info('%cRingoOS%c 2.0 by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
   if (new URLSearchParams(window.location.search).has('debug')) {
-    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar };
+    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar, weather };
   }
 }
 
