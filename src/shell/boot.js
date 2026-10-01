@@ -188,6 +188,7 @@ function start() {
   const reminder = createReminderApp({
     root: $('reminder'),
     host: $('desk'),
+    voiceEl: document.querySelector('[data-rm-voice]'),
     periodTag: $('reminder-period'),
     nowButton: $('reminder-now'),
     prevButton: $('reminder-prev'),

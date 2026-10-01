@@ -242,6 +242,7 @@
     <div class="app-source" data-app-id="life-reminder">
       <div class="app-source__titlebar">
         <span class="date-pick" data-no-drag>
+          <div class="sel sel--quiet rm-voice" data-rm-voice><button type="button" class="sel__btn" aria-label="提醒的語氣"><span class="sel__value"></span><svg class="sel__chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
           <button type="button" class="date-today" id="reminder-now" hidden>本月</button>
           <span class="period-nav">
             <button type="button" class="period-nav__btn" id="reminder-prev" aria-label="上一期"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
@@ -258,10 +259,6 @@
             <button type="button" class="seg__btn" role="tab" aria-selected="true">月</button>
             <button type="button" class="seg__btn" role="tab" aria-selected="false">週</button>
           </div>
-          <span class="rm__voice">
-            <span class="rm__voice-label">語氣</span>
-            <div class="sel" data-rm="voice"><button type="button" class="sel__btn" aria-label="提醒的語氣"><span class="sel__value"></span><svg class="sel__chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
-          </span>
         </div>
         <div class="rm__cols">
           <article class="rm__col is-active" data-rm-col="month" aria-label="這個月">

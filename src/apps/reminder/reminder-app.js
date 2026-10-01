@@ -13,10 +13,10 @@ import { buildInsight } from './insight.js';
 const MODES = ['month', 'week'];
 const WIDE_REM = 34;
 const VOICE_OPTIONS = [
-  { value: 'neutral', label: '一般' },
-  { value: 'maid', label: '女僕' },
-  { value: 'wife', label: '老婆' },
-  { value: 'sister', label: '妹妹' },
+  { value: 'neutral', label: '一般語氣' },
+  { value: 'maid', label: '女僕語氣' },
+  { value: 'wife', label: '老婆語氣' },
+  { value: 'sister', label: '妹妹語氣' },
 ];
 const PERSONA_KEYS = ['yoworingo.persona-enabled', 'yoworingo.persona-type'];
 const OPENERS = /[「『（《〈(]/;
@@ -465,7 +465,7 @@ function createColumn(col, { onReveal, onCompose }) {
   };
 }
 
-export function createReminderApp({ root, host, periodTag, nowButton, prevButton, nextButton, onReveal, onCompose }) {
+export function createReminderApp({ root, host, voiceEl, periodTag, nowButton, prevButton, nextButton, onReveal, onCompose }) {
   const $ = (name) => root.querySelector(`[data-rm="${name}"]`);
   const columns = {
     month: createColumn(root.querySelector('[data-rm-col="month"]'), { onReveal, onCompose }),
@@ -492,7 +492,7 @@ export function createReminderApp({ root, host, periodTag, nowButton, prevButton
     },
   });
 
-  const voiceSelect = createSelect($('voice'), {
+  const voiceSelect = createSelect(voiceEl, {
     options: VOICE_OPTIONS,
     value: voice(),
     menuHost: host,
