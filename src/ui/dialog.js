@@ -141,6 +141,27 @@ export function createDialogHost(host) {
 
   scrim.addEventListener('pointerdown', () => finish(dismissValue));
 
+  const grow = createMotion({ h: 0 }, { response: 0.36, damping: 0.78, restDelta: 0.1 });
+  grow.onUpdate(({ h }) => {
+    if (!to) return;
+    to = { ...to, h };
+    geo.set({ t: geo.get('t') });
+  });
+  function refit() {
+    if (!open || !to) return;
+    const height = box.offsetHeight;
+    if (Math.abs(height - to.h) < 0.5) return;
+    if (MotionSettings.reduced || geo.get('t') < 0.98) {
+      to = { ...to, h: height };
+      grow.set({ h: height });
+      return;
+    }
+    grow.set({ h: to.h });
+    grow.to({ h: height }, { response: 0.36, damping: 0.78 });
+  }
+  new ResizeObserver(refit).observe(box);
+  new MutationObserver(refit).observe(box, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden'] });
+
   function present({ source, frame, title, text = '', content = null, actions, dismiss = null, width: maxRem = 20, role = 'dialog' }) {
     if (open) return Promise.resolve(dismiss);
     clearTimers();

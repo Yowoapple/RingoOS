@@ -63,10 +63,29 @@ These animations were exported from EmoteLab using its built-in character
 model. The character design belongs to its original creator and is not claimed
 by the owner of this repository.
 
+## Open-Meteo
+
+- Used for: worldwide weather forecasts in RingoOS 2.0, fetched at runtime from
+  the free, non-commercial API; no weather data is stored in this repository
+- Source: https://open-meteo.com
+- Weather data by Open-Meteo.com, licensed under Creative Commons Attribution
+  4.0 International (CC BY 4.0), https://creativecommons.org/licenses/by/4.0/
+- The Open-Meteo geocoding API is also used for place search; it is based on
+  GeoNames (https://www.geonames.org), CC BY 4.0
+
+## Photon and OpenStreetMap
+
+- Used for: place search in RingoOS 2.0, fetched at runtime from
+  https://photon.komoot.io
+- Map data © OpenStreetMap contributors, available under the Open Database
+  License (ODbL), https://www.openstreetmap.org/copyright
+
 ## Central Weather Administration open data
 
-- Used for: weather forecasts and alerts, fetched at runtime; no weather data is
-  stored in this repository
+- Used for: weather forecasts and alerts in RingoOS 1.0, and weather alerts for
+  places in Taiwan in RingoOS 2.0 when the user supplies their own
+  authorization key; fetched at runtime; no weather data or key is stored in
+  this repository
 - Provider: 交通部中央氣象署 (Central Weather Administration, Ministry of
   Transportation and Communications, Taiwan)
 - License: 政府資料開放授權條款－第1版 (Open Government Data License, Taiwan,
