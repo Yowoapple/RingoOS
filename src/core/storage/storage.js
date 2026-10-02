@@ -73,6 +73,10 @@ function has(key) {
   return cache.has(key);
 }
 
+function keys() {
+  return Array.from(cache.keys());
+}
+
 function get(key, fallback) {
   return cache.has(key) ? cache.get(key) : fallback;
 }
@@ -145,4 +149,4 @@ function getMode() {
   return mode;
 }
 
-export const Storage = { KEY_PREFIX, init, has, get, set, remove, flush, readLegacy, importLegacyPrefs, getMode, subscribe };
+export const Storage = { KEY_PREFIX, init, has, keys, get, set, remove, flush, readLegacy, importLegacyPrefs, getMode, subscribe };

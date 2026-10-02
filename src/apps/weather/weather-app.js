@@ -687,7 +687,7 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
     }
   }
 
-  function openPlacePicker() {
+  function openPlacePicker({ source = placeButton, frame = win } = {}) {
     const box = document.createElement('div');
     box.className = 'wx-picker';
     const search = createPlaceSearch(box, {
@@ -699,8 +699,8 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
       },
     });
     dialogs.present({
-      source: placeButton,
-      frame: win,
+      source,
+      frame,
       title: '換地點',
       content: box,
       width: 20,
@@ -710,7 +710,7 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
     later(() => search.focus(), 200);
   }
 
-  function openCwa() {
+  function openCwa({ source = cwaButton, frame = win } = {}) {
     const box = document.createElement('div');
     box.className = 'wx-cwa';
     box.innerHTML = '<input class="field wx-cwa__input mono" type="password" autocomplete="off" spellcheck="false" placeholder="CWA-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" aria-label="氣象署授權碼"><p class="wx-cwa__state" aria-live="polite"></p><a class="wx-cwa__link" href="https://opendata.cwa.gov.tw/index" target="_blank" rel="noopener noreferrer">到氣象資料開放平臺申請授權碼（登入後選「API 授權碼」）</a>';
@@ -751,8 +751,8 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
     actions.push({ label: '取消', className: 'btn--secondary', value: false });
     actions.push({ label: '連接', className: 'btn--primary', close: false, focus: true, onClick: connect });
     dialogs.present({
-      source: cwaButton,
-      frame: win,
+      source,
+      frame,
       title: '臺灣天氣特報',
       text: '貼上你在氣象署申請的授權碼，就能看到颱風、豪雨等官方特報。授權碼只存在這台電腦的瀏覽器裡。',
       content: box,
@@ -763,9 +763,9 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
     later(() => input.focus({ preventScroll: true }), 160);
   }
 
-  placeButton.addEventListener('click', openPlacePicker);
+  placeButton.addEventListener('click', () => openPlacePicker());
   refreshButton.addEventListener('click', () => refresh({ force: true }));
-  cwaButton.addEventListener('click', openCwa);
+  cwaButton.addEventListener('click', () => openCwa());
   alertEl.addEventListener('click', () => {
     if (alertEl.dataset.open) delete alertEl.dataset.open;
     else alertEl.dataset.open = '1';
@@ -801,6 +801,8 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
       else if (view === 'setup') later(() => root.querySelector('.wx-setup .wx-search__input')?.focus({ preventScroll: true }), 300);
     },
     refresh,
+    openPlacePicker,
+    openCwa,
   };
 }
 

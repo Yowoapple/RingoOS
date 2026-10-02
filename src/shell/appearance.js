@@ -161,6 +161,15 @@ export function createAppearance({ root, regions }) {
       apply();
       emit();
     },
+    clearPhoto() {
+      if (!photo) return;
+      photo = null;
+      Storage.remove(WALL_KEY);
+      if (state.wall === 'photo') state.wall = DEFAULTS.wall;
+      persist();
+      apply();
+      emit();
+    },
     get hasPhoto() { return !!photo; },
     refresh: refreshTones,
     subscribe(listener) {

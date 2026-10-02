@@ -290,3 +290,15 @@
     margin-left: 0;
   }
 }
+
+:root[data-mb-hide~="clock"] .mb-clock,
+:root[data-mb-hide~="weather"] .mb-weather,
+:root[data-mb-hide~="radio"] .mb-radio,
+:root[data-mb-hide~="bell"] .mb-bell {
+  display: none !important;
+}
+
+:root[data-mb-hide~="island"] .island[data-mode="idle"] {
+  opacity: 0;
+  pointer-events: none;
+}

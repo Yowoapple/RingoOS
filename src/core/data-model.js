@@ -408,32 +408,131 @@ function countEntriesUsingCategory(type, category) {
   return count;
 }
 
+function categoryList(type) {
+  return type === 'income' ? state.settings.incomeCategories : state.settings.expenseCategories;
+}
+
 function removeCategory(type, category) {
   const fallback = FALLBACK_CATEGORY[type];
   if (category === fallback) {
     return { ok: false, reason: 'fallback' };
   }
 
-  const list = type === 'income' ? state.settings.incomeCategories : state.settings.expenseCategories;
+  const list = categoryList(type);
   const idx = list.indexOf(category);
   if (idx === -1) {
     return { ok: false, reason: 'not-found' };
   }
 
-  Object.values(state.days).forEach((day) => {
+  const moved = [];
+  Object.entries(state.days).forEach(([dateKey, day]) => {
     const entryList = type === 'income' ? day.income : day.expenses;
     entryList.forEach((entry) => {
-      if (entry.category === category) entry.category = fallback;
+      if (entry.category === category) {
+        entry.category = fallback;
+        moved.push({ dateKey, id: entry.id });
+      }
     });
   });
 
-  Object.values(state.settings.monthlyBudgets).forEach((monthBudgets) => {
-    delete monthBudgets[category];
+  const budgets = {};
+  Object.entries(state.settings.monthlyBudgets).forEach(([monthKey, monthBudgets]) => {
+    if (category in monthBudgets) {
+      budgets[monthKey] = monthBudgets[category];
+      delete monthBudgets[category];
+    }
   });
 
   list.splice(idx, 1);
   notify();
-  return { ok: true };
+  return { ok: true, snapshot: { type, name: category, index: idx, moved, budgets } };
+}
+
+function restoreCategory(snapshot) {
+  if (!snapshot) return false;
+  const list = categoryList(snapshot.type);
+  if (list.includes(snapshot.name)) return false;
+  list.splice(Math.max(0, Math.min(list.length, snapshot.index)), 0, snapshot.name);
+  const fallback = FALLBACK_CATEGORY[snapshot.type];
+  snapshot.moved.forEach(({ dateKey, id }) => {
+    const day = state.days[dateKey];
+    if (!day) return;
+    const entryList = snapshot.type === 'income' ? day.income : day.expenses;
+    const entry = entryList.find((item) => item.id === id);
+    if (entry && entry.category === fallback) entry.category = snapshot.name;
+  });
+  Object.entries(snapshot.budgets).forEach(([monthKey, amount]) => {
+    if (!state.settings.monthlyBudgets[monthKey]) state.settings.monthlyBudgets[monthKey] = {};
+    state.settings.monthlyBudgets[monthKey][snapshot.name] = amount;
+  });
+  notify();
+  return true;
+}
+
+function renameCategory(type, from, to) {
+  const name = String(to || '').trim();
+  const list = categoryList(type);
+  const idx = list.indexOf(from);
+  if (idx === -1) return { ok: false, reason: 'not-found' };
+  if (from === FALLBACK_CATEGORY[type]) return { ok: false, reason: 'fallback' };
+  if (!name) return { ok: false, reason: 'empty' };
+  if (name === from) return { ok: true, count: 0 };
+  if (list.includes(name)) return { ok: false, reason: 'exists' };
+  let count = 0;
+  Object.values(state.days).forEach((day) => {
+    const entryList = type === 'income' ? day.income : day.expenses;
+    entryList.forEach((entry) => {
+      if (entry.category === from) {
+        entry.category = name;
+        count += 1;
+      }
+    });
+  });
+  Object.values(state.settings.monthlyBudgets).forEach((monthBudgets) => {
+    if (from in monthBudgets) {
+      monthBudgets[name] = monthBudgets[from];
+      delete monthBudgets[from];
+    }
+  });
+  list[idx] = name;
+  notify();
+  return { ok: true, count };
+}
+
+function setCategoryOrder(type, names) {
+  const list = categoryList(type);
+  if (!Array.isArray(names) || names.length !== list.length) return false;
+  const same = names.every((name) => list.includes(name)) && new Set(names).size === names.length;
+  if (!same) return false;
+  list.splice(0, list.length, ...names);
+  notify();
+  return true;
+}
+
+function copyMonthlyBudgets(fromMonthKey, toMonthKey, { overwrite = false } = {}) {
+  const source = state.settings.monthlyBudgets[fromMonthKey] || {};
+  const target = state.settings.monthlyBudgets[toMonthKey] || {};
+  let count = 0;
+  Object.entries(source).forEach(([category, amount]) => {
+    if (!state.settings.expenseCategories.includes(category)) return;
+    if (!overwrite && target[category] > 0) return;
+    if (!(amount > 0)) return;
+    target[category] = amount;
+    count += 1;
+  });
+  if (count) {
+    state.settings.monthlyBudgets[toMonthKey] = target;
+    notify();
+  }
+  return count;
+}
+
+function restoreSavingsGoal(goal, index) {
+  if (!goal || state.settings.savingsGoals.some((g) => g.id === goal.id)) return false;
+  const list = state.settings.savingsGoals;
+  list.splice(Math.max(0, Math.min(list.length, Number.isInteger(index) ? index : list.length)), 0, { ...goal });
+  notify();
+  return true;
 }
 
 function replaceStore(newStore) {
@@ -483,8 +582,13 @@ export const Data = {
   setGoalAutoSavePercent,
   applyMonthlyAutoSavings,
   removeSavingsGoal,
+  restoreSavingsGoal,
   addCategory,
   removeCategory,
+  restoreCategory,
+  renameCategory,
+  setCategoryOrder,
+  copyMonthlyBudgets,
   countEntriesUsingCategory,
   replaceStore,
 };

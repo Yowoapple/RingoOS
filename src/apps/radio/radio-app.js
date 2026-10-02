@@ -315,19 +315,24 @@ export function createRadioApp({ root, area, island, dialogs, store, wm, menubar
   root.appendChild(fileInput);
   $('import').addEventListener('click', () => fileInput.click());
   $('import-again').addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', async () => {
-    const file = fileInput.files && fileInput.files[0];
-    fileInput.value = '';
-    if (!file) return;
+  async function importFile(file) {
     try {
       const count = Radio.importStations(await readJson(file));
       filter = 'all';
       renderChips();
       renderStations();
       island.toast({ text: '已匯入電台', note: `${count} 台`, duration: 2600 });
+      return count;
     } catch (err) {
       island.toast({ text: err.message || '匯入失敗', duration: 4200 });
+      return 0;
     }
+  }
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files && fileInput.files[0];
+    fileInput.value = '';
+    if (file) await importFile(file);
   });
 
   Radio.subscribe((state) => {
@@ -1068,5 +1073,14 @@ export function createRadioApp({ root, area, island, dialogs, store, wm, menubar
       stopYt();
       Radio.pause();
     },
+    importFile,
+    clearStations() {
+      Radio.pause();
+      Radio.clearStations();
+      filter = 'all';
+      renderChips();
+      renderStations();
+    },
+    lists,
   };
 }

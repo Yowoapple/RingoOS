@@ -15,7 +15,6 @@ import { createNotifyCenter } from './notify-center.js';
 import { startTriggers } from './notify-triggers.js';
 import { createDesktop } from './desktop.js';
 import { createMenubar } from './menubar.js';
-import { createSettings } from './settings.js';
 import { createAppearance } from './appearance.js';
 import { createLedgerApp } from '../apps/ledger/ledger-app.js';
 import { createOverviewApp } from '../apps/overview/overview-app.js';
@@ -26,6 +25,7 @@ import { createWeatherApp } from '../apps/weather/weather-app.js';
 import { glyph } from '../apps/weather/glyphs.js';
 import { createCalculatorApp } from '../apps/calculator/calculator-app.js';
 import { createRadioApp } from '../apps/radio/radio-app.js';
+import { createSettingsApp } from '../apps/settings/settings-app.js';
 import { Calc } from '../core/calculations.js';
 
 const SESSION_KEY = 'yoworingo.v2.windows';
@@ -33,7 +33,8 @@ const MOTION_KEY = 'yoworingo.motion-style';
 const REDUCED_KEY = 'yoworingo.reduced-motion';
 const MAGNIFY_KEY = 'yoworingo.v2.dock-magnify';
 const SAVE_DELAY = 300;
-const ACCENT_NAMES = { apple: '青蘋果', signal: '信號橘', ultramarine: '群青' };
+const DESKTOP_KEY = 'yoworingo.v2.desktop';
+const WIDGETS = ['island', 'weather', 'radio', 'bell', 'clock'];
 const MOVING_IN = {};
 
 const root = document.documentElement;
@@ -116,6 +117,7 @@ function start() {
   sizes.get('weather').size = { w: Math.round(880 * ratio), h: Math.round(640 * ratio) };
   sizes.get('calculator').size = { w: Math.round(760 * ratio), h: Math.round(580 * ratio) };
   sizes.get('radio').size = { w: Math.round(920 * ratio), h: Math.round(640 * ratio) };
+  sizes.get('settings').size = { w: Math.round(940 * ratio), h: Math.round(700 * ratio) };
   const apps = APPS.map((app) => ({
     id: app.id,
     title: app.title,
@@ -247,6 +249,7 @@ function start() {
     nextButton: $('calendar-next'),
   });
 
+  let settingsRef = null;
   const mbWeather = document.querySelector('.mb-weather');
   const weather = createWeatherApp({
     root: $('weather'),
@@ -274,6 +277,7 @@ function start() {
       mbWeather.setAttribute('aria-label', `${info.location.name} ${info.current.text} ${Math.round(info.temperature)} 度`);
       mbWeather.hidden = false;
       triggers.weather(info);
+      if (settingsRef) settingsRef.sync();
     },
   });
 
@@ -299,6 +303,39 @@ function start() {
     if (APPS.some((app) => app.id === item.app)) wm.open(item.app);
   };
 
+  function readDesktop() {
+    const saved = Storage.get(DESKTOP_KEY, null) || {};
+    return {
+      dockMode: saved.dockMode === 'minimized' ? 'minimized' : 'launcher',
+      dockAutoHide: !!saved.dockAutoHide,
+      widgets: { ...Object.fromEntries(WIDGETS.map((key) => [key, true])), ...(saved.widgets || {}) },
+    };
+  }
+  let desktopState = readDesktop();
+  function applyDesktop() {
+    dock.setMode(desktopState.dockMode);
+    dock.setAutoHide(desktopState.dockAutoHide);
+    const hidden = WIDGETS.filter((key) => desktopState.widgets[key] === false);
+    if (hidden.length) root.dataset.mbHide = hidden.join(' ');
+    else delete root.dataset.mbHide;
+  }
+  const desktopPrefs = {
+    get: () => ({ ...desktopState, widgets: { ...desktopState.widgets } }),
+    set(patch) {
+      desktopState = { ...desktopState, ...patch, widgets: { ...desktopState.widgets, ...(patch.widgets || {}) } };
+      Storage.set(DESKTOP_KEY, desktopState);
+      applyDesktop();
+    },
+    setMagnify(value) {
+      dock.setMagnify(value);
+      Storage.set(MAGNIFY_KEY, String(value));
+    },
+  };
+  applyDesktop();
+
+  const previousMonth = Calc.getPreviousMonthKey(Data.toMonthKey(todayKey()));
+  Data.applyMonthlyAutoSavings(previousMonth, Calc.computeMonthSummary(previousMonth).net);
+
   function syncReminders() {
     desktop.setBadge('calendar', Calc.getUpcomingTaskSummary().count);
   }
@@ -310,59 +347,44 @@ function start() {
   fileInput.accept = 'image/*';
   fileInput.hidden = true;
   document.body.appendChild(fileInput);
-
-  const settings = createSettings({
-    root: $('settings'),
-    state: appearance.state,
-    menuHost: $('desk'),
-    scale: appearance.scale,
-    hasPhoto: () => appearance.hasPhoto,
-    dock: {
-      get magnify() { return dock.magnify; },
-      setMagnify(value) {
-        dock.setMagnify(value);
-        Storage.set(MAGNIFY_KEY, String(value));
-      },
-    },
-    onChange(key, value) {
-      if (key === 'motion') {
-        const next = value === 'ios' ? 'ios' : 'hyperos';
-        usePreset(next);
-        Storage.set(MOTION_KEY, next);
-      } else if (key === 'reduced') {
-        MotionSettings.setReduced(value);
-        Storage.set(REDUCED_KEY, value ? 'on' : 'off');
-      } else if (key === 'scale') {
-        appearance.setScale(value);
-      } else if (key === 'wall' && (value === 'upload' || (value === 'photo' && !appearance.hasPhoto))) {
-        fileInput.click();
-        syncSettings();
-      } else {
-        appearance.set(key, value);
-      }
-    },
-  });
-
   fileInput.addEventListener('change', () => {
     const file = fileInput.files && fileInput.files[0];
     fileInput.value = '';
     if (!file) return;
     appearance.setPhoto(file).catch((err) => {
-      notices.push({ app: 'settings', title: '桌布沒有換成功', body: err.message, meta: '設定' });
+      island.toast({ text: '桌布沒有換成功', note: err.message, duration: 4200 });
     });
   });
 
-  function syncSettings() {
-    settings.sync({ ...appearance.state, scale: appearance.scale });
-    const state = appearance.state;
-    settings.setAccentHint(state.accent === 'auto' ? `跟隨桌布 · 目前是${ACCENT_NAMES[appearance.autoAccent]}` : '');
-  }
-  appearance.subscribe(syncSettings);
-  Fx.subscribe(syncSettings);
-  syncSettings();
+  const settings = createSettingsApp({
+    root: $('settings'),
+    ctx: {
+      appearance,
+      dock,
+      desktopPrefs,
+      notifier,
+      island,
+      dialogs,
+      weather,
+      radio,
+      menuHost: $('desk'),
+      pickPhoto: () => fileInput.click(),
+      setMotionPreset(value) {
+        const next = value === 'ios' ? 'ios' : 'hyperos';
+        usePreset(next);
+        Storage.set(MOTION_KEY, next);
+      },
+      setReduced(mode) {
+        Storage.set(REDUCED_KEY, mode);
+        MotionSettings.setReduced(readReduced());
+      },
+    },
+  });
+
+  settingsRef = settings;
 
   store.subscribe(({ type, id }) => {
-    if ((type === 'open' || type === 'restore') && id === 'settings') settings.refreshGlass();
+    if ((type === 'open' || type === 'restore') && id === 'settings') settings.intro();
     if ((type === 'open' || type === 'restore') && id === 'daily-entry') ledger.refreshGlass();
     if ((type === 'open' || type === 'restore') && id === 'overview') {
       overview.refreshGlass();
@@ -405,7 +427,7 @@ function start() {
 
   console.info('%cRingoOS%c 2.0 by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
   if (new URLSearchParams(window.location.search).has('debug')) {
-    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar, weather, calculator, radio, notifier, center, triggers, notices };
+    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar, weather, calculator, radio, notifier, center, triggers, notices, settings };
   }
 }
 
