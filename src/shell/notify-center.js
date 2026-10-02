@@ -4,12 +4,12 @@ import { MotionSettings } from '../motion/presets.js';
 const MOON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 10.1A5.6 5.6 0 0 1 5.9 2.8a5.6 5.6 0 1 0 7.3 7.3z" fill="currentColor"/></svg>';
 const CROSS = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 
-const OPEN_W = { response: 0.36, damping: 0.56 };
-const OPEN_H = { response: 0.5, damping: 0.54 };
-const CLOSE_W = { response: 0.3, damping: 0.86 };
-const CLOSE_H = { response: 0.38, damping: 0.8 };
+const OPEN_W = { response: 0.58, damping: 0.58 };
+const OPEN_H = { response: 0.72, damping: 0.52 };
+const CLOSE_W = { response: 0.42, damping: 0.84 };
+const CLOSE_H = { response: 0.48, damping: 0.8 };
 function link(i) {
-  return { response: 0.14 + Math.min(i, 9) * 0.024, damping: 0.58 };
+  return { response: 0.4 + Math.min(i, 9) * 0.045, damping: 0.5 };
 }
 const SETTLE = { response: 0.46, damping: 0.55 };
 const GROW = { response: 0.42, damping: 0.6 };
@@ -77,6 +77,7 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
   host.appendChild(panel);
   bell.setAttribute('aria-controls', panel.id);
   bell.setAttribute('aria-expanded', 'false');
+  panel.querySelector('.nc__glass').hidden = true;
 
   const shadow = panel.querySelector('.nc__shadow');
   const glass = panel.querySelector('.nc__glass');
@@ -210,6 +211,26 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
     return bottom + footPad;
   }
 
+  let glassOn = false;
+  let glassTimer = 0;
+
+  function setGlass(on) {
+    if (on === glassOn) return;
+    glassOn = on;
+    window.clearTimeout(glassTimer);
+    if (!on) {
+      glass.hidden = true;
+      glass.style.opacity = '0';
+      return;
+    }
+    glass.style.height = `${box.h}px`;
+    glass.style.clipPath = `inset(0 round ${box.r}px)`;
+    glass.hidden = false;
+    glassTimer = window.setTimeout(() => {
+      if (glassOn) glass.style.opacity = '1';
+    }, 30);
+  }
+
   let scrollBottom = 0;
   let footPad = 0;
   let drawQueued = false;
@@ -228,16 +249,15 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
     const th = clamp(h, 0, 1);
     const left = box.bl * (1 - tw);
     const right = (box.w - box.bl - box.bw) * (1 - tw);
-    const top = box.bt * (1 - th);
+    const top = Math.max(0, box.bt * (1 - th));
     const hug = MotionSettings.reduced ? null : contentBottom();
     const bottom = Math.max(box.bt + box.bh, hug === null ? box.bt + box.bh + (Math.max(1, H) - box.bt - box.bh) * th : hug);
     const full = Math.max(box.h, bottom);
     const r = box.br + (box.r - box.br) * Math.min(tw, th);
     const shapeClip = `inset(${top.toFixed(2)}px ${right.toFixed(2)}px ${(full - bottom).toFixed(2)}px ${left.toFixed(2)}px round ${r.toFixed(2)}px)`;
     fill.style.height = `${full}px`;
-    glass.style.height = `${full}px`;
     fill.style.clipPath = shapeClip;
-    glass.style.clipPath = shapeClip;
+    setGlass(open && tw > 0.995 && th > 0.995 && Math.abs(bottom - box.h) < 1 && Math.abs(w - 1) < 0.01 && Math.abs(h - 1) < 0.01);
     body.style.clipPath = `inset(${top.toFixed(2)}px ${right.toFixed(2)}px ${(box.h - bottom).toFixed(2)}px ${left.toFixed(2)}px round ${r.toFixed(2)}px)`;
     shadow.style.transform = `translate3d(${left.toFixed(2)}px, ${top.toFixed(2)}px, 0)`;
     shadow.style.width = `${Math.max(0, box.w - left - right)}px`;
@@ -249,7 +269,6 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
     const sy = (1 + oh * 0.12) * (1 - ow * 0.05);
     panel.style.transformOrigin = `${(box.bl + box.bw / 2).toFixed(1)}px ${(box.bt + box.bh / 2).toFixed(1)}px`;
     panel.style.transform = Math.abs(sx - 1) > 0.0005 || Math.abs(sy - 1) > 0.0005 ? `scale(${sx.toFixed(4)}, ${sy.toFixed(4)})` : '';
-    glass.style.opacity = open && tw > 0.9 && th > 0.9 ? '1' : '0';
     panel.style.visibility = tw > 0.002 || th > 0.002 || open ? 'visible' : 'hidden';
   }
 
@@ -512,7 +531,7 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
     if (!open) return;
     open = false;
     bell.setAttribute('aria-expanded', 'false');
-    glass.style.opacity = '0';
+    setGlass(false);
     if (MotionSettings.reduced) {
       shape.set({ w: 0, h: 0 });
       panel.classList.remove('is-open');
