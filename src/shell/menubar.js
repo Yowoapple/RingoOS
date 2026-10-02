@@ -162,8 +162,16 @@ function createRadio(wrap, onLayout) {
 
   wrap.inert = true;
 
+  const label = wrap.querySelector('.mb-radio__label');
+
   return {
     get playing() { return playing; },
+    setLabel(text) {
+      if (!label || label.textContent === text) return;
+      label.textContent = text;
+      button.setAttribute('aria-label', `${text}，播放中`);
+      if (playing) motion.to({ w: natural() }, MotionSettings.reduced ? MotionSettings.spring('focus') : { response: 0.44, damping: 0.62 });
+    },
     set(on) {
       playing = !!on;
       window.clearTimeout(timer);
@@ -247,6 +255,7 @@ export function createMenubar({ root, store, titles, onOpen }) {
 
   return {
     setPlaying: radio.set,
+    setPlayingLabel: radio.setLabel,
     get playing() { return radio.playing; },
     setReminders: bell.set,
     get reminders() { return bell.count; },

@@ -22,6 +22,7 @@ import { createDialogHost } from '../ui/dialog.js';
 import { createWeatherApp } from '../apps/weather/weather-app.js';
 import { glyph } from '../apps/weather/glyphs.js';
 import { createCalculatorApp } from '../apps/calculator/calculator-app.js';
+import { createRadioApp } from '../apps/radio/radio-app.js';
 import { Calc } from '../core/calculations.js';
 
 const SESSION_KEY = 'yoworingo.v2.windows';
@@ -30,9 +31,7 @@ const REDUCED_KEY = 'yoworingo.reduced-motion';
 const MAGNIFY_KEY = 'yoworingo.v2.dock-magnify';
 const SAVE_DELAY = 300;
 const ACCENT_NAMES = { apple: '青蘋果', signal: '信號橘', ultramarine: '群青' };
-const MOVING_IN = {
-  radio: '唱片機與選台清單',
-};
+const MOVING_IN = {};
 
 const root = document.documentElement;
 const $ = (id) => document.getElementById(id);
@@ -113,6 +112,7 @@ function start() {
   sizes.get('calendar').size = { w: Math.round(940 * ratio), h: Math.round(640 * ratio) };
   sizes.get('weather').size = { w: Math.round(880 * ratio), h: Math.round(640 * ratio) };
   sizes.get('calculator').size = { w: Math.round(760 * ratio), h: Math.round(580 * ratio) };
+  sizes.get('radio').size = { w: Math.round(920 * ratio), h: Math.round(640 * ratio) };
   const apps = APPS.map((app) => ({
     id: app.id,
     title: app.title,
@@ -265,6 +265,8 @@ function start() {
     },
   });
 
+  const radio = createRadioApp({ root: $('radio'), area: $('wm-area'), island, dialogs, store, wm, menubar });
+
   function syncReminders() {
     const open = Calc.getUpcomingTaskSummary().count;
     menubar.setReminders(open);
@@ -339,6 +341,10 @@ function start() {
     if ((type === 'open' || type === 'restore') && id === 'calendar') calendar.intro();
     if ((type === 'open' || type === 'restore') && id === 'weather') weather.intro();
     if ((type === 'open' || type === 'restore') && id === 'calculator') calculator.intro();
+    if ((type === 'open' || type === 'restore') && id === 'radio') {
+      radio.refreshGlass();
+      radio.intro();
+    }
     if ((type === 'open' || type === 'restore') && id === 'life-reminder') {
       reminder.refreshGlass();
       reminder.intro();
@@ -369,7 +375,7 @@ function start() {
 
   console.info('%cRingoOS%c 2.0 by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
   if (new URLSearchParams(window.location.search).has('debug')) {
-    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar, weather, calculator };
+    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar, weather, calculator, radio };
   }
 }
 

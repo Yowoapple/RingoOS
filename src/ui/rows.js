@@ -209,7 +209,7 @@ export function createRowList(container, { render, onDelete, onSelect }) {
       const entry = find(id);
       select(entry);
     },
-    order(ids) {
+    order(ids, { except = null } = {}) {
       const live = entries.filter((entry) => !entry.leaving);
       const before = new Map(live.map((entry) => [entry, entry.el.getBoundingClientRect().top]));
       const ranked = ids.map((id) => find(id)).filter(Boolean);
@@ -226,6 +226,7 @@ export function createRowList(container, { render, onDelete, onSelect }) {
       entries.splice(0, entries.length, ...slots.map((slot) => slot || final[next++]));
       if (MotionSettings.reduced) return;
       final.forEach((entry) => {
+        if (entry.row.id === except) return;
         const delta = before.get(entry) - entry.el.getBoundingClientRect().top;
         if (Math.abs(delta) < 0.5) return;
         entry.motion.set({ y: entry.motion.get('y') + delta });
