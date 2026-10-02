@@ -456,6 +456,12 @@
   flex: none;
 }
 
+.st-row > .sld {
+  align-self: stretch;
+  width: 100%;
+  margin-left: 0;
+}
+
 @container (max-width: 34rem) {
   .st-row:not(:has(> .tgl)) {
     flex-direction: column;
@@ -467,7 +473,7 @@
     flex: none;
   }
 
-  .st-row:not(:has(> .tgl)) > :not(.st-row__text) {
+  .st-row:not(:has(> .tgl)) > :not(.st-row__text):not(.sld) {
     margin-left: 0;
     align-self: flex-start;
   }
