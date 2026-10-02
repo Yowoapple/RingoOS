@@ -1,4 +1,4 @@
-import { group, h, row, select, slider, toggle } from '../kit.js';
+import { group, h, row, segmented, select, slider, toggle } from '../kit.js';
 
 const WIDGETS = [
   { key: 'island', label: '記一筆', hint: '選單列中間的靈動島，隨時快速記帳' },
@@ -36,7 +36,26 @@ export function desktopPage(ctx) {
     return { widget, t, row: row({ label: widget.label, hint: widget.hint || '', control: t.el, keywords: '選單列 小工具 menubar' }) };
   });
 
+  const { companion } = ctx;
+  const petPrefs = companion.prefs;
+  const petOn = toggle(petPrefs.enabled, (on) => companion.setPrefs({ enabled: on }), '顯示桌寵');
+  const petSize = segmented(['小', '中', '大'], ['s', 'm', 'l'].indexOf(petPrefs.size), (i) => companion.setPrefs({ size: ['s', 'm', 'l'][i] }), { label: '桌寵大小' });
+  const chatty = select({
+    options: [{ value: 'off', label: '只在你理她時' }, { value: 'some', label: '偶爾' }, { value: 'often', label: '常常' }],
+    value: petPrefs.chatty,
+    menuHost: ctx.menuHost,
+    label: '說話頻率',
+    onChange: (v) => companion.setPrefs({ chatty: v }),
+  });
+  const yieldToggle = toggle(petPrefs.yield, (on) => companion.setPrefs({ yield: on }), '視窗放大時讓位');
+
   el.append(
+    group([
+      row({ label: '桌寵', hint: '點她打開卡片；拖到螢幕左右邊緣可以先藏起來', control: petOn.el, keywords: '角色 夥伴 coffeebean 寵物' }),
+      row({ label: '大小', control: petSize.el, keywords: '桌寵 尺寸' }),
+      row({ label: '說話頻率', hint: '勿擾時一律安靜', control: chatty.el, keywords: '桌寵 泡泡 對話' }),
+      row({ label: '視窗放大時讓位', hint: '有視窗最大化或貼齊半邊時，她會先躲到邊緣', control: yieldToggle.el, keywords: '桌寵 擋住 讓開' }),
+    ], { title: '桌寵' }),
     group([
       row({ label: 'Dock 內容', hint: '只放縮小的視窗時，Dock 平常會很乾淨', control: mode.el, keywords: 'dock 圖示 常駐' }),
       row({ label: '自動隱藏', hint: '滑鼠移到畫面最下方時才滑出來', control: hide.el, keywords: 'dock 隱藏 autohide' }),
@@ -48,7 +67,7 @@ export function desktopPage(ctx) {
   return {
     id: 'desktop',
     title: '桌面',
-    lede: 'Dock 與選單列',
+    lede: '桌寵、Dock 與選單列',
     icon: 'desktop',
     el,
     sync() {
@@ -57,6 +76,17 @@ export function desktopPage(ctx) {
       hide.api.set(next.dockAutoHide);
       widgetToggles.forEach(({ widget, t }) => t.api.set(next.widgets[widget.key] !== false));
       magnify.api.set(dock.magnify);
+      const pet = companion.prefs;
+      petOn.api.set(pet.enabled);
+      petSize.api.select(['s', 'm', 'l'].indexOf(pet.size));
+      chatty.api.set(pet.chatty);
+      yieldToggle.api.set(pet.yield);
+    },
+    show() {
+      petSize.api.measure();
+    },
+    refreshGlass() {
+      petSize.api.refreshGlass();
     },
   };
 }

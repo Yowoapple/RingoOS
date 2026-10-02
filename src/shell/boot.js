@@ -26,6 +26,7 @@ import { glyph } from '../apps/weather/glyphs.js';
 import { createCalculatorApp } from '../apps/calculator/calculator-app.js';
 import { createRadioApp } from '../apps/radio/radio-app.js';
 import { createSettingsApp } from '../apps/settings/settings-app.js';
+import { createCompanion } from '../apps/companion/companion.js';
 import { Calc } from '../core/calculations.js';
 
 const SESSION_KEY = 'yoworingo.v2.windows';
@@ -250,6 +251,8 @@ function start() {
   });
 
   let settingsRef = null;
+  let companionRef = null;
+  let lastWeather = null;
   const mbWeather = document.querySelector('.mb-weather');
   const weather = createWeatherApp({
     root: $('weather'),
@@ -277,6 +280,8 @@ function start() {
       mbWeather.setAttribute('aria-label', `${info.location.name} ${info.current.text} ${Math.round(info.temperature)} 度`);
       mbWeather.hidden = false;
       triggers.weather(info);
+      lastWeather = info;
+      if (companionRef) companionRef.setWeather(info);
       if (settingsRef) settingsRef.sync();
     },
   });
@@ -356,12 +361,17 @@ function start() {
     });
   });
 
+  const companion = createCompanion({ desk: $('desk'), menubar: $('menubar'), store, wm, island, notifier });
+  companionRef = companion;
+  if (lastWeather) companion.setWeather(lastWeather);
+
   const settings = createSettingsApp({
     root: $('settings'),
     ctx: {
       appearance,
       dock,
       desktopPrefs,
+      companion,
       notifier,
       island,
       dialogs,
@@ -427,7 +437,7 @@ function start() {
 
   console.info('%cRingoOS%c 2.0 by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
   if (new URLSearchParams(window.location.search).has('debug')) {
-    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar, weather, calculator, radio, notifier, center, triggers, notices, settings };
+    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar, weather, calculator, radio, notifier, center, triggers, notices, settings, companion };
   }
 }
 
