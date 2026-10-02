@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RingoOS 26 · Logo</title>
+  <meta name="author" content="YoWoRingo">
+  <link rel="stylesheet" href="/src/styles/tokens.css">
+  <link rel="stylesheet" href="./css/logo.css">
+</head>
+<body>
+  <header class="lb-head">
+    <p class="lb-kicker mono">RINGOOS 26 · FUJI · BRAND STUDY</p>
+    <h1 class="lb-title">把 OS 的 O<br>變成一顆膠囊</h1>
+    <p class="lb-lede">六個方向，每個都放進實際會出現的地方：選單列、Dock、分頁圖示、README、關於頁。滑過大字會看到它怎麼動。</p>
+    <div class="lb-tools">
+      <div class="lb-accents" role="radiogroup" aria-label="強調色">
+        <button type="button" class="lb-accent" role="radio" aria-checked="true" data-accent="apple"><i></i>青蘋果</button>
+        <button type="button" class="lb-accent" role="radio" aria-checked="false" data-accent="signal"><i></i>信號橘</button>
+        <button type="button" class="lb-accent" role="radio" aria-checked="false" data-accent="ultramarine"><i></i>群青</button>
+      </div>
+      <button type="button" class="lb-play" id="lb-play">全部播放一次</button>
+    </div>
+  </header>
+
+  <main class="lb-list" id="lb-list"></main>
+
+  <footer class="lb-foot mono">RingoOS by YoWoRingo · 字標：HarmonyOS Sans Bold ＋ Geist Mono · 只有膠囊會跟著強調色</footer>
+
+  <script type="module" src="./js/logo.js"></script>
+</body>
+</html>

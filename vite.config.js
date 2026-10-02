@@ -21,6 +21,7 @@ export default defineConfig({
         next: resolve(import.meta.dirname, 'next/index.html'),
         wm: resolve(import.meta.dirname, 'prototype/wm/index.html'),
         design: resolve(import.meta.dirname, 'prototype/design/index.html'),
+        logo: resolve(import.meta.dirname, 'prototype/logo/index.html'),
       },
     },
   },
