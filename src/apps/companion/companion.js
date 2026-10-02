@@ -13,9 +13,10 @@ const STATE_KEY = 'yoworingo.v2.pet';
 const PREFS_KEY = 'yoworingo.v2.pet-prefs';
 const DEFAULT_PREFS = { enabled: true, size: 'm', chatty: 'some', yield: true };
 const CHATTY_MS = { some: 6 * 60000, often: 2 * 60000 };
-const PEEK = 34;
 const WEARY_MS = 15 * 60000;
 const SPRING = { response: 0.55, damping: 0.66 };
+const PEEK_SHARE = 0.55;
+const HANDLE_H = 56;
 
 function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
@@ -54,6 +55,9 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   let speaking = false;
   let lastSpoke = Date.now();
   let lineIndex = 0;
+  let landing = false;
+  let peakSpeed = 0;
+  let seat = null;
 
   const el = document.createElement('div');
   el.className = 'pet';
@@ -67,12 +71,35 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   const shadow = el.querySelector('.pet__shadow');
   desk.append(el);
 
+  const handle = document.createElement('button');
+  handle.type = 'button';
+  handle.className = 'pet-handle';
+  handle.setAttribute('aria-label', '桌寵藏在這裡，點一下叫她出來');
+  handle.innerHTML = '<i></i>';
+  handle.hidden = true;
+  desk.append(handle);
+
+  const seatLine = document.createElement('span');
+  seatLine.className = 'pet-seat';
+  seatLine.setAttribute('aria-hidden', 'true');
+  seatLine.innerHTML = '<i></i>';
+  const seatDot = seatLine.querySelector('i');
+  desk.append(seatLine);
+
   const bubble = document.createElement('div');
   bubble.className = 'pet-bubble';
   bubble.hidden = true;
   bubble.innerHTML = '<p class="pet-bubble__text"></p>';
   const bubbleText = bubble.querySelector('.pet-bubble__text');
   desk.append(bubble);
+
+  const card = document.createElement('div');
+  card.className = 'pet-card';
+  card.setAttribute('role', 'dialog');
+  card.setAttribute('aria-label', '桌寵');
+  card.tabIndex = -1;
+  card.hidden = true;
+  desk.append(card);
 
   const restButton = document.createElement('button');
   restButton.type = 'button';
@@ -81,13 +108,13 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   restButton.setAttribute('aria-label', '桌寵在休息，點一下叫她回來');
   restButton.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.8 9.6A4.6 4.6 0 0 1 6.4 4.2a4.6 4.6 0 1 0 5.4 5.4z" fill="currentColor"/><path d="M10.4 2.6h2.2l-2.2 2.4h2.2" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   restButton.hidden = true;
-  const bell = menubar.querySelector('.mb-bell');
-  menubar.insertBefore(restButton, bell);
+  menubar.insertBefore(restButton, menubar.querySelector('.mb-bell'));
 
   const pos = createMotion({ x: 0, y: 0 }, { response: 0.55, damping: 0.66, restDelta: { x: 0.1, y: 0.1 } });
-  const fx = createMotion({ lift: 0, squash: 0, peek: 0, tilt: 0, show: 0, press: 1 }, { response: 0.4, damping: 0.6, restDelta: { lift: 0.002, squash: 0.002, peek: 0.002, tilt: 0.05, show: 0.002, press: 0.0005 } });
-  let landing = false;
-  let peakSpeed = 0;
+  const fx = createMotion({ lift: 0, squash: 0, peek: 0, tilt: 0, show: 0, press: 1, ready: 0, grip: 0 }, { response: 0.4, damping: 0.6, restDelta: { lift: 0.002, squash: 0.002, peek: 0.002, tilt: 0.05, show: 0.002, press: 0.0005, ready: 0.002, grip: 0.002 } });
+  const cardMotion = createMotion({ s: 0 }, { response: 0.42, damping: 0.6, restDelta: 0.001 });
+  const bubbleMotion = createMotion({ s: 0 }, { response: 0.42, damping: 0.55, restDelta: 0.001 });
+  const seatMotion = createMotion({ o: 0 }, { response: 0.26, damping: 0.8, restDelta: 0.002 });
 
   function bounds() {
     const bar = menubar.getBoundingClientRect();
@@ -98,33 +125,40 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     return { w: size, h: size };
   }
 
-  function stashX(side, peek) {
+  function hidden() {
+    return mode === 'stash' || yielding;
+  }
+
+  function stashX(side) {
     const b = bounds();
-    const shown = PEEK + peek * 26;
-    return side === 'left' ? b.left - size + shown : b.right - shown;
+    return side === 'left' ? b.left - size - 8 : b.right + 8;
+  }
+
+  function shownX() {
+    const x = pos.get('x');
+    if (!hidden()) return x;
+    return x + (stash === 'left' ? 1 : -1) * fx.get('peek') * size * PEEK_SHARE;
   }
 
   function paint() {
-    const { x, y } = pos.values;
-    const { lift, squash, peek, tilt: angle, show, press } = fx.values;
+    const y = pos.get('y');
+    const { lift, squash, tilt: angle, show, press, ready } = fx.values;
     const vx = pos.velocity('x');
     const vy = pos.velocity('y');
     const speed = Math.hypot(vx, vy);
-    let shownX = x;
-    if (mode === 'stash' || yielding) shownX = x + (stash === 'left' ? 1 : -1) * peek * 26;
     const reduced = MotionSettings.reduced;
     const stretch = reduced ? 0 : Math.min(0.16, speed / 6000);
-    const along = speed > 1 ? Math.atan2(vy, vx) : 0;
+    const along = speed > 1 ? (Math.atan2(vy, vx) * 180) / Math.PI : 0;
     const sq = reduced ? 0 : squash;
-    const sx = (1 + 0.05 * lift) * (1 + sq * 0.1) * press;
-    const sy = (1 + 0.05 * lift) * (1 - sq * 0.12) * press;
+    const sx = (1 + 0.05 * lift) * (1 + sq * 0.1) * (1 + ready * 0.04) * press;
+    const sy = (1 + 0.05 * lift) * (1 - sq * 0.12) * (1 - ready * 0.07) * press;
     const appear = clamp(show, 0, 1.2);
-    el.style.transform = `translate3d(${shownX.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+    el.style.transform = `translate3d(${shownX().toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
     el.style.opacity = appear > 0.999 ? '' : String(clamp(show * 1.4, 0, 1));
-    body.style.transform = `translateY(${(-12 * lift).toFixed(2)}px) rotate(${(along * 180 / Math.PI).toFixed(2)}deg) scale(${(1 + stretch).toFixed(4)}, ${(1 - stretch * 0.6).toFixed(4)}) rotate(${(-along * 180 / Math.PI).toFixed(2)}deg) scale(${(sx * appear).toFixed(4)}, ${(sy * appear).toFixed(4)})`;
+    body.style.transform = `translateY(${(-12 * lift + ready * size * 0.03).toFixed(2)}px) rotate(${along.toFixed(2)}deg) scale(${(1 + stretch).toFixed(4)}, ${(1 - stretch * 0.6).toFixed(4)}) rotate(${(-along).toFixed(2)}deg) scale(${(sx * appear).toFixed(4)}, ${(sy * appear).toFixed(4)})`;
     tilt.style.transform = Math.abs(angle) < 0.05 ? '' : `rotate(${angle.toFixed(2)}deg)`;
     shadow.style.transform = `scale(${(appear * (1 - 0.3 * lift) * (1 + sq * 0.12)).toFixed(4)}, ${(appear * (1 - 0.3 * lift)).toFixed(4)})`;
-    shadow.style.opacity = String(clamp((0.32 - 0.16 * lift) * appear, 0, 1));
+    shadow.style.opacity = String(clamp((0.32 - 0.16 * lift) * appear * (1 - ready * 0.6), 0, 1));
     if (landing) {
       peakSpeed = Math.max(peakSpeed, speed);
       if (peakSpeed > 260 && speed < 90) {
@@ -135,15 +169,29 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
         }
       }
     }
+    paintHandle();
     placeBubble();
+    placeCard();
   }
   pos.onUpdate(paint);
   fx.onUpdate(paint);
 
+  function paintHandle() {
+    const on = hidden() && mode !== 'rest' && prefs.enabled;
+    handle.hidden = !on && fx.get('grip') < 0.01;
+    if (handle.hidden) return;
+    const b = bounds();
+    const top = clamp(pos.get('y') + size * 0.5 - HANDLE_H / 2, b.top, b.bottom - HANDLE_H);
+    const left = stash === 'left' ? 2 : window.innerWidth - 10;
+    const grip = clamp(fx.get('grip'), 0, 1.2);
+    handle.style.transform = `translate3d(${left}px, ${top.toFixed(2)}px, 0) scale(${(0.4 + 0.6 * grip).toFixed(4)}, ${(0.6 + 0.4 * grip).toFixed(4)})`;
+    handle.style.opacity = String(clamp(grip, 0, 1) * (1 - fx.get('peek') * 0.7));
+    handle.classList.toggle('is-left', stash === 'left');
+  }
+
   function setSize(next) {
     size = SIZES[next] || SIZES.m;
     el.style.setProperty('--pet-size', `${size}px`);
-    bubble.style.setProperty('--pet-size', `${size}px`);
   }
 
   const loaded = new Set();
@@ -202,7 +250,6 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
 
   function lifted(on) {
     el.classList.toggle('is-lifted', on);
-    bubble.classList.toggle('is-lifted', on);
   }
 
   function windowRects() {
@@ -215,6 +262,40 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
       return { id: w.dataset.appId, left: r.left, right: r.right, top: r.top, z: Number(w.style.zIndex) || 0 };
     });
   }
+
+  function seatable() {
+    const b = bounds();
+    return windowRects().filter((w) => w.top - size * 0.9 >= b.top - size * 0.15);
+  }
+
+  function feet() {
+    return { x: pos.get('x') + size / 2, y: pos.get('y') + size * 0.92 };
+  }
+
+  function showSeat(next, foot = feet()) {
+    const changed = (next && next.id) !== (seat && seat.id);
+    seat = next;
+    if (next) {
+      const win = windowRects().find((w) => w.id === next.id);
+      if (win) {
+        seatLine.style.left = `${win.left + 10}px`;
+        seatLine.style.top = `${win.top - 1}px`;
+        seatLine.style.width = `${Math.max(0, win.right - win.left - 20)}px`;
+        seatDot.style.left = `${clamp(foot.x - win.left - 10 - 7, 0, win.right - win.left - 34)}px`;
+      }
+      if (changed) seatMotion.to({ o: 1 }, soft({ response: 0.3, damping: 0.62 }));
+      fx.to({ ready: 1 }, soft({ response: 0.3, damping: 0.6 }));
+    } else {
+      seatMotion.to({ o: 0 }, { response: 0.2, damping: 1 });
+      fx.to({ ready: 0 }, soft({ response: 0.34, damping: 0.62 }));
+    }
+  }
+  seatMotion.onUpdate(({ o }) => {
+    const t = clamp(o, 0, 1.2);
+    seatLine.style.opacity = String(clamp(o, 0, 1));
+    seatLine.style.transform = `scaleX(${(0.6 + 0.4 * t).toFixed(4)})`;
+    seatLine.hidden = o < 0.01;
+  });
 
   function stopPerch() {
     cancelAnimationFrame(perchRaf);
@@ -234,9 +315,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
       if (!w.classList.contains('is-morphing')) {
         const r = w.getBoundingClientRect();
         const target = { x: r.left + perch.offset * r.width - size / 2, y: r.top - size * 0.9 };
-        const dx = target.x - pos.get('x');
-        const dy = target.y - pos.get('y');
-        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) pos.to(target, { response: 0.16, damping: 0.78 });
+        if (Math.abs(target.x - pos.get('x')) > 0.5 || Math.abs(target.y - pos.get('y')) > 0.5) pos.to(target, { response: 0.16, damping: 0.78 });
       }
       perchRaf = requestAnimationFrame(tick);
     };
@@ -248,12 +327,18 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     perch = null;
     mode = 'free';
     lifted(false);
-    const b = bounds();
-    const target = clampInto({ x: pos.get('x'), y: pos.get('y') + size * 0.5 }, box(), b);
+    const target = clampInto({ x: pos.get('x'), y: pos.get('y') + size * 0.5 }, box(), bounds());
     landing = true;
     peakSpeed = 0;
     pos.to(target, soft({ response: 0.5, damping: 0.55 }));
-    persist();
+    persist(target);
+  }
+
+  function hideTo(side, y) {
+    stash = side;
+    fx.to({ grip: 1 }, soft({ response: 0.4, damping: 0.55 }));
+    fx.to({ peek: 0 }, { response: 0.3, damping: 1 });
+    pos.to({ x: stashX(side), y: clamp(y, bounds().top, bounds().bottom - size) }, soft({ response: 0.46, damping: 0.86 }));
   }
 
   function settle(vx = 0, vy = 0) {
@@ -261,40 +346,49 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     const here = { x: pos.get('x'), y: pos.get('y') };
     const thrown = project({ ...here, vx, vy });
     const side = stashSide({ x: thrown.x, vx }, box(), b);
-    const feet = { x: here.x + size / 2, y: here.y + size * 0.92 };
-    const room = windowRects().filter((w) => w.top - size * 0.9 >= b.top - size * 0.15);
-    const seat = side ? null : findPerch(feet, room);
+    const spot = side ? null : seat || findPerch(feet(), seatable());
+    showSeat(null);
     landing = true;
     peakSpeed = 0;
     if (Math.hypot(vx, vy) > 2800) window.setTimeout(() => react(REACTIONS.dizzy), 380);
-    if (seat) {
+    if (spot) {
       mode = 'perch';
-      perch = seat;
+      perch = { id: spot.id, offset: spot.offset };
       lifted(true);
+      if (!MotionSettings.reduced) {
+        seatMotion.set({ o: 1 });
+        seatMotion.to({ o: 0 }, { response: 0.6, damping: 1 });
+        seatLine.classList.add('is-flash');
+        window.setTimeout(() => seatLine.classList.remove('is-flash'), 500);
+      }
       followPerch();
-    } else if (side) {
-      mode = 'stash';
-      stash = side;
-      lifted(false);
-      pos.to({ x: stashX(side, 0), y: clamp(thrown.y, b.top, b.bottom - size) }, soft({ ...SPRING, velocity: { x: vx, y: vy } }));
-    } else {
-      mode = 'free';
-      lifted(false);
-      const target = clampInto(thrown, box(), b);
-      pos.to(target, soft({ response: 0.55, damping: 0.62, velocity: { x: vx, y: vy } }));
-      persist(target);
+      persist();
       return;
     }
-    persist();
+    if (side) {
+      mode = 'stash';
+      lifted(false);
+      closeCard();
+      hideTo(side, thrown.y);
+      persist({ x: stashX(side), y: clamp(thrown.y, b.top, b.bottom - size) });
+      return;
+    }
+    mode = 'free';
+    lifted(false);
+    const target = clampInto(thrown, box(), b);
+    pos.to(target, soft({ response: 0.55, damping: 0.62, velocity: { x: vx, y: vy } }));
+    persist(target);
   }
 
   function unstash() {
     const b = bounds();
     const x = stash === 'left' ? b.left + 24 : b.right - size - 24;
-    pos.set({ x: pos.get('x') + (stash === 'left' ? 1 : -1) * fx.get('peek') * 26 });
+    pos.set({ x: shownX() });
     mode = 'free';
+    yielding = false;
     stash = null;
-    fx.to({ peek: 0 }, { response: 0.3, damping: 1 });
+    fx.set({ peek: 0 });
+    fx.to({ grip: 0 }, { response: 0.24, damping: 1 });
     landing = true;
     peakSpeed = 0;
     pos.to({ x }, soft({ response: 0.5, damping: 0.55 }));
@@ -306,6 +400,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     if (mode === 'stash') return;
     stash = null;
     fx.to({ peek: 0 }, { response: 0.3, damping: 1 });
+    fx.to({ grip: 0 }, { response: 0.24, damping: 1 });
     if (mode === 'perch') {
       followPerch();
       return;
@@ -333,22 +428,33 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     if (mode === 'perch') stopPerch();
     hideBubble(true);
     closeCard();
-    stash = snapped.some((r) => r.snap === 'right') && !snapped.some((r) => r.snap === 'left') ? 'left' : 'right';
-    pos.to({ x: stashX(stash, 0), y: clamp(pos.get('y'), bounds().top, bounds().bottom - size) }, soft({ response: 0.5, damping: 0.78 }));
+    hideTo(snapped.some((r) => r.snap === 'right') && !snapped.some((r) => r.snap === 'left') ? 'left' : 'right', pos.get('y'));
   }
 
   function setVisible() {
-    const hidden = !prefs.enabled || mode === 'rest';
     el.hidden = !prefs.enabled;
     restButton.hidden = !(prefs.enabled && mode === 'rest');
-    el.inert = hidden;
-    if (hidden) hideBubble(true);
+    el.inert = !prefs.enabled || mode === 'rest';
+    if (!prefs.enabled || mode === 'rest') {
+      hideBubble(true);
+      closeCard(true);
+    }
+    paintHandle();
+  }
+
+  function pulseButton() {
+    if (MotionSettings.reduced) return;
+    const m = createMotion({ s: 0.4 }, { response: 0.4, damping: 0.45, restDelta: 0.001 });
+    m.onUpdate(({ s }) => {
+      restButton.style.transform = Math.abs(s - 1) < 0.001 ? '' : `scale(${s.toFixed(4)})`;
+    });
+    m.to({ s: 1 }, { response: 0.42, damping: 0.42 });
   }
 
   function rest(choice) {
     const until = restUntil(choice);
     if (!until) return;
-    closeCard();
+    closeCard(true);
     hideBubble(true);
     restAt = until;
     const from = { x: pos.get('x'), y: pos.get('y') };
@@ -361,7 +467,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
       lifted(false);
       pos.set(from);
       setVisible();
-      persist();
+      persist(from);
       pulseButton();
     };
     if (MotionSettings.reduced) {
@@ -374,15 +480,6 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     fx.to({ show: 0 }, { response: 0.36, damping: 1 }).then(done);
   }
 
-  function pulseButton() {
-    if (MotionSettings.reduced) return;
-    const m = createMotion({ s: 0.4 }, { response: 0.4, damping: 0.45, restDelta: 0.001 });
-    m.onUpdate(({ s }) => {
-      restButton.style.transform = Math.abs(s - 1) < 0.001 ? '' : `scale(${s.toFixed(4)})`;
-    });
-    m.to({ s: 1 }, { response: 0.42, damping: 0.42 });
-  }
-
   function wake() {
     if (mode !== 'rest') return;
     restAt = 0;
@@ -391,11 +488,10 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
       lifted(true);
       followPerch();
     }
-    setVisible();
     const aim = restButton.getBoundingClientRect();
     const back = mode === 'free' ? clampInto({ x: saved.x ?? pos.get('x'), y: saved.y ?? pos.get('y') }, box(), bounds()) : { x: pos.get('x'), y: pos.get('y') };
-    restButton.hidden = true;
-    persist();
+    setVisible();
+    persist(back);
     if (MotionSettings.reduced) {
       pos.set(back);
       fx.set({ show: 1 });
@@ -418,9 +514,8 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   el.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return;
     lastInput = Date.now();
-    drag = { id: event.pointerId, sx: event.clientX, sy: event.clientY, ox: event.clientX - pos.get('x'), oy: event.clientY - pos.get('y'), moved: false, samples: [] };
-    if (mode === 'stash' || yielding) drag.ox = event.clientX - (pos.get('x') + (stash === 'left' ? 1 : -1) * fx.get('peek') * 26);
-    try { el.setPointerCapture(event.pointerId); } catch (err) { drag.capture = false; }
+    drag = { id: event.pointerId, sx: event.clientX, sy: event.clientY, ox: event.clientX - shownX(), oy: event.clientY - pos.get('y'), moved: false, samples: [] };
+    try { el.setPointerCapture(event.pointerId); } catch (err) { drag.free = true; }
     if (!MotionSettings.reduced) fx.to({ press: 0.95 }, { response: 0.14, damping: 1 });
   });
 
@@ -434,13 +529,13 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     if (!drag.moved) {
       if (Math.hypot(dx, dy) < 5) return;
       drag.moved = true;
-      closeCard();
       hideBubble();
-      if (mode === 'stash' || yielding) {
-        pos.set({ x: pos.get('x') + (stash === 'left' ? 1 : -1) * fx.get('peek') * 26 });
+      if (hidden()) {
+        pos.set({ x: shownX() });
         yielding = false;
         stash = null;
         fx.set({ peek: 0 });
+        fx.to({ grip: 0 }, { response: 0.24, damping: 1 });
       }
       if (mode === 'perch') stopPerch();
       mode = 'drag';
@@ -451,6 +546,8 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     drag.samples.push({ x: event.clientX, y: event.clientY, t: now });
     drag.samples = drag.samples.filter((s) => now - s.t < 90);
     pos.to({ x: event.clientX - drag.ox, y: event.clientY - drag.oy }, { response: 0.08, damping: 1 });
+    const foot = { x: event.clientX - drag.ox + size / 2, y: event.clientY - drag.oy + size * 0.92 };
+    showSeat(findPerch(foot, seatable()), foot);
   });
 
   function endDrag(event) {
@@ -460,7 +557,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     drag = null;
     fx.to({ press: 1 }, soft({ response: 0.38, damping: 0.42 }));
     if (!moved) {
-      if (mode === 'stash') {
+      if (hidden()) {
         unstash();
         return;
       }
@@ -487,11 +584,42 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   el.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      if (mode === 'stash') unstash();
+      if (hidden()) unstash();
       else if (cardOpen) closeCard();
       else openCard();
     }
   });
+
+  let handleDrag = null;
+  handle.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    handleDrag = { id: event.pointerId, sx: event.clientX, sy: event.clientY, y: pos.get('y'), moved: false };
+    try { handle.setPointerCapture(event.pointerId); } catch (err) { handleDrag.free = true; }
+  });
+  handle.addEventListener('pointermove', (event) => {
+    if (!handleDrag || event.pointerId !== handleDrag.id) return;
+    const dx = event.clientX - handleDrag.sx;
+    const dy = event.clientY - handleDrag.sy;
+    const inward = stash === 'left' ? dx : -dx;
+    if (inward > 26) {
+      handleDrag = null;
+      unstash();
+      return;
+    }
+    if (Math.abs(dy) < 4 && !handleDrag.moved) return;
+    handleDrag.moved = true;
+    const b = bounds();
+    pos.to({ y: clamp(handleDrag.y + dy, b.top, b.bottom - size) }, { response: 0.1, damping: 1 });
+  });
+  const endHandle = (event) => {
+    if (!handleDrag || event.pointerId !== handleDrag.id) return;
+    const moved = handleDrag.moved;
+    handleDrag = null;
+    if (!moved) unstash();
+    else if (mode === 'stash') persist({ x: stashX(stash), y: pos.get('y') });
+  };
+  handle.addEventListener('pointerup', endHandle);
+  handle.addEventListener('pointercancel', endHandle);
 
   function pickAnEgg() {
     const egg = pickEgg(Math.random(), lastEgg);
@@ -517,66 +645,72 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     }
   }
 
-  let tiltRaf = 0;
+  let pointerRaf = 0;
   let pointer = null;
   document.addEventListener('pointermove', (event) => {
     pointer = { x: event.clientX, y: event.clientY };
     lastInput = Date.now();
-    if (tiltRaf) return;
-    tiltRaf = requestAnimationFrame(() => {
-      tiltRaf = 0;
-      if (!prefs.enabled || mode === 'rest' || MotionSettings.reduced) return;
-      const cx = pos.get('x') + size / 2;
-      const cy = pos.get('y') + size / 2;
-      if (mode === 'stash' || yielding) {
-        const shownX = stashX(stash || 'right', 0) + (stash === 'left' ? size - PEEK : PEEK);
-        const near = Math.abs(pointer.x - shownX) < 90 && pointer.y > pos.get('y') - 30 && pointer.y < pos.get('y') + size + 30;
-        fx.to({ peek: near ? 1 : 0 }, { response: 0.36, damping: 0.6 });
+    if (pointerRaf) return;
+    pointerRaf = requestAnimationFrame(() => {
+      pointerRaf = 0;
+      if (!prefs.enabled || mode === 'rest' || drag) return;
+      if (hidden()) {
+        const edge = stash === 'left' ? bounds().left : bounds().right;
+        const reach = fx.get('peek') > 0.5 ? size * 0.75 : 46;
+        const near = Math.abs(pointer.x - edge) < reach && pointer.y > pos.get('y') - 24 && pointer.y < pos.get('y') + size + 24;
+        fx.to({ peek: near ? 1 : 0 }, near ? soft({ response: 0.42, damping: 0.62 }) : { response: 0.3, damping: 0.9 });
         return;
       }
-      const dx = pointer.x - cx;
-      const dy = pointer.y - cy;
-      const near = Math.hypot(dx, dy) < 380 && mode !== 'drag';
+      if (MotionSettings.reduced) return;
+      const dx = pointer.x - (pos.get('x') + size / 2);
+      const dy = pointer.y - (pos.get('y') + size / 2);
+      const near = Math.hypot(dx, dy) < 380;
       fx.to({ tilt: near ? clamp(dx / 380, -1, 1) * 7 : 0 }, { response: 0.6, damping: 0.6 });
     });
   }, { passive: true });
   document.addEventListener('keydown', () => { lastInput = Date.now(); });
 
-  const card = document.createElement('div');
-  card.className = 'pet-card';
-  card.innerHTML = '<span class="pet-card__shadow" aria-hidden="true"></span><span class="pet-card__glass" aria-hidden="true"></span><span class="pet-card__fill" aria-hidden="true"></span><div class="pet-card__body"></div>';
-  card.setAttribute('role', 'dialog');
-  card.setAttribute('aria-label', '桌寵');
-  card.tabIndex = -1;
-  const cardBody = card.querySelector('.pet-card__body');
-  const cardFill = card.querySelector('.pet-card__fill');
-  const cardGlass = card.querySelector('.pet-card__glass');
-  const cardShadow = card.querySelector('.pet-card__shadow');
-  desk.append(card);
-  const morph = createMotion({ o: 0 }, { response: 0.44, damping: 0.64, restDelta: 0.0005 });
-  let cardBox = { w: 0, h: 0, sx: 0, sy: 0, sw: 0, sh: 0 };
-
-  function paintCard({ o }) {
-    const t = clamp(o, 0, 1);
-    const k = 1 - t;
-    const top = cardBox.sy * k;
-    const left = cardBox.sx * k;
-    const right = (cardBox.w - cardBox.sx - cardBox.sw) * k;
-    const bottom = (cardBox.h - cardBox.sy - cardBox.sh) * k;
-    const r = 18 + (16 - 18) * t;
-    const clip = `inset(${top.toFixed(2)}px ${right.toFixed(2)}px ${bottom.toFixed(2)}px ${left.toFixed(2)}px round ${r.toFixed(2)}px)`;
-    cardFill.style.clipPath = clip;
-    cardBody.style.clipPath = clip;
-    cardShadow.style.transform = `translate3d(${left.toFixed(2)}px, ${top.toFixed(2)}px, 0)`;
-    cardShadow.style.width = `${Math.max(0, cardBox.w - left - right)}px`;
-    cardShadow.style.height = `${Math.max(0, cardBox.h - top - bottom)}px`;
-    const over = Math.max(0, o - 1);
-    card.style.transform = over > 0.0005 ? `scale(${(1 + over * 0.08).toFixed(4)})` : '';
-    card.style.transformOrigin = `${(cardBox.sx + cardBox.sw / 2).toFixed(1)}px ${(cardBox.sy + cardBox.sh / 2).toFixed(1)}px`;
-    cardGlass.hidden = !(cardOpen && t > 0.995 && Math.abs(o - 1) < 0.01);
-    card.style.visibility = o > 0.002 || cardOpen ? 'visible' : 'hidden';
+  function anchor() {
+    const x = shownX();
+    const y = pos.get('y');
+    return { headX: x + size / 2, headY: y + size * 0.28, x, y };
   }
-  morph.onUpdate(paintCard);
+
+  function placeAt(node, sideKey, { offset = 0.8 } = {}) {
+    const w = node.offsetWidth;
+    const h = node.offsetHeight;
+    const a = anchor();
+    const b = bounds();
+    const right = a.x + size * offset + w < window.innerWidth - 8;
+    const left = right ? a.x + size * offset : a.x + size * (1 - offset) - w;
+    const top = clamp(a.headY - 26, b.top, b.bottom - h);
+    const tail = clamp(a.headY - top, 16, h - 16);
+    node.style.left = `${clamp(left, 8, window.innerWidth - w - 8).toFixed(2)}px`;
+    node.style.top = `${top.toFixed(2)}px`;
+    node.style.setProperty('--tail-y', `${tail.toFixed(1)}px`);
+    node.style.transformOrigin = `${right ? 0 : w}px ${tail.toFixed(1)}px`;
+    node.classList.toggle(sideKey, !right);
+  }
+
+  function placeCard() {
+    if (card.hidden) return;
+    placeAt(card, 'is-left', { offset: 0.82 });
+  }
+
+  function placeBubble() {
+    if (bubble.hidden) return;
+    placeAt(bubble, 'is-left', { offset: 0.74 });
+  }
+
+  cardMotion.onUpdate(({ s }) => {
+    card.style.opacity = String(clamp(s * 1.8, 0, 1));
+    card.style.transform = `scale(${clamp(s, 0, 1.2).toFixed(4)})`;
+  });
+
+  bubbleMotion.onUpdate(({ s }) => {
+    bubble.style.opacity = String(clamp(s * 1.8, 0, 1));
+    bubble.style.transform = `scale(${clamp(s, 0, 1.3).toFixed(4)})`;
+  });
 
   function line(textValue, className) {
     const p = document.createElement('p');
@@ -590,14 +724,15 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     for (let i = 0; i < 3; i += 1) {
       const key = Calc.shiftDateKey(today(), i);
       const tasks = Data.getDayTasks(key).filter((t) => !t.done && t.text);
-      const upcoming = tasks.filter((t) => i > 0 || !t.time || (() => {
+      const upcoming = tasks.filter((t) => {
+        if (i > 0 || !t.time) return true;
         const [hh, mm] = t.time.split(':').map(Number);
         return hh * 60 + mm >= now.getHours() * 60 + now.getMinutes();
-      })()).sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
+      }).sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
       if (upcoming.length) {
         const t = upcoming[0];
         const day = i === 0 ? '今天' : i === 1 ? '明天' : '後天';
-        return { text: `${day}${t.time ? ` ${t.time}` : ''} · ${t.text}`, key };
+        return { text: `${day}${t.time ? ` ${t.time}` : ''} · ${t.text}` };
       }
     }
     return null;
@@ -608,52 +743,40 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     return `${weather.location ? weather.location.name : ''} ${weather.current.text} ${Math.round(weather.temperature)}°`.trim();
   }
 
+  function fact(label, value, onClick) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'pet-card__fact';
+    b.innerHTML = '<span></span><b></b>';
+    b.querySelector('span').textContent = label;
+    b.querySelector('b').textContent = value;
+    b.addEventListener('click', () => {
+      closeCard();
+      onClick();
+    });
+    return b;
+  }
+
   function buildCard() {
-    cardBody.textContent = '';
+    card.textContent = '';
     const insight = mood();
-    const lead = line(insight ? insight.lead : '今天也一起加油', 'pet-card__lead');
-    const pieces = [lead];
+    const pieces = [line(insight ? insight.lead : '今天也一起加油', 'pet-card__lead')];
     if (insight && insight.sub) pieces.push(line(insight.sub, 'pet-card__sub'));
     const facts = document.createElement('div');
     facts.className = 'pet-card__facts';
     const task = nextTask();
-    if (task) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'pet-card__fact';
-      b.innerHTML = '<span>下一件</span><b></b>';
-      b.querySelector('b').textContent = task.text;
-      b.addEventListener('click', () => {
-        closeCard();
-        wm.open('calendar');
-      });
-      facts.append(b);
-    }
+    if (task) facts.append(fact('下一件', task.text, () => wm.open('calendar')));
     const wx = weatherLine();
-    if (wx) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'pet-card__fact';
-      b.innerHTML = '<span>天氣</span><b></b>';
-      b.querySelector('b').textContent = wx;
-      b.addEventListener('click', () => {
-        closeCard();
-        wm.open('weather');
-      });
-      facts.append(b);
-    }
+    if (wx) facts.append(fact('天氣', wx, () => wm.open('weather')));
     if (facts.childElementCount) pieces.push(facts);
     const actions = document.createElement('div');
     actions.className = 'pet-card__actions';
-    [['記一筆', () => island.open()], ['看總覽', () => wm.open('overview')], ['逗她', () => react(pickAnEgg())]].forEach(([label, fn], i) => {
+    [['記一筆', () => { closeCard(); island.open(); }, true], ['看總覽', () => { closeCard(); wm.open('overview'); }], ['逗她', () => react(pickAnEgg())]].forEach(([label, fn, main]) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = `pet-card__btn${i === 0 ? ' is-main' : ''}`;
+      b.className = `pet-card__btn${main ? ' is-main' : ''}`;
       b.textContent = label;
-      b.addEventListener('click', () => {
-        if (label !== '逗她') closeCard();
-        fn();
-      });
+      b.addEventListener('click', fn);
       actions.append(b);
     });
     pieces.push(actions);
@@ -669,62 +792,49 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
       restRow.append(b);
     });
     pieces.push(restRow);
-    pieces.forEach((piece) => cardBody.append(piece));
+    pieces.forEach((piece) => card.append(piece));
     return pieces;
   }
 
   function openCard() {
-    if (cardOpen || mode === 'rest') return;
+    if (cardOpen || mode === 'rest' || hidden()) return;
     cardOpen = true;
+    const fromBubble = !bubble.hidden;
     hideBubble(true);
-    card.classList.add('is-open');
     const pieces = buildCard();
-    const petRect = el.querySelector('.pet__img').getBoundingClientRect();
-    const w = card.offsetWidth;
-    const h = card.offsetHeight;
-    const b = bounds();
-    const roomRight = b.right - petRect.right;
-    let left = roomRight > w + 12 ? petRect.right - size * 0.12 : petRect.left - w + size * 0.12;
-    left = clamp(left, b.left + 6, b.right - w - 6);
-    const top = clamp(petRect.top - h * 0.35, b.top + 6, b.bottom - h - 6);
-    card.style.left = `${left}px`;
-    card.style.top = `${top}px`;
-    cardBox = { w, h, sx: clamp(petRect.left - left, 0, w), sy: clamp(petRect.top - top, 0, h), sw: Math.min(petRect.width, w), sh: Math.min(petRect.height, h) };
-    cardGlass.style.height = `${h}px`;
+    card.hidden = false;
+    placeCard();
     if (MotionSettings.reduced) {
-      morph.set({ o: 1 });
+      cardMotion.set({ s: 1 });
     } else {
-      morph.set({ o: 0 });
-      morph.to({ o: 1 }, { response: 0.46, damping: 0.62 });
-      pieces.forEach((piece, i) => {
-        const node = piece;
-        const handler = ({ e, y }) => {
+      cardMotion.set({ s: fromBubble ? 0.7 : 0.2 });
+      cardMotion.to({ s: 1 }, { response: 0.44, damping: 0.58 });
+      pieces.forEach((node, i) => {
+        const motion = createMotion({ e: 0, y: 10 + i * 5 }, { response: 0.4, damping: 0.66, restDelta: { e: 0.002, y: 0.05 } });
+        motion.onUpdate(({ e, y }) => {
           const t = clamp(e, 0, 1);
           node.style.opacity = t > 0.999 ? '' : String(t);
           node.style.transform = Math.abs(y) < 0.05 && t > 0.999 ? '' : `translate3d(0, ${y.toFixed(2)}px, 0)`;
-          node.style.filter = t < 0.98 && Fx.tier !== 'solid' ? `blur(${((1 - t) * 4).toFixed(2)}px)` : '';
-        };
-        const motion = createMotion({ e: 0, y: 14 + i * 6 }, { response: 0.4, damping: 0.66, restDelta: { e: 0.002, y: 0.05 } });
-        motion.onUpdate(handler);
-        handler({ e: 0, y: 14 + i * 6 });
-        motion.to({ e: 1 }, { response: 0.3 + i * 0.03, damping: 1 });
-        motion.to({ y: 0 }, { response: 0.44 + i * 0.05, damping: 0.6 });
+          node.style.filter = t < 0.98 && Fx.tier !== 'solid' ? `blur(${((1 - t) * 3).toFixed(2)}px)` : '';
+        });
+        motion.set({ e: 0, y: 10 + i * 5 });
+        motion.to({ e: 1 }, { response: 0.28 + i * 0.03, damping: 1 });
+        motion.to({ y: 0 }, { response: 0.42 + i * 0.05, damping: 0.6 });
       });
     }
     window.setTimeout(() => card.focus({ preventScroll: true }), 60);
   }
 
-  function closeCard() {
+  function closeCard(instant) {
     if (!cardOpen) return;
     cardOpen = false;
-    cardGlass.hidden = true;
-    if (MotionSettings.reduced) {
-      morph.set({ o: 0 });
-      card.classList.remove('is-open');
+    if (instant || MotionSettings.reduced) {
+      cardMotion.set({ s: 0 });
+      card.hidden = true;
       return;
     }
-    morph.to({ o: 0 }, { response: 0.32, damping: 0.86 }).then((done) => {
-      if (done && !cardOpen) card.classList.remove('is-open');
+    cardMotion.to({ s: 0 }, { response: 0.26, damping: 0.9 }).then((done) => {
+      if (done && !cardOpen) card.hidden = true;
     });
   }
 
@@ -740,40 +850,20 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     closeCard();
   }, true);
 
-  const bubbleMotion = createMotion({ s: 0 }, { response: 0.42, damping: 0.55, restDelta: 0.001 });
   let bubbleTimer = 0;
   let typeTimer = 0;
-  bubbleMotion.onUpdate(({ s }) => {
-    const t = clamp(s, 0, 1.3);
-    bubble.style.opacity = String(clamp(s * 1.6, 0, 1));
-    bubble.style.setProperty('--s', t.toFixed(4));
-  });
-
-  function placeBubble() {
-    if (bubble.hidden) return;
-    const x = pos.get('x');
-    const y = pos.get('y');
-    const w = bubble.offsetWidth;
-    const h = bubble.offsetHeight;
-    const right = x + size * 0.62 + w < window.innerWidth - 8;
-    bubble.classList.toggle('is-left', !right);
-    const left = right ? x + size * 0.62 : x + size * 0.38 - w;
-    bubble.style.left = `${clamp(left, 8, window.innerWidth - w - 8)}px`;
-    bubble.style.top = `${Math.max(bounds().top, y - h + size * 0.12)}px`;
-  }
 
   function say(textValue) {
-    if (!textValue || cardOpen || mode === 'rest' || mode === 'stash' || yielding || !prefs.enabled) return;
+    if (!textValue || cardOpen || mode === 'rest' || hidden() || !prefs.enabled) return;
     if (notifier && notifier.quiet) return;
     speaking = true;
     lastSpoke = Date.now();
     window.clearTimeout(bubbleTimer);
     window.clearInterval(typeTimer);
     bubble.hidden = false;
-    bubbleText.textContent = '';
     const chars = Array.from(textValue);
+    bubbleText.textContent = '';
     bubbleText.setAttribute('aria-label', textValue);
-    bubbleText.style.minWidth = '';
     placeBubble();
     if (MotionSettings.reduced) {
       bubbleText.textContent = textValue;
@@ -795,8 +885,8 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   function hideBubble(instant) {
     window.clearTimeout(bubbleTimer);
     window.clearInterval(typeTimer);
-    if (bubble.hidden) return;
     speaking = false;
+    if (bubble.hidden) return;
     if (instant || MotionSettings.reduced) {
       bubble.hidden = true;
       bubbleMotion.set({ s: 0 });
@@ -807,10 +897,12 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     });
   }
 
+  bubble.addEventListener('click', () => openCard());
+
   function nextLine() {
     const insight = mood();
     const options = [];
-    if (insight && insight.current !== false) options.push(insight.sub || insight.lead);
+    if (insight) options.push(insight.sub || insight.lead);
     const task = nextTask();
     if (task) options.push(`別忘了：${task.text}`);
     const wx = weatherLine();
@@ -856,8 +948,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   if (notifier) {
     notifier.subscribe(({ type }) => {
       if (type !== 'add' || notifier.quiet) return;
-      const item = notifier.history[0];
-      react(reactionForNotice(item));
+      react(reactionForNotice(notifier.history[0]));
     });
   }
 
@@ -877,6 +968,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
 
   window.addEventListener('resize', () => {
     if (mode === 'free') pos.set(clampInto({ x: pos.get('x'), y: pos.get('y') }, box(), bounds()));
+    if (hidden()) pos.set({ x: stashX(stash) });
     paint();
   });
 
@@ -886,12 +978,14 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     const start = Number.isFinite(saved.x) && Number.isFinite(saved.y) ? clampInto({ x: saved.x, y: saved.y }, box(), b) : { x: b.right - size - 40, y: b.bottom - size - 110 };
     pos.set(start);
     saved = { ...start };
-    if (restAt && restAt > Date.now()) mode = 'rest';
-    else {
+    if (restAt && restAt > Date.now()) {
+      mode = 'rest';
+    } else {
       restAt = 0;
       if (stash) {
         mode = 'stash';
-        pos.set({ x: stashX(stash, 0) });
+        pos.set({ x: stashX(stash) });
+        fx.set({ grip: 1 });
       } else if (perch) {
         mode = 'perch';
         lifted(true);
@@ -927,16 +1021,14 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
       if (patch.size) {
         setSize(prefs.size);
         if (mode === 'free') pos.to(clampInto({ x: pos.get('x'), y: pos.get('y') }, box(), bounds()), soft(SPRING));
+        if (hidden()) pos.set({ x: stashX(stash) });
         if (!MotionSettings.reduced) {
           fx.set({ press: 0.9 });
           fx.to({ press: 1 }, { response: 0.42, damping: 0.42 });
         }
       }
       if (patch.enabled !== undefined) {
-        if (!prefs.enabled) {
-          closeCard();
-          hideBubble(true);
-        } else if (!MotionSettings.reduced) {
+        if (prefs.enabled && !MotionSettings.reduced) {
           fx.set({ show: 0 });
           fx.to({ show: 1 }, { response: 0.5, damping: 0.55 });
         }

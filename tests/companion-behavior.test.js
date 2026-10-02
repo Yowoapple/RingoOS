@@ -54,6 +54,7 @@ describe('perching', () => {
   it('sits on the topmost window whose top edge is under her feet', () => {
     expect(findPerch({ x: 400, y: 305 }, windows)).toEqual({ id: 'b', offset: 100 / 600 });
     expect(findPerch({ x: 150, y: 298 }, windows).id).toBe('a');
+    expect(findPerch({ x: 400, y: 355 }, windows).id).toBe('b');
     expect(findPerch({ x: 400, y: 380 }, windows)).toBeNull();
     expect(findPerch({ x: 95, y: 300 }, windows)).toBeNull();
   });

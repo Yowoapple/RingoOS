@@ -83,10 +83,10 @@ export function stashSide({ x, vx }, size, bounds, { edge = 0.42, speed = 900 } 
   return null;
 }
 
-export function findPerch(feet, windows, { reach = 26 } = {}) {
+export function findPerch(feet, windows, { reach = 60 } = {}) {
   let best = null;
   windows.forEach((win) => {
-    if (feet.x < win.left + 12 || feet.x > win.right - 12) return;
+    if (feet.x < win.left || feet.x > win.right) return;
     const gap = Math.abs(feet.y - win.top);
     if (gap > reach) return;
     if (!best || win.z > best.z || (win.z === best.z && gap < best.gap)) best = { ...win, gap };
