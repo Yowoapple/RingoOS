@@ -93,7 +93,6 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
   const seen = new Map();
   const restoring = new Set();
   let expanded = null;
-  let closingMotion = null;
 
   const formParts = [ledgerRoot.querySelector('.ledger__form'), ledgerRoot.querySelector('.ledger__side')];
   const swapMotion = createMotion({ e: 1 }, { response: 0.3, damping: 1, restDelta: 0.002 });
@@ -106,33 +105,109 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
     });
   });
 
-  const shape = document.createElement('div');
-  shape.className = 'lg-find-shape';
-  shape.hidden = true;
-  host.appendChild(shape);
-  const shapeMotion = createMotion({ p: 0 }, { response: 0.46, damping: 0.68, restDelta: 0.001 });
-  let shapeFrom = null;
-  let shapeTo = null;
-  shapeMotion.onUpdate(({ p }) => {
-    if (!shapeFrom || !shapeTo) return;
-    const lerp = (a, b) => a + (b - a) * p;
-    const w = Math.max(1, lerp(shapeFrom.width, shapeTo.width));
-    const h = Math.max(1, lerp(shapeFrom.height, shapeTo.height));
-    shape.style.left = `${lerp(shapeFrom.left, shapeTo.left).toFixed(2)}px`;
-    shape.style.top = `${lerp(shapeFrom.top, shapeTo.top).toFixed(2)}px`;
-    shape.style.width = `${w.toFixed(2)}px`;
-    shape.style.height = `${h.toFixed(2)}px`;
-    shape.style.borderRadius = `${Math.min(w, h) / 2}px`;
-    const fade = clamp01((p - 0.72) / 0.28);
-    shape.style.opacity = String(1 - fade);
-    bar.style.opacity = String(fade);
+  const pill = document.createElement('div');
+  pill.className = 'lg-pill';
+  pill.hidden = true;
+  pill.setAttribute('aria-hidden', 'true');
+  pill.innerHTML = '<svg class="lg-pill__glass" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 10.4 13.6 13.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="lg-pill__text"></span><span class="lg-pill__done">完成</span>';
+  host.appendChild(pill);
+  const pillText = pill.querySelector('.lg-pill__text');
+  const pillParts = [pillText, pill.querySelector('.lg-pill__done')];
+  const across = createMotion({ x: 0, w: 0 }, { response: 0.42, damping: 0.56, restDelta: 0.3 });
+  const down = createMotion({ y: 0, h: 0 }, { response: 0.5, damping: 0.62, restDelta: 0.3 });
+  const partMotions = pillParts.map((el) => {
+    const motion = createMotion({ e: 0 }, { response: 0.3, damping: 0.78, restDelta: 0.002 });
+    motion.onUpdate(({ e }) => {
+      const t = clamp01(e);
+      el.style.opacity = String(t);
+      el.style.transform = `translate3d(0, ${((1 - t) * 6).toFixed(2)}px, 0) scale(${(0.9 + 0.1 * t).toFixed(4)})`;
+      el.style.filter = blur(t, 5);
+    });
+    return motion;
   });
 
-  function morph(from, to, config) {
-    shapeFrom = from;
-    shapeTo = to;
-    shape.hidden = false;
-    return shapeMotion.to({ p: 1 }, config);
+  function paintPill() {
+    const { x, w } = across.values;
+    const { y, h } = down.values;
+    const width = Math.max(4, w);
+    const height = Math.max(4, h);
+    const stretch = Math.min(0.14, Math.abs(across.velocity('w')) / Math.max(1, width * 9));
+    pill.style.left = `${x.toFixed(2)}px`;
+    pill.style.top = `${y.toFixed(2)}px`;
+    pill.style.width = `${width.toFixed(2)}px`;
+    pill.style.height = `${height.toFixed(2)}px`;
+    pill.style.borderRadius = `${(Math.min(width, height) / 2).toFixed(2)}px`;
+    pill.style.paddingLeft = `${Math.max(0, Math.min(0.85 * pillRem, (Math.min(width, height) - 0.95 * pillRem) / 2)).toFixed(2)}px`;
+    pill.style.transform = stretch > 0.004 ? `scaleY(${(1 - stretch).toFixed(4)})` : '';
+  }
+  across.onUpdate(paintPill);
+  down.onUpdate(paintPill);
+
+  function rectOf(el) {
+    const r = el.getBoundingClientRect();
+    return { x: r.left, y: r.top, w: r.width, h: r.height };
+  }
+
+  function predictBar() {
+    const r = ledgerRoot.getBoundingClientRect();
+    const cs = getComputedStyle(ledgerRoot);
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const left = r.left + parseFloat(cs.paddingLeft);
+    const scroller = ledgerRoot.closest('.wm-window__body');
+    const top = r.top + parseFloat(cs.paddingTop) + (scroller ? scroller.scrollTop : 0);
+    return { x: left, y: top, w: r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), h: 2.5 * rem };
+  }
+
+  let pillTarget = null;
+  let downStarted = false;
+  let onSettled = null;
+  const ACROSS = { response: 0.42, damping: 0.56 };
+  const DOWN = { response: 0.5, damping: 0.62 };
+
+  function checkSettled() {
+    if (!onSettled || !downStarted || across.isAnimating || down.isAnimating) return;
+    const run = onSettled;
+    onSettled = null;
+    run();
+  }
+
+  function startDown(config = DOWN) {
+    downStarted = true;
+    down.to({ y: pillTarget.y, h: pillTarget.h }, config).then(checkSettled);
+  }
+
+  let shapeToken = 0;
+  let pillRem = 16;
+
+  function shapePill(from, to, { across: a = ACROSS, down: d = DOWN, lag = 40, settled }) {
+    pillRem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    pill.hidden = false;
+    pillTarget = to;
+    downStarted = false;
+    onSettled = settled;
+    shapeToken += 1;
+    const token = shapeToken;
+    if (from) {
+      across.set({ x: from.x, w: from.w });
+      down.set({ y: from.y, h: from.h });
+      paintPill();
+    }
+    across.to({ x: to.x, w: to.w }, a).then(checkSettled);
+    window.setTimeout(() => { if (!downStarted && token === shapeToken) startDown(d); }, lag);
+  }
+
+  function retarget(to) {
+    pillTarget = to;
+    across.to({ x: to.x, w: to.w }, ACROSS).then(checkSettled);
+    if (downStarted) startDown();
+  }
+
+  function growPill(from, to, settled) {
+    pillText.textContent = filters.q || input.placeholder;
+    pillText.classList.toggle('is-value', !!filters.q);
+    partMotions.forEach((m) => m.set({ e: 0 }));
+    shapePill(from, to, { settled });
+    partMotions.forEach((m, i) => window.setTimeout(() => m.to({ e: 1 }, { response: 0.3, damping: 0.78 }), 60 + i * 28));
   }
 
   function filterSection(title, key, options, { multi = false } = {}) {
@@ -624,10 +699,6 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
       return;
     }
     if (busy) return;
-    if (closingMotion) {
-      closingMotion.stop();
-      closingMotion = null;
-    }
     isOpen = true;
     busy = true;
     onToggle(true);
@@ -635,35 +706,42 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
     paintFilters();
     const scroller = ledgerRoot.closest('.wm-window__body');
     const reduced = MotionSettings.reduced;
-    const finish = () => {
+    const layout = () => {
+      const body = section.querySelector('.lg-find__body');
+      body.style.opacity = '';
+      body.style.filter = '';
       ledgerRoot.classList.add('is-finding');
       section.hidden = false;
       if (scroller) scroller.scrollTop = 0;
       run();
-      busy = false;
-      if (reduced) {
-        bar.style.opacity = '';
-        swapMotion.set({ e: 1 });
-        input.focus({ preventScroll: true });
-        return;
-      }
-      bar.style.opacity = '0';
-      const to = bar.getBoundingClientRect();
-      const from = button.getBoundingClientRect();
-      shapeMotion.set({ p: 0 });
-      morph(from, to, { response: 0.46, damping: 0.68 }).then(() => {
-        shape.hidden = true;
-        bar.style.opacity = '';
-      });
-      staggerIn();
-      swapMotion.set({ e: 1 });
-      window.setTimeout(() => input.focus({ preventScroll: true }), 260);
     };
     if (reduced) {
-      finish();
+      layout();
+      busy = false;
+      swapMotion.set({ e: 1 });
+      input.focus({ preventScroll: true });
       return;
     }
-    swapMotion.to({ e: 0 }, { response: 0.12, damping: 1 }).then(finish);
+    if (scroller) scroller.scrollTop = 0;
+    bar.style.opacity = '0';
+    button.classList.add('is-morphing');
+    const finalize = () => {
+      if (!isOpen) return;
+      pill.hidden = true;
+      bar.style.opacity = '';
+      button.classList.remove('is-morphing');
+      input.focus({ preventScroll: true });
+    };
+    growPill(pill.hidden ? rectOf(button) : null, predictBar(), null);
+    swapMotion.to({ e: 0 }, { response: 0.12, damping: 1 }).then(() => {
+      layout();
+      swapMotion.set({ e: 1 });
+      onSettled = finalize;
+      retarget(rectOf(bar));
+      staggerIn();
+      busy = false;
+      checkSettled();
+    });
   }
 
   function close() {
@@ -701,39 +779,43 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
       body.style.opacity = t > 0.999 ? '' : String(t);
       body.style.filter = blur(t, 4);
     });
-    const from = bar.getBoundingClientRect();
-    const to = button.getBoundingClientRect();
-    shape.hidden = false;
+    pillText.textContent = input.value || input.placeholder;
+    pillText.classList.toggle('is-value', !!input.value);
+    partMotions.forEach((m) => m.set({ e: 1 }));
+    const barRect = rectOf(bar);
+    across.set({ x: barRect.x, w: barRect.w });
+    down.set({ y: barRect.y, h: barRect.h });
+    paintPill();
+    pill.hidden = false;
     bar.style.opacity = '0';
-    const closing = createMotion({ p: 0 }, { response: 0.36, damping: 0.82, restDelta: 0.001 });
-    closingMotion = closing;
+    button.classList.add('is-morphing');
+    outMotion.to({ e: 0 }, { response: 0.16, damping: 1 });
+    partMotions.forEach((m) => m.to({ e: 0 }, { response: 0.16, damping: 1 }));
     let restored = false;
-    const settle = () => {
+    const bringBack = () => {
       if (restored) return;
       restored = true;
+      outMotion.stop();
       bar.style.opacity = '';
       body.style.opacity = '';
       body.style.filter = '';
       restore();
-      button.focus({ preventScroll: true });
     };
-    closing.onUpdate(({ p }) => {
-      if (p > 0.9) settle();
-      const lerp = (a, b) => a + (b - a) * p;
-      const w = Math.max(1, lerp(from.width, to.width));
-      const h = Math.max(1, lerp(from.height, to.height));
-      shape.style.left = `${lerp(from.left, to.left).toFixed(2)}px`;
-      shape.style.top = `${lerp(from.top, to.top).toFixed(2)}px`;
-      shape.style.width = `${w.toFixed(2)}px`;
-      shape.style.height = `${h.toFixed(2)}px`;
-      shape.style.borderRadius = `${Math.min(w, h) / 2}px`;
-      shape.style.opacity = String(1 - clamp01((p - 0.7) / 0.3));
-    });
-    outMotion.to({ e: 0 }, { response: 0.16, damping: 1 });
-    closing.to({ p: 1 }, { response: 0.36, damping: 0.82 }).then(() => {
-      settle();
-      if (!isOpen) shape.hidden = true;
-    });
+    window.setTimeout(() => {
+      shapePill(null, rectOf(button), {
+        across: { response: 0.38, damping: 0.68 },
+        down: { response: 0.32, damping: 0.72 },
+        lag: 0,
+        settled: () => {
+          bringBack();
+          if (isOpen) return;
+          pill.hidden = true;
+          button.classList.remove('is-morphing');
+          button.focus({ preventScroll: true });
+        },
+      });
+      window.setTimeout(bringBack, 170);
+    }, 60);
   }
 
   button.addEventListener('click', () => (isOpen ? close() : open()));
