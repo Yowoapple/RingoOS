@@ -461,13 +461,16 @@
         </div>
         <section class="rd__deck" aria-label="正在播放">
           <div class="rd-view rd-view--station">
-            <div class="deck" data-rd="deck">
+            <div class="deck" data-rd="deck" aria-hidden="true">
               <div class="deck__disc" data-rd="disc">
                 <span class="deck__grooves"></span>
-                <span class="deck__label" data-rd="label"><span class="deck__label-text" data-rd="label-text"></span></span>
+                <span class="deck__label" data-rd="label"></span>
                 <span class="deck__spindle"></span>
               </div>
-              <svg class="deck__arm" data-rd="arm" viewBox="0 0 60 160" aria-hidden="true"><circle class="deck__pivot" cx="30" cy="22" r="13"/><path class="deck__rod" d="M30 22 L32 118 L22 142"/><rect class="deck__head" x="12" y="136" width="16" height="20" rx="3" transform="rotate(18 20 146)"/></svg>
+              <div class="deck__sleeve" data-rd="sleeve">
+                <span class="deck__sleeve-name" data-rd="label-text"></span>
+                <span class="deck__sleeve-tag" data-rd="sleeve-tag"></span>
+              </div>
             </div>
             <div class="rd-now">
               <p class="rd-now__title" data-rd="station-name"></p>

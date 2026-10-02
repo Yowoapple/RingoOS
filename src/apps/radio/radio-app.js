@@ -130,7 +130,8 @@ export function createRadioApp({ root, area, island, dialogs, store, wm, menubar
   }
 
   const disc = $('disc');
-  const arm = $('arm');
+  const sleeve = $('sleeve');
+  const sleeveTag = $('sleeve-tag');
   const label = $('label');
   const labelText = $('label-text');
   const stationName = $('station-name');
@@ -158,16 +159,16 @@ export function createRadioApp({ root, area, island, dialogs, store, wm, menubar
     }
   }
 
-  const armMotion = createMotion({ a: 0 }, { response: 0.7, damping: 0.62, restDelta: 0.05 });
-  armMotion.onUpdate(({ a }) => {
-    arm.style.transform = `rotate(${a.toFixed(2)}deg)`;
+  const slide = createMotion({ x: 0 }, { response: 0.7, damping: 0.62, restDelta: 0.002 });
+  slide.onUpdate(({ x }) => {
+    disc.style.translate = `calc(var(--peek) + ${x.toFixed(4)} * var(--peek-more)) 0`;
   });
 
   let radioPlaying = false;
   function setRadioPlaying(on) {
     if (on === radioPlaying) return;
     radioPlaying = on;
-    armMotion.to({ a: on ? 24 : 0 }, spring({ response: 0.7, damping: 0.62 }));
+    slide.to({ x: on ? 1 : 0 }, spring({ response: on ? 0.75 : 0.6, damping: on ? 0.6 : 0.78 }));
     if (MotionSettings.reduced) return;
     spin.to({ v: on ? SPIN : 0 }, { response: on ? 1.4 : 1.1, damping: 1 });
     if (!spinning) {
@@ -188,8 +189,21 @@ export function createRadioApp({ root, area, island, dialogs, store, wm, menubar
     swapText(stationName, station ? station.name : '還沒有電台');
     swapText(stationMeta, state.error || (has ? stationTag(station) : '匯入你的電台清單後就能收聽'));
     stationMeta.classList.toggle('is-error', !!state.error);
-    labelText.textContent = station ? station.name : 'RingoOS';
-    if (station) label.style.background = `linear-gradient(135deg, ${station.gradient[0]}, ${station.gradient[1]})`;
+    const name = station ? station.name : 'RingoOS';
+    if (labelText.textContent !== name) {
+      labelText.textContent = name;
+      sleeveTag.textContent = station ? station.region : 'FM';
+      if (labelText.textContent && !MotionSettings.reduced) {
+        const pop = createMotion({ s: 0.94 }, { response: 0.45, damping: 0.55, restDelta: 0.0005 });
+        pop.onUpdate(({ s }) => {
+          sleeve.style.transform = Math.abs(s - 1) < 0.0005 ? '' : `scale(${s})`;
+        });
+        pop.to({ s: 1 }, { response: 0.45, damping: 0.55, velocity: { s: 0.6 } });
+      }
+    }
+    const gradient = station ? `linear-gradient(135deg, ${station.gradient[0]}, ${station.gradient[1]})` : '';
+    label.style.background = gradient;
+    sleeve.style.setProperty('--sleeve', gradient || 'linear-gradient(135deg, #d9d8d4, #f2f1ed)');
     favButton.classList.toggle('is-on', !!station && Radio.isFavorite(station.id));
     favButton.setAttribute('aria-pressed', String(!!station && Radio.isFavorite(station.id)));
     favButton.disabled = !station;
@@ -1031,7 +1045,7 @@ export function createRadioApp({ root, area, island, dialogs, store, wm, menubar
   renderYtNow();
   syncMenubar();
   measure();
-  armMotion.set({ a: 0 });
+  slide.set({ x: 0 });
 
   return {
     measure,
