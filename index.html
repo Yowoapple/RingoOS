@@ -49,21 +49,21 @@
     <header class="menubar chrome" id="menubar">
       <span class="menubar__platter" aria-hidden="true"></span>
       <button type="button" class="mb-item mb-brand" data-mb aria-label="RingoOS"><span class="wm wm--solid mb-brand__mark" aria-hidden="true"><span class="wm__r">Ringo</span><span class="wm__os"><span class="wm__o"><i class="wm__pour"></i></span>S</span></span></button>
-      <span class="mb-app"><span class="mb-app__text">獢</span></span>
+      <span class="mb-app"><span class="mb-app__text">桌面</span></span>
       <span class="mb-spacer"></span>
       <span class="mb-radio">
-        <button type="button" class="mb-item" data-mb data-open="radio" aria-label="?餃?剜銝?>
+        <button type="button" class="mb-item" data-mb data-open="radio" aria-label="電台播放中">
           <span class="mb-radio__inner">
             <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-            <span class="mb-radio__label">?餃</span>
+            <span class="mb-radio__label">電台</span>
           </span>
         </button>
       </span>
-      <button type="button" class="mb-item mb-weather" data-mb data-open="weather" aria-label="憭拇除" hidden>
+      <button type="button" class="mb-item mb-weather" data-mb data-open="weather" aria-label="天氣" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="i-acc" cx="15" cy="9" r="4"/><path d="M7.5 19h9a3.5 3.5 0 0 0 .4-7 5 5 0 0 0-9.6 1.2A2.9 2.9 0 0 0 7.5 19z" fill="currentColor"/></svg>
-        <span class="mb-temp">27簞</span>
+        <span class="mb-temp">27°</span>
       </button>
-      <button type="button" class="mb-item mb-bell" data-mb aria-label="?" aria-haspopup="dialog">
+      <button type="button" class="mb-item mb-bell" data-mb aria-label="通知" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2a1.3 1.3 0 0 1 1.3 1.3v.6a5.6 5.6 0 0 1 4.3 5.5v3.6l1.5 2.2a.8.8 0 0 1-.7 1.3H5.6a.8.8 0 0 1-.7-1.3l1.5-2.2v-3.6a5.6 5.6 0 0 1 4.3-5.5v-.6A1.3 1.3 0 0 1 12 3.2zM9.8 19h4.4a2.2 2.2 0 0 1-4.4 0z" fill="currentColor"/></svg>
         <span class="mb-badge" hidden><span class="odo-host"></span></span>
       </button>
@@ -76,24 +76,24 @@
       <button type="button" class="island__pill" id="island-pill" aria-expanded="false" aria-controls="island-panel">
         <span class="island__label" id="island-label">
           <svg class="island__plus" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          <span class="island__label-text">閮?蝑?/span>
+          <span class="island__label-text">記一筆</span>
         </span>
       </button>
-      <button type="button" class="island__close" id="island-close" aria-label="?嗉絲" tabindex="-1"></button>
-      <form class="island__panel" id="island-panel" aria-label="敹恍?銝蝑?>
+      <button type="button" class="island__close" id="island-close" aria-label="收起" tabindex="-1"></button>
+      <form class="island__panel" id="island-panel" aria-label="快速記一筆">
         <label class="island__row island__amount">
           <span class="island__cur mono">NT$</span>
-          <input class="island__input mono" id="island-amount" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="??">
+          <input class="island__input mono" id="island-amount" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="金額">
         </label>
-        <div class="island__row island__chips" role="radiogroup" aria-label="??" data-chips="island">
-          <button type="button" class="chip" role="radio" aria-checked="true">擗ㄡ</button>
-          <button type="button" class="chip" role="radio" aria-checked="false">鈭日?/button>
-          <button type="button" class="chip" role="radio" aria-checked="false">憡?</button>
-          <button type="button" class="chip" role="radio" aria-checked="false">?嗡?</button>
+        <div class="island__row island__chips" role="radiogroup" aria-label="分類" data-chips="island">
+          <button type="button" class="chip" role="radio" aria-checked="true">餐飲</button>
+          <button type="button" class="chip" role="radio" aria-checked="false">交通</button>
+          <button type="button" class="chip" role="radio" aria-checked="false">娛樂</button>
+          <button type="button" class="chip" role="radio" aria-checked="false">其他</button>
         </div>
         <div class="island__row island__actions">
-          <button type="button" class="island__btn" id="island-cancel">??</button>
-          <button type="submit" class="island__btn island__btn--go" data-press>閮?</button>
+          <button type="button" class="island__btn" id="island-cancel">取消</button>
+          <button type="submit" class="island__btn island__btn--go" data-press>記下</button>
         </div>
       </form>
       <div class="island__activity" id="island-activity" aria-live="polite">
@@ -106,7 +106,7 @@
         <span class="island__activity-amount mono"><span class="odo-host"></span></span>
       </div>
       <div class="island__toast" aria-live="polite">
-        <button type="button" class="island__undo" aria-label="敺拙?">
+        <button type="button" class="island__undo" aria-label="復原">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle class="island__undo-track" cx="12" cy="12" r="10.6"/>
             <circle class="island__undo-ring" cx="12" cy="12" r="10.6" pathLength="1" transform="rotate(-90 12 12)"/>
@@ -132,37 +132,37 @@
     <div class="app-source" data-app-id="daily-entry">
       <div class="app-source__titlebar">
         <span class="date-pick" data-no-drag>
-          <button type="button" class="date-today" id="ledger-today" hidden>隞予</button>
-          <button type="button" class="tag date-tag" id="ledger-date" aria-label="閮董?交?嚗?銝銝隞交?銝憭?></button>
+          <button type="button" class="date-today" id="ledger-today" hidden>今天</button>
+          <button type="button" class="tag date-tag" id="ledger-date" aria-label="記帳日期，按一下可以換一天"></button>
         </span>
       </div>
       <div class="ledger" id="ledger">
         <form class="ledger__form" data-ledger="form" novalidate>
-          <div class="seg" role="tablist" aria-label="?臬??? data-ledger="type">
+          <div class="seg" role="tablist" aria-label="支出或收入" data-ledger="type">
             <span class="seg__platter" aria-hidden="true"><span class="seg__blob"></span></span>
             <span class="seg__lens" aria-hidden="true"></span>
-            <button type="button" class="seg__btn" role="tab" aria-selected="true">?臬</button>
-            <button type="button" class="seg__btn" role="tab" aria-selected="false">?嗅</button>
+            <button type="button" class="seg__btn" role="tab" aria-selected="true">支出</button>
+            <button type="button" class="seg__btn" role="tab" aria-selected="false">收入</button>
           </div>
           <label class="amount">
             <span class="amount__cur mono">NT$</span>
-            <input class="amount__input" data-ledger="amount" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="??">
+            <input class="amount__input" data-ledger="amount" inputmode="decimal" autocomplete="off" placeholder="0" aria-label="金額">
           </label>
-          <div class="chips" role="radiogroup" aria-label="??" data-ledger="chips"></div>
-          <input class="field" data-ledger="note" placeholder="?酉嚗憛恬?嚗?憒???靘輻" aria-label="?酉" autocomplete="off">
+          <div class="chips" role="radiogroup" aria-label="分類" data-ledger="chips"></div>
+          <input class="field" data-ledger="note" placeholder="備註（選填），例如：午餐便當" aria-label="備註" autocomplete="off">
           <div class="ledger__extras" data-ledger="extras">
-            <label class="ledger__switch"><span>?箏??臬</span><button type="button" class="tgl" data-ledger="recurring" aria-label="?箏??臬"><span class="tgl__knob"></span></button></label>
-            <div class="ledger__need" role="group" aria-label="?閬??舀閬? data-ledger="necessity">
-              <button type="button" class="chip chip--sm" data-value="need" aria-pressed="false">?閬?/button>
-              <button type="button" class="chip chip--sm" data-value="want" aria-pressed="false">?唾?</button>
+            <label class="ledger__switch"><span>固定支出</span><button type="button" class="tgl" data-ledger="recurring" aria-label="固定支出"><span class="tgl__knob"></span></button></label>
+            <div class="ledger__need" role="group" aria-label="需要還是想要" data-ledger="necessity">
+              <button type="button" class="chip chip--sm" data-value="need" aria-pressed="false">需要</button>
+              <button type="button" class="chip chip--sm" data-value="want" aria-pressed="false">想要</button>
             </div>
           </div>
           <div class="ledger__actions">
-            <button type="button" class="btn btn--ghost" data-ledger="cancel" hidden>??靽格</button>
-            <button type="submit" class="btn btn--primary" data-ledger="submit" data-press>閮???</button>
+            <button type="button" class="btn btn--ghost" data-ledger="cancel" hidden>取消修改</button>
+            <button type="submit" class="btn btn--primary" data-ledger="submit" data-press>記下這筆</button>
           </div>
         </form>
-        <section class="ledger__side" aria-label="蝝??>
+        <section class="ledger__side" aria-label="紀錄">
           <div class="ledger__cal" data-ledger="calendar"></div>
           <div class="list">
             <div class="list__head">
@@ -170,11 +170,11 @@
               <span class="list__total mono" data-ledger="day-total"></span>
             </div>
             <div class="list__stage" data-ledger="stage">
-              <div class="list__view" data-view="rows" data-ledger="rows" role="list" aria-label="?予????></div>
+              <div class="list__view" data-view="rows" data-ledger="rows" role="list" aria-label="這天的紀錄"></div>
               <div class="list__view" data-view="empty">
                 <div class="list__state">
-                  <span class="list__state-title">?予??????/span>
-                  <span class="list__state-hint">頛詨??敺???銝???銝蝑??隞乩耨?對?敺撌行??臭誑?芷</span>
+                  <span class="list__state-title">這天還沒有紀錄</span>
+                  <span class="list__state-hint">輸入金額後按「記下這筆」。點一筆紀錄可以修改，往左滑可以刪除</span>
                 </div>
               </div>
             </div>
@@ -185,25 +185,25 @@
     <div class="app-source" data-app-id="overview">
       <div class="app-source__titlebar">
         <span class="date-pick" data-no-drag>
-          <button type="button" class="date-today" id="overview-now" hidden>?祆?</button>
+          <button type="button" class="date-today" id="overview-now" hidden>本月</button>
           <span class="period-nav">
-            <button type="button" class="period-nav__btn" id="overview-prev" aria-label="銝???><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+            <button type="button" class="period-nav__btn" id="overview-prev" aria-label="上一期"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
             <span class="tag period-nav__tag" id="overview-period"></span>
-            <button type="button" class="period-nav__btn" id="overview-next" aria-label="銝???><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+            <button type="button" class="period-nav__btn" id="overview-next" aria-label="下一期"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
           </span>
         </span>
       </div>
       <div class="ov" id="overview">
-        <section class="ov__main" aria-label="?臬??">
-          <div class="seg ov__mode" role="tablist" aria-label="????湧? data-ov="mode">
+        <section class="ov__main" aria-label="支出摘要">
+          <div class="seg ov__mode" role="tablist" aria-label="看整月或整週" data-ov="mode">
             <span class="seg__platter" aria-hidden="true"><span class="seg__blob"></span></span>
             <span class="seg__lens" aria-hidden="true"></span>
-            <button type="button" class="seg__btn" role="tab" aria-selected="true">??/button>
-            <button type="button" class="seg__btn" role="tab" aria-selected="false">??/button>
+            <button type="button" class="seg__btn" role="tab" aria-selected="true">月</button>
+            <button type="button" class="seg__btn" role="tab" aria-selected="false">週</button>
           </div>
           <div class="ov__hero">
             <div class="ov-head">
-              <span class="ov-head__label" data-ov="hero-label">???臬</span>
+              <span class="ov-head__label" data-ov="hero-label">這個月支出</span>
               <span class="tag" data-ov="range"></span>
             </div>
             <div class="big">
@@ -218,30 +218,30 @@
           </div>
           <div class="stats">
             <div>
-              <div class="stat__label">?嗅</div>
+              <div class="stat__label">收入</div>
               <div class="stat__value stat__value--strong mono" data-ov="income"></div>
             </div>
             <div>
-              <div class="stat__label">瘛券?</div>
+              <div class="stat__label">淨額</div>
               <div class="stat__value mono" data-ov="net"></div>
             </div>
           </div>
           <p class="ov__note" data-ov="projection" hidden></p>
           <p class="ov__note" data-ov="budget-line" hidden></p>
         </section>
-        <section class="ov__side" aria-label="?”">
+        <section class="ov__side" aria-label="圖表">
           <div class="ov__block">
-            <div class="ov-head"><span class="ov-head__label" data-ov="chart-title">瘥?臬</span></div>
+            <div class="ov-head"><span class="ov-head__label" data-ov="chart-title">每日支出</span></div>
             <div class="chart" data-ov="chart"></div>
             <div class="chart__labels" data-ov="chart-labels"></div>
           </div>
           <div class="ov__block">
-            <div class="ov-head"><span class="ov-head__label">?望?憭???</span></div>
+            <div class="ov-head"><span class="ov-head__label">花最多的分類</span></div>
             <div class="rank" data-ov="rank"></div>
             <p class="ov__empty" data-ov="rank-empty" hidden></p>
           </div>
           <div class="ov__block" data-ov="need-block" hidden>
-            <div class="ov-head"><span class="ov-head__label">?閬??唾?</span><span class="tag" data-ov="need-pct"></span></div>
+            <div class="ov-head"><span class="ov-head__label">需要與想要</span><span class="tag" data-ov="need-pct"></span></div>
             <div class="split" aria-hidden="true"><span class="split__need" data-ov="split-need"></span><span class="split__want" data-ov="split-want"></span></div>
             <div class="budget__legend"><span data-ov="need-amt"></span><span data-ov="want-amt"></span></div>
           </div>
@@ -251,39 +251,39 @@
     <div class="app-source" data-app-id="life-reminder">
       <div class="app-source__titlebar">
         <span class="date-pick" data-no-drag>
-          <div class="sel sel--quiet rm-voice" data-rm-voice><button type="button" class="sel__btn" aria-label="????瘞?><span class="sel__value"></span><svg class="sel__chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
-          <button type="button" class="date-today" id="reminder-now" hidden>?祆?</button>
+          <div class="sel sel--quiet rm-voice" data-rm-voice><button type="button" class="sel__btn" aria-label="提醒的語氣"><span class="sel__value"></span><svg class="sel__chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+          <button type="button" class="date-today" id="reminder-now" hidden>本月</button>
           <span class="period-nav">
-            <button type="button" class="period-nav__btn" id="reminder-prev" aria-label="銝???><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+            <button type="button" class="period-nav__btn" id="reminder-prev" aria-label="上一期"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
             <span class="tag period-nav__tag" id="reminder-period"></span>
-            <button type="button" class="period-nav__btn" id="reminder-next" aria-label="銝???><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+            <button type="button" class="period-nav__btn" id="reminder-next" aria-label="下一期"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
           </span>
         </span>
       </div>
       <div class="rm" id="reminder">
         <div class="rm__bar">
-          <div class="seg rm__mode" role="tablist" aria-label="????湧? data-rm="mode">
+          <div class="seg rm__mode" role="tablist" aria-label="看整月或整週" data-rm="mode">
             <span class="seg__platter" aria-hidden="true"><span class="seg__blob"></span></span>
             <span class="seg__lens" aria-hidden="true"></span>
-            <button type="button" class="seg__btn" role="tab" aria-selected="true">??/button>
-            <button type="button" class="seg__btn" role="tab" aria-selected="false">??/button>
+            <button type="button" class="seg__btn" role="tab" aria-selected="true">月</button>
+            <button type="button" class="seg__btn" role="tab" aria-selected="false">週</button>
           </div>
         </div>
         <div class="rm__cols">
-          <article class="rm__col is-active" data-rm-col="month" aria-label="??">
+          <article class="rm__col is-active" data-rm-col="month" aria-label="這個月">
             <header class="rm__head"><span class="tag" data-rm="range"></span><span class="rm__status" data-rm="status"></span></header>
             <h3 class="rm__lead" data-rm="lead" aria-live="polite"></h3>
             <p class="rm__sub" data-rm="sub" hidden></p>
             <div class="rm__details" data-rm="details"></div>
-            <button type="button" class="btn btn--secondary rm__cta" data-rm="cta" hidden>??瘥閮董</button>
+            <button type="button" class="btn btn--secondary rm__cta" data-rm="cta" hidden>打開每日記帳</button>
             <div class="rm__clues" data-rm="clues" hidden></div>
           </article>
-          <article class="rm__col" data-rm-col="week" aria-label="??>
+          <article class="rm__col" data-rm-col="week" aria-label="這週">
             <header class="rm__head"><span class="tag" data-rm="range"></span><span class="rm__status" data-rm="status"></span></header>
             <h3 class="rm__lead" data-rm="lead" aria-live="polite"></h3>
             <p class="rm__sub" data-rm="sub" hidden></p>
             <div class="rm__details" data-rm="details"></div>
-            <button type="button" class="btn btn--secondary rm__cta" data-rm="cta" hidden>??瘥閮董</button>
+            <button type="button" class="btn btn--secondary rm__cta" data-rm="cta" hidden>打開每日記帳</button>
             <div class="rm__clues" data-rm="clues" hidden></div>
           </article>
         </div>
@@ -292,54 +292,54 @@
     <div class="app-source" data-app-id="calendar">
       <div class="app-source__titlebar">
         <span class="date-pick" data-no-drag>
-          <button type="button" class="date-today" id="calendar-today" hidden>隞予</button>
+          <button type="button" class="date-today" id="calendar-today" hidden>今天</button>
           <span class="period-nav">
-            <button type="button" class="period-nav__btn" id="calendar-prev" aria-label="銝?"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+            <button type="button" class="period-nav__btn" id="calendar-prev" aria-label="上個月"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
             <span class="tag period-nav__tag" id="calendar-period"></span>
-            <button type="button" class="period-nav__btn" id="calendar-next" aria-label="銝?"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+            <button type="button" class="period-nav__btn" id="calendar-next" aria-label="下個月"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
           </span>
         </span>
       </div>
       <div class="cal" id="calendar">
-        <aside class="cal__rail" aria-label="?乩?靘?>
-          <h3 class="cal__rail-title">?乩?靘?/h3>
+        <aside class="cal__rail" aria-label="接下來">
+          <h3 class="cal__rail-title">接下來</h3>
           <div class="cal__up" data-cal="upcoming"></div>
-          <p class="cal__rail-empty" data-cal="upcoming-empty" hidden>?乩?靘?望??摰??誨颲?/p>
+          <p class="cal__rail-empty" data-cal="upcoming-empty" hidden>接下來兩週沒有未完成的代辦</p>
         </aside>
-        <section class="cal__month" aria-label="??">
-          <div class="cal__week" aria-hidden="true"><span>銝</span><span>鈭?/span><span>銝?/span><span>??/span><span>鈭?/span><span>??/span><span>??/span></div>
+        <section class="cal__month" aria-label="月曆">
+          <div class="cal__week" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
           <div class="cal__grid-wrap">
             <span class="cal__ring" data-cal="ring" aria-hidden="true"></span>
-            <div class="cal__grid" data-cal="grid" role="grid" aria-label="?交?"></div>
+            <div class="cal__grid" data-cal="grid" role="grid" aria-label="日期"></div>
           </div>
         </section>
-        <section class="cal__day" aria-label="?嗅予?誨颲?>
+        <section class="cal__day" aria-label="當天的代辦">
           <header class="cal__day-head">
             <span class="cal__day-num mono" data-cal="day-num"></span>
             <span class="cal__day-meta">
               <span class="cal__day-rel" data-cal="day-rel"></span>
               <span class="cal__day-date" data-cal="day-date"></span>
             </span>
-            <button type="button" class="cal__pick-btn" data-cal="pick" hidden>憭?臬</button>
+            <button type="button" class="cal__pick-btn" data-cal="pick" hidden>多選匯出</button>
           </header>
           <form class="cal__add" data-cal="add" novalidate>
             <span class="cal__add-time mono" data-cal="add-time" hidden></span>
-            <input class="cal__add-input" data-cal="add-input" autocomplete="off" placeholder="?啣?隞?齒嚗?憒?4:30 ???怒? aria-label="?啣?隞?齒">
-            <button type="submit" class="cal__add-go" aria-label="?啣?" data-press><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.8v8.4M1.8 6h8.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+            <input class="cal__add-input" data-cal="add-input" autocomplete="off" placeholder="新增代辦，例如「14:30 看牙醫」" aria-label="新增代辦">
+            <button type="submit" class="cal__add-go" aria-label="新增" data-press><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.8v8.4M1.8 6h8.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
           </form>
           <div class="list__stage" data-cal="stage">
-            <div class="list__view" data-view="rows" data-cal="rows" role="list" aria-label="隞?齒"></div>
+            <div class="list__view" data-view="rows" data-cal="rows" role="list" aria-label="代辦"></div>
             <div class="list__view" data-view="empty">
               <div class="list__state">
-                <span class="list__state-title" data-cal="empty-title">?予瘝?隞?齒</span>
-                <span class="list__state-hint">?其??Ｚ撓?亙停?賣憓?????暺??芸?霈?????銝蝑?閰單?嚗?撌行??芷</span>
+                <span class="list__state-title" data-cal="empty-title">這天沒有代辦</span>
+                <span class="list__state-hint">在上面輸入就能新增；打「下午3點」會自動變成時間。點一筆看詳情，往左滑刪除</span>
               </div>
             </div>
           </div>
           <div class="cal__export" data-cal="export" hidden>
             <span class="cal__export-count" data-cal="export-count"></span>
-            <button type="button" class="btn btn--secondary" data-cal="export-cancel">??</button>
-            <button type="button" class="btn btn--primary" data-cal="export-go">銝? .ics</button>
+            <button type="button" class="btn btn--secondary" data-cal="export-cancel">取消</button>
+            <button type="button" class="btn btn--primary" data-cal="export-go">下載 .ics</button>
           </div>
         </section>
       </div>
@@ -348,56 +348,56 @@
       <div class="app-source__titlebar">
         <span class="date-pick wx-bar" data-no-drag>
           <span class="tag wx-updated" id="weather-updated"></span>
-          <button type="button" class="wx-place" id="weather-place" hidden aria-label="?暺?><span class="wx-place__text"></span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-          <button type="button" class="period-nav__btn wx-refresh" id="weather-refresh" aria-label="??渡?" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.8v2.6h-2.6"/></svg></button>
+          <button type="button" class="wx-place" id="weather-place" hidden aria-label="換地點"><span class="wx-place__text"></span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.8L6 7.3l2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button type="button" class="period-nav__btn wx-refresh" id="weather-refresh" aria-label="重新整理" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.8v2.6h-2.6"/></svg></button>
         </span>
       </div>
       <div class="wx" id="weather">
         <section class="wx-setup" data-wx="setup" hidden>
-          <h2 class="wx-setup__title">?喟??芾ㄐ?予瘞??</h2>
-          <p class="wx-setup__hint">頛詨?????殷?銝剜?????嗅隤??賢隞?/p>
+          <h2 class="wx-setup__title">想看哪裡的天氣？</h2>
+          <p class="wx-setup__hint">輸入城市或鄉鎮，中文、英文或當地語言都可以</p>
           <div class="wx-search" data-wx="setup-search"></div>
-          <p class="wx-credit">?啣?靘 穢 OpenStreetMap 鞎Ｙ?? GeoNames嚗予瘞????Open-Meteo嚗C BY 4.0嚗?/p>
+          <p class="wx-credit">地名來自 © OpenStreetMap 貢獻者與 GeoNames，天氣來自 Open-Meteo（CC BY 4.0）</p>
         </section>
         <section class="wx-error" data-wx="error" hidden>
-          <h2 class="wx-error__title">?急????啣予瘞?/h2>
+          <h2 class="wx-error__title">暫時抓不到天氣</h2>
           <p class="wx-error__text" data-wx="error-text"></p>
-          <button type="button" class="btn btn--secondary" data-wx="retry">?岫銝甈?/button>
+          <button type="button" class="btn btn--secondary" data-wx="retry">再試一次</button>
         </section>
         <div class="wx-main" data-wx="main" hidden>
           <section class="wx-hero">
             <button type="button" class="wx-alert" data-wx="alert" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2l6.2 11H1.8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6.4v3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.4" r=".9" fill="currentColor"/></svg><span data-wx="alert-text"></span></button>
             <div class="wx-now">
               <span class="wx-now__glyph" data-wx="glyph"></span>
-              <span class="wx-temp"><span class="wx-temp__num" data-wx="temp"></span><span class="wx-temp__deg">簞</span></span>
+              <span class="wx-temp"><span class="wx-temp__num" data-wx="temp"></span><span class="wx-temp__deg">°</span></span>
             </div>
-            <p class="wx-obs" data-wx="obs" hidden><span class="wx-obs__tag">撖行葫</span><span data-wx="obs-where"></span><span class="wx-obs__fc">? <b class="mono" data-wx="obs-forecast"></b></span></p>
+            <p class="wx-obs" data-wx="obs" hidden><span class="wx-obs__tag">實測</span><span data-wx="obs-where"></span><span class="wx-obs__fc">預報 <b class="mono" data-wx="obs-forecast"></b></span></p>
             <p class="wx-cond" data-wx="cond"></p>
             <p class="wx-range" data-wx="range"></p>
             <p class="wx-desc" data-wx="desc" hidden></p>
             <div class="wx-stats">
-              <div class="wx-stat"><span class="wx-stat__label">擃?</span><span class="wx-stat__value"><span class="mono" data-wx="apparent"></span><span class="wx-stat__note" data-wx="comfort"></span></span></div>
-              <div class="wx-stat"><span class="wx-stat__label">瞈漲</span><span class="wx-stat__value mono" data-wx="humidity"></span></div>
-              <div class="wx-stat"><span class="wx-stat__label">?璈?</span><span class="wx-stat__value mono" data-wx="pop"></span></div>
-              <div class="wx-stat" data-wx="uv-cell"><span class="wx-stat__label">蝝怠?蝺?/span><span class="wx-stat__value"><span class="mono" data-wx="uv"></span><span class="wx-stat__note" data-wx="uv-text"></span></span></div>
+              <div class="wx-stat"><span class="wx-stat__label">體感</span><span class="wx-stat__value"><span class="mono" data-wx="apparent"></span><span class="wx-stat__note" data-wx="comfort"></span></span></div>
+              <div class="wx-stat"><span class="wx-stat__label">濕度</span><span class="wx-stat__value mono" data-wx="humidity"></span></div>
+              <div class="wx-stat"><span class="wx-stat__label">降雨機率</span><span class="wx-stat__value mono" data-wx="pop"></span></div>
+              <div class="wx-stat" data-wx="uv-cell"><span class="wx-stat__label">紫外線</span><span class="wx-stat__value"><span class="mono" data-wx="uv"></span><span class="wx-stat__note" data-wx="uv-text"></span></span></div>
             </div>
             <div class="wx-sun" data-wx="sun"></div>
           </section>
           <section class="wx-side">
             <div class="wx-block">
-              <div class="ov-head"><span class="ov-head__label">?乩?靘?24 撠?</span></div>
-              <div class="wx-hours" data-wx="hours" tabindex="0" aria-label="???"></div>
+              <div class="ov-head"><span class="ov-head__label">接下來 24 小時</span></div>
+              <div class="wx-hours" data-wx="hours" tabindex="0" aria-label="逐時預報"></div>
               <div class="wx-chart" data-wx="chart" aria-hidden="true"></div>
             </div>
             <div class="wx-block">
-              <div class="ov-head"><span class="ov-head__label">?芯?銝??/span></div>
+              <div class="ov-head"><span class="ov-head__label">未來一週</span></div>
               <div class="wx-days" data-wx="days"></div>
             </div>
             <div class="wx-quip" data-wx="quip" hidden><img class="wx-quip__art" data-wx="quip-art" alt="" width="64" height="64"><p class="wx-quip__text" data-wx="quip-text"></p></div>
           </section>
           <footer class="wx-foot">
-            <span data-wx="source">憭拇除鞈?嚗pen-Meteo嚗C BY 4.0嚗?/span>
-            <span class="wx-foot__cwa" data-wx="cwa-wrap" hidden>?箇?孵嚗?button type="button" class="wx-link" data-wx="cwa"></button></span>
+            <span data-wx="source">天氣資料：Open-Meteo（CC BY 4.0）</span>
+            <span class="wx-foot__cwa" data-wx="cwa-wrap" hidden>臺灣特報：<button type="button" class="wx-link" data-wx="cwa"></button></span>
           </footer>
         </div>
       </div>
@@ -407,47 +407,47 @@
         <section class="calc__main">
           <div class="calc__screen">
             <p class="calc__expr" data-calc="expr" aria-live="polite"></p>
-            <button type="button" class="calc__result" data-calc="result" aria-label="銴ˊ蝯?"><span class="calc__num" data-calc="num">0</span></button>
+            <button type="button" class="calc__result" data-calc="result" aria-label="複製結果"><span class="calc__num" data-calc="num">0</span></button>
             <div class="calc__under">
               <p class="calc__error" data-calc="error" hidden></p>
-              <button type="button" class="calc__record" data-calc="record" hidden><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.8v8.4M1.8 6h8.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>閮?銝蝑?/span></button>
+              <button type="button" class="calc__record" data-calc="record" hidden><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.8v8.4M1.8 6h8.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>記成一筆</span></button>
             </div>
           </div>
           <div class="calc__keys" data-calc="keys">
             <span class="calc__blob" data-calc="blob" aria-hidden="true"></span>
             <button type="button" class="calc-key calc-key--fn" data-key="clear">AC</button>
-            <button type="button" class="calc-key calc-key--fn" data-key="sign" aria-label="甇????>簣</button>
-            <button type="button" class="calc-key calc-key--fn" data-key="percent" aria-label="?曉?瘥?>%</button>
-            <button type="button" class="calc-key calc-key--op" data-key="/" aria-label="??>繩</button>
+            <button type="button" class="calc-key calc-key--fn" data-key="sign" aria-label="正負號">±</button>
+            <button type="button" class="calc-key calc-key--fn" data-key="percent" aria-label="百分比">%</button>
+            <button type="button" class="calc-key calc-key--op" data-key="/" aria-label="除">÷</button>
             <button type="button" class="calc-key" data-key="7">7</button>
             <button type="button" class="calc-key" data-key="8">8</button>
             <button type="button" class="calc-key" data-key="9">9</button>
-            <button type="button" class="calc-key calc-key--op" data-key="*" aria-label="銋?>?</button>
+            <button type="button" class="calc-key calc-key--op" data-key="*" aria-label="乘">×</button>
             <button type="button" class="calc-key" data-key="4">4</button>
             <button type="button" class="calc-key" data-key="5">5</button>
             <button type="button" class="calc-key" data-key="6">6</button>
-            <button type="button" class="calc-key calc-key--op" data-key="-" aria-label="皜?>??/button>
+            <button type="button" class="calc-key calc-key--op" data-key="-" aria-label="減">−</button>
             <button type="button" class="calc-key" data-key="1">1</button>
             <button type="button" class="calc-key" data-key="2">2</button>
             <button type="button" class="calc-key" data-key="3">3</button>
-            <button type="button" class="calc-key calc-key--op" data-key="+" aria-label="??>+</button>
-            <button type="button" class="calc-key calc-key--fn" data-key="back" aria-label="???><svg viewBox="0 0 20 16" aria-hidden="true"><path d="M7 2.5h9.5a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H7L2 8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.6 5.6l4.8 4.8M14.4 5.6l-4.8 4.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+            <button type="button" class="calc-key calc-key--op" data-key="+" aria-label="加">+</button>
+            <button type="button" class="calc-key calc-key--fn" data-key="back" aria-label="退格"><svg viewBox="0 0 20 16" aria-hidden="true"><path d="M7 2.5h9.5a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H7L2 8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.6 5.6l4.8 4.8M14.4 5.6l-4.8 4.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
             <button type="button" class="calc-key" data-key="0">0</button>
             <button type="button" class="calc-key" data-key=".">.</button>
-            <button type="button" class="calc-key calc-key--eq" data-key="=" aria-label="蝑">=</button>
+            <button type="button" class="calc-key calc-key--eq" data-key="=" aria-label="等於">=</button>
           </div>
         </section>
-        <aside class="calc__tape" aria-label="閮?蝝??>
+        <aside class="calc__tape" aria-label="計算紀錄">
           <div class="calc__tape-head">
-            <span class="calc__tape-title">蝝??/span>
-            <button type="button" class="calc__tape-clear" data-calc="tape-clear" hidden>皜</button>
+            <span class="calc__tape-title">紀錄</span>
+            <button type="button" class="calc__tape-clear" data-calc="tape-clear" hidden>清除</button>
           </div>
           <div class="list__stage calc__tape-stage" data-calc="tape-stage">
-            <div class="list__view" data-view="rows" data-calc="tape" role="list" aria-label="蝞???摮?></div>
+            <div class="list__view" data-view="rows" data-calc="tape" role="list" aria-label="算過的式子"></div>
             <div class="list__view" data-view="empty">
               <div class="list__state">
-                <span class="list__state-title">??????/span>
-                <span class="list__state-hint">??蝑?敺?蝞???脤ㄐ嚗?銝蝑隞交?蝯??踹?靘匱蝥?</span>
+                <span class="list__state-title">還沒有紀錄</span>
+                <span class="list__state-hint">按下等號後，算式會收進這裡；點一筆可以把結果拿回來繼續算</span>
               </div>
             </div>
           </div>
@@ -457,14 +457,14 @@
     <div class="app-source" data-app-id="radio">
       <div class="rd" id="radio" data-mode="station">
         <div class="rd__bar">
-          <div class="seg rd__mode" role="tablist" aria-label="?餃??YouTube" data-rd="mode">
+          <div class="seg rd__mode" role="tablist" aria-label="電台或 YouTube" data-rd="mode">
             <span class="seg__platter" aria-hidden="true"><span class="seg__blob"></span></span>
             <span class="seg__lens" aria-hidden="true"></span>
-            <button type="button" class="seg__btn" role="tab" aria-selected="true">?餃</button>
+            <button type="button" class="seg__btn" role="tab" aria-selected="true">電台</button>
             <button type="button" class="seg__btn" role="tab" aria-selected="false">YouTube</button>
           </div>
         </div>
-        <section class="rd__deck" aria-label="甇??剜">
+        <section class="rd__deck" aria-label="正在播放">
           <div class="rd-view rd-view--station">
             <div class="deck" data-rd="deck" aria-hidden="true">
               <div class="deck__disc" data-rd="disc">
@@ -482,63 +482,63 @@
               <p class="rd-now__meta" data-rd="station-meta"></p>
             </div>
             <div class="rd-controls">
-              <button type="button" class="rd-btn rd-btn--icon" data-rd="fav" aria-label="?嗉?"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.8l2.2 4.5 4.9.7-3.6 3.5.9 4.9-4.4-2.3-4.4 2.3.9-4.9L3 8l4.9-.7z"/></svg></button>
-              <button type="button" class="rd-btn rd-btn--play" data-rd="station-play" aria-label="?剜"><span class="rd-play"><i></i><i></i></span></button>
+              <button type="button" class="rd-btn rd-btn--icon" data-rd="fav" aria-label="收藏"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.8l2.2 4.5 4.9.7-3.6 3.5.9 4.9-4.4-2.3-4.4 2.3.9-4.9L3 8l4.9-.7z"/></svg></button>
+              <button type="button" class="rd-btn rd-btn--play" data-rd="station-play" aria-label="播放"><span class="rd-play"><i></i><i></i></span></button>
               <span class="rd-btn rd-btn--ghost" aria-hidden="true"></span>
             </div>
           </div>
           <div class="rd-view rd-view--yt">
-            <div class="yt-slot" data-rd="slot"><div class="yt-slot__empty" data-rd="slot-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 9.2v5.6l4.8-2.8z" fill="currentColor"/></svg><span>鞎潔? YouTube 蝬脣?嚗??脫??桀停?賣??/span></div></div>
+            <div class="yt-slot" data-rd="slot"><div class="yt-slot__empty" data-rd="slot-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 9.2v5.6l4.8-2.8z" fill="currentColor"/></svg><span>貼上 YouTube 網址，加進清單就能播放</span></div></div>
             <div class="rd-now">
               <p class="rd-now__title" data-rd="yt-title"></p>
               <p class="rd-now__meta" data-rd="yt-meta"></p>
             </div>
             <div class="rd-controls">
-              <button type="button" class="rd-btn rd-btn--icon" data-rd="shuffle" aria-label="?冽??剜" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h3.2c3 0 4.6 8 7.6 8H17M14.6 11.6L17 14l-2.4 2.4M3 14h3.2c1.2 0 2.1-1.2 2.9-2.6M11 8.6C11.8 7.2 12.6 6 13.8 6H17M14.6 3.6L17 6l-2.4 2.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-              <button type="button" class="rd-btn rd-btn--icon" data-rd="prev" aria-label="銝?擐?><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 4.5v11M15.5 4.8v10.4L7.5 10z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
-              <button type="button" class="rd-btn rd-btn--play" data-rd="yt-play" aria-label="?剜"><span class="rd-play"><i></i><i></i></span></button>
-              <button type="button" class="rd-btn rd-btn--icon" data-rd="next" aria-label="銝?擐?><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15 4.5v11M4.5 4.8v10.4L12.5 10z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
-              <button type="button" class="rd-btn rd-btn--icon" data-rd="repeat" aria-label="敺芰嚗???><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 9V8a3 3 0 0 1 3-3h9M13.6 2.6L16 5l-2.4 2.4M16 11v1a3 3 0 0 1-3 3H4M6.4 17.4L4 15l2.4-2.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="rd-btn__one" aria-hidden="true">1</span></button>
+              <button type="button" class="rd-btn rd-btn--icon" data-rd="shuffle" aria-label="隨機播放" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h3.2c3 0 4.6 8 7.6 8H17M14.6 11.6L17 14l-2.4 2.4M3 14h3.2c1.2 0 2.1-1.2 2.9-2.6M11 8.6C11.8 7.2 12.6 6 13.8 6H17M14.6 3.6L17 6l-2.4 2.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <button type="button" class="rd-btn rd-btn--icon" data-rd="prev" aria-label="上一首"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 4.5v11M15.5 4.8v10.4L7.5 10z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
+              <button type="button" class="rd-btn rd-btn--play" data-rd="yt-play" aria-label="播放"><span class="rd-play"><i></i><i></i></span></button>
+              <button type="button" class="rd-btn rd-btn--icon" data-rd="next" aria-label="下一首"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15 4.5v11M4.5 4.8v10.4L12.5 10z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
+              <button type="button" class="rd-btn rd-btn--icon" data-rd="repeat" aria-label="循環：關閉"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 9V8a3 3 0 0 1 3-3h9M13.6 2.6L16 5l-2.4 2.4M16 11v1a3 3 0 0 1-3 3H4M6.4 17.4L4 15l2.4-2.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="rd-btn__one" aria-hidden="true">1</span></button>
             </div>
           </div>
           <div class="rd-volume">
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 7.5h3l4-3.5v12l-4-3.5h-3z" fill="currentColor"/><path d="M13.5 7a4 4 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-            <div class="sld rd-volume__slider" tabindex="0" data-rd="volume" aria-label="?喲?">
+            <div class="sld rd-volume__slider" tabindex="0" data-rd="volume" aria-label="音量">
               <span class="sld__track"><span class="sld__fill"></span></span>
               <span class="sld__thumb"></span>
               <span class="sld__bubble"><span class="odo-host"></span></span>
             </div>
           </div>
         </section>
-        <section class="rd__side" aria-label="皜">
+        <section class="rd__side" aria-label="清單">
           <div class="rd-view rd-view--station rd-browse">
-            <label class="rd-search"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 10.4l3.2 3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input data-rd="search" placeholder="???餃" autocomplete="off" aria-label="???餃"></label>
-            <div class="chips rd-chips" data-rd="chips" role="radiogroup" aria-label="蝭拚"></div>
-            <div class="rd-stations" data-rd="stations" role="listbox" aria-label="?餃"></div>
+            <label class="rd-search"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 10.4l3.2 3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input data-rd="search" placeholder="搜尋電台" autocomplete="off" aria-label="搜尋電台"></label>
+            <div class="chips rd-chips" data-rd="chips" role="radiogroup" aria-label="篩選"></div>
+            <div class="rd-stations" data-rd="stations" role="listbox" aria-label="電台"></div>
             <div class="rd-empty" data-rd="station-empty" hidden>
-              <p class="rd-empty__title">????唳???/p>
-              <p class="rd-empty__text">?餃皜?臭??芸楛????銝??暸脩?撘ㄐ??乩?隞?JSON嚗??圈?閬?id?ame ??streamUrl嚗停?賡?憪</p>
-              <button type="button" class="btn btn--secondary" data-rd="import">?臬?餃皜</button>
+              <p class="rd-empty__title">還沒有電台清單</p>
+              <p class="rd-empty__text">電台清單是你自己的資料，不會放進程式裡。匯入一份 JSON（每台需要 id、name 與 streamUrl）就能開始聽</p>
+              <button type="button" class="btn btn--secondary" data-rd="import">匯入電台清單</button>
             </div>
-            <p class="rd-foot"><button type="button" class="wx-link" data-rd="import-again">?臬?嗡??餃皜</button></p>
+            <p class="rd-foot"><button type="button" class="wx-link" data-rd="import-again">匯入其他電台清單</button></p>
           </div>
           <div class="rd-view rd-view--yt rd-browse">
-            <div class="chips rd-lists" data-rd="lists" aria-label="皜"></div>
+            <div class="chips rd-lists" data-rd="lists" aria-label="清單"></div>
             <form class="rd-add" data-rd="add" novalidate>
-              <input class="rd-add__input" data-rd="add-input" autocomplete="off" spellcheck="false" placeholder="鞎潔? YouTube 敶梁???暹??桃雯?" aria-label="YouTube 蝬脣?">
-              <button type="submit" class="rd-add__go" aria-label="?皜" data-press><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.8v8.4M1.8 6h8.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+              <input class="rd-add__input" data-rd="add-input" autocomplete="off" spellcheck="false" placeholder="貼上 YouTube 影片或播放清單網址" aria-label="YouTube 網址">
+              <button type="submit" class="rd-add__go" aria-label="加入清單" data-press><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.8v8.4M1.8 6h8.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
             </form>
             <p class="rd-add__state" data-rd="add-state" aria-live="polite"></p>
             <div class="list__stage rd-queue-stage" data-rd="queue-stage">
-              <div class="list__view" data-view="rows" data-rd="queue" role="list" aria-label="?剜雿?"></div>
+              <div class="list__view" data-view="rows" data-rd="queue" role="list" aria-label="播放佇列"></div>
               <div class="list__view" data-view="empty">
                 <div class="list__state">
-                  <span class="list__state-title">?遢皜?蝛箇?</span>
-                  <span class="list__state-hint">鞎潔?蝬脣????伐??港遢 YouTube ?剜皜銋隞乓?銝擐?憪嚗?撌行??芷嚗??喲????矽??</span>
+                  <span class="list__state-title">這份清單還是空的</span>
+                  <span class="list__state-hint">貼上網址按加入；整份 YouTube 播放清單也可以。點一首開始播，往左滑刪除，拖右邊的把手調順序</span>
                 </div>
               </div>
             </div>
-            <p class="rd-foot"><span data-rd="list-count"></span><button type="button" class="wx-link" data-rd="list-remove">?芷?遢皜</button></p>
+            <p class="rd-foot"><span data-rd="list-count"></span><button type="button" class="wx-link" data-rd="list-remove">刪除這份清單</button></p>
           </div>
         </section>
       </div>
