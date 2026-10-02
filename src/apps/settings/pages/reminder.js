@@ -4,11 +4,16 @@ import { createOdometer } from '../../../ui/odometer.js';
 import { group, h, pulse, row, segmented, swapText } from '../kit.js';
 
 const VOICES = ['neutral', 'maid', 'wife', 'sister'];
+
+function glue(line) {
+  return line.replace(/\([^()]*\)/g, (face) => Array.from(face).join('⁠'));
+}
+
 const SAMPLES = {
   neutral: '這個月花得比上個月同期少，照這樣下去月底會在預算內。',
   maid: '主人，這個月比上個月同期省了一些，奴家會好好看著預算的。',
   wife: '這個月比上個月省了一點，照這樣月底沒問題，晚餐想吃什麼？',
-  sister: '欸這個月花得比上個月少耶 (｀・ω・´)，照這樣月底穩穩的啦！',
+  sister: glue('欸這個月花得比上個月少耶 (｀・ω・´)，照這樣月底穩穩的啦！'),
 };
 
 function currentVoice() {

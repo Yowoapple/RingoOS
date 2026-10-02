@@ -100,7 +100,7 @@ export function createSettingsApp({ root, ctx }) {
   aboutButton.dataset.page = 'about';
   aboutButton.addEventListener('click', () => go('about', { push: true }));
   navButtons.set('about', aboutButton);
-  nav.append(aboutButton);
+  side.append(aboutButton);
 
   const sections = new Map();
   pages.forEach((page) => {
@@ -108,9 +108,12 @@ export function createSettingsApp({ root, ctx }) {
     section.dataset.page = page.id;
     section.setAttribute('aria-label', page.title);
     section.hidden = true;
-    const head = h('header', 'st-page__head');
-    head.append(text('h3', 'st-page__title', page.title), text('p', 'st-page__lede', page.lede || ''));
-    section.append(head, page.el);
+    if (!page.bare) {
+      const head = h('header', 'st-page__head');
+      head.append(text('h3', 'st-page__title', page.title), text('p', 'st-page__lede', page.lede || ''));
+      section.append(head);
+    }
+    section.append(page.el);
     scroll.append(section);
     sections.set(page.id, section);
   });
@@ -126,6 +129,10 @@ export function createSettingsApp({ root, ctx }) {
     platterEl.style.opacity = String(clamp(o, 0, 1));
   });
   function placePlatter(button, immediate) {
+    if (button && !nav.contains(button)) {
+      platter.to({ o: 0 }, { response: 0.2, damping: 1 });
+      return;
+    }
     if (!button || !button.offsetHeight) return;
     const top = button.offsetTop;
     const bottom = top + button.offsetHeight;
@@ -162,7 +169,7 @@ export function createSettingsApp({ root, ctx }) {
 
   function enterPage(id) {
     const section = sections.get(id);
-    const items = [section.querySelector('.st-page__head'), ...section.querySelectorAll('.st-page__body > *')];
+    const items = [section.querySelector('.st-page__head'), ...section.querySelectorAll('.st-page__body > *')].filter(Boolean);
     items.forEach((item, i) => {
       const m = motionFor(item, motions);
       if (MotionSettings.reduced) {

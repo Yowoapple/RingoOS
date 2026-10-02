@@ -2,6 +2,7 @@ import { createMotion } from '../motion/animator.js';
 import { MotionSettings } from '../motion/presets.js';
 import { Fx } from '../ui/fx-tier.js';
 import { createOdometer } from '../ui/odometer.js';
+import { animateWordmark } from '../ui/wordmark.js';
 
 const LEAD = { response: 0.26, damping: 0.6 };
 const TRAIL = { response: 0.46, damping: 0.72 };
@@ -256,6 +257,11 @@ export function createMenubar({ root, store, titles, onOpen, onBell }) {
     el.addEventListener('click', () => onOpen(el.dataset.open));
   });
   if (onBell) root.querySelector('.mb-bell').addEventListener('click', onBell);
+  const brand = root.querySelector('.mb-brand .wm');
+  if (brand) {
+    const mark = animateWordmark(brand, { stretch: 0.5, fill: false });
+    root.querySelector('.mb-brand').addEventListener('pointerenter', () => mark.play());
+  }
 
   function syncTitle() {
     const id = store.focusedId;

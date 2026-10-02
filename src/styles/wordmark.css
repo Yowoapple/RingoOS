@@ -1,0 +1,49 @@
+.wm {
+  display: inline-block;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.wm__r {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.wm__os {
+  margin-left: 0.05em;
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.wm__o {
+  position: relative;
+  display: inline-block;
+  width: calc(0.73em * 1.5);
+  height: 0.73em;
+  margin-right: 0.07em;
+  border-radius: 999px;
+  vertical-align: baseline;
+  transform-origin: 0 100%;
+  overflow: hidden;
+}
+
+.wm--line .wm__o {
+  box-shadow: inset 0 0 0 calc(0.73em * 0.13) var(--accent-spot);
+}
+
+.wm__pour {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--accent-spot);
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+
+.wm--solid .wm__pour {
+  opacity: 1;
+  transform: none;
+}
