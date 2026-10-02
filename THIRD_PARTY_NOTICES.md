@@ -80,6 +80,20 @@ by the owner of this repository.
 - Map data © OpenStreetMap contributors, available under the Open Database
   License (ODbL), https://www.openstreetmap.org/copyright
 
+## YouTube API Services
+
+- Used for: the YouTube mode of the RingoOS 2.0 radio, through the official
+  YouTube IFrame Player (privacy-enhanced `youtube-nocookie.com` host) and the
+  public oEmbed endpoint for titles and thumbnails. No API key is used and no
+  YouTube content is stored in this repository; users' saved lists stay in
+  their own browser
+- By using the YouTube mode you agree to the YouTube Terms of Service,
+  https://www.youtube.com/t/terms
+- Google Privacy Policy: https://policies.google.com/privacy
+- The player is always shown on screen (in the radio window or as a
+  picture-in-picture player of at least 200 × 200 pixels) and is never hidden
+  or overlaid, in line with the YouTube API Services Developer Policies
+
 ## Central Weather Administration open data
 
 - Used for: weather forecasts and alerts in RingoOS 1.0; in RingoOS 2.0, for
