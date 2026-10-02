@@ -209,8 +209,10 @@ function start() {
     root: $('ledger'),
     dateTag: $('ledger-date'),
     todayButton: $('ledger-today'),
+    findButton: $('ledger-find'),
     host: $('desk'),
     island,
+    isActive: () => store.focusedId === 'daily-entry' && store.get('daily-entry').state === 'open',
   });
 
   const overview = createOverviewApp({
@@ -470,7 +472,7 @@ function start() {
 
   console.info('%cRingoOS%c 2.0 by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
   if (new URLSearchParams(window.location.search).has('debug')) {
-    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar, weather, calculator, radio, notifier, center, triggers, notices, settings, companion };
+    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, ledger, overview, reminder, calendar, weather, calculator, radio, notifier, center, triggers, notices, settings, companion };
   }
 }
 

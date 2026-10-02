@@ -136,6 +136,16 @@ describe('recurring expenses', () => {
   });
 });
 
+describe('moving entries', () => {
+  it('moves an entry to another day with changes and keeps its id', () => {
+    const id = Data.addExpenseEntry('2026-10-03', { amount: 80, category: '餐飲', note: '午餐' });
+    const out = Data.moveEntry('2026-10-03', 'expense', id, '2026-10-01', { amount: 90, note: '早午餐' });
+    expect(out.dateKey).toBe('2026-10-01');
+    expect(Data.getDayEntries('2026-10-03').expenses).toHaveLength(0);
+    expect(Data.getDayEntries('2026-10-01').expenses[0]).toMatchObject({ id, amount: 90, note: '早午餐', category: '餐飲' });
+  });
+});
+
 describe('goal transfers', () => {
   it('records deposits and withdrawals as transfers that are not spending', () => {
     const goal = Data.addSavingsGoal({ title: '旅行', targetAmount: 30000 });

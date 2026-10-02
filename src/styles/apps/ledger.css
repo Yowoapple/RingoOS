@@ -252,3 +252,374 @@
     animation: none;
   }
 }
+
+.lg-find-btn {
+  display: grid;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  margin-left: 0.15rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.lg-find-btn svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.lg-find-btn:hover {
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  color: var(--ink);
+}
+
+.lg-find-btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.date-pick .date-tag,
+.date-pick .date-today {
+  transition: opacity 200ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.date-pick.is-finding .date-tag,
+.date-pick.is-finding .date-today {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ledger.is-finding > .ledger__form,
+.ledger.is-finding > .ledger__side {
+  display: none;
+}
+
+.lg-find {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.lg-find[hidden] {
+  display: none;
+}
+
+.lg-find-shape {
+  position: fixed;
+  z-index: 66;
+  background: color-mix(in srgb, var(--ink) 7%, var(--paper));
+  pointer-events: none;
+}
+
+.lg-find-shape[hidden] {
+  display: none;
+}
+
+.lg-find__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 0.35rem 0 0.85rem;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--ink) 7%, var(--paper));
+  transition: box-shadow 180ms ease;
+}
+
+.lg-find__bar:focus-within {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.lg-find__glass {
+  flex: none;
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--ink-3);
+}
+
+.lg-find__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  caret-color: var(--accent);
+}
+
+.lg-find__input::placeholder {
+  color: var(--ink-3);
+}
+
+.lg-find__clear {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.lg-find__clear svg {
+  width: 0.65rem;
+  height: 0.65rem;
+}
+
+.lg-find__clear[hidden] {
+  display: none;
+}
+
+.lg-find__done {
+  flex: none;
+  height: 1.9rem;
+  padding: 0 0.85rem;
+  font-size: 0.74rem;
+}
+
+.lg-find__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.lg-find__filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.lg-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.lg-filter__label {
+  flex: none;
+  width: 2.4rem;
+  font-size: 0.66rem;
+  color: var(--ink-3);
+}
+
+.lg-filter__chips {
+  display: flex;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0.1rem 0;
+}
+
+.lg-filter__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.lg-filter__chips .chip {
+  flex: none;
+}
+
+.lg-filter__range {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ink-3);
+}
+
+.lg-filter__num {
+  width: 5.2rem;
+  height: 1.75rem;
+  padding: 0 0.6rem;
+  font-size: 0.72rem;
+}
+
+.lg-find__results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.lg-find__sum {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.lg-find__count {
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+
+.lg-find__count .mono {
+  font-size: 1.55rem;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+}
+
+.lg-find__total {
+  font-size: 0.82rem;
+  color: var(--ink-2);
+}
+
+.lg-find__reset {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.lg-find__reset[hidden] {
+  display: none;
+}
+
+.lg-find__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.lg-group__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0 0 0.35rem;
+}
+
+.lg-group__month {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.lg-group__meta {
+  font-size: 0.66rem;
+  color: var(--ink-3);
+}
+
+.lg-group__sum {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--ink-2);
+}
+
+.lg-group .row__slide {
+  grid-template-columns: 0.9rem 1fr auto;
+}
+
+.row__when {
+  font-size: 0.62rem;
+  color: var(--ink-3);
+}
+
+.lg-find__empty[hidden],
+.lg-find__more[hidden] {
+  display: none;
+}
+
+.lg-find__more {
+  align-self: center;
+}
+
+.lg-edit {
+  overflow: hidden;
+}
+
+.lg-edit__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0.3rem 0 0.6rem;
+  padding: 0.85rem;
+  border-radius: calc(var(--r-win) - 0.2rem);
+  background: var(--group-bg, rgba(14, 14, 16, 0.035));
+}
+
+:root[data-theme="dark"] .lg-edit__inner {
+  --group-bg: rgba(255, 255, 255, 0.045);
+}
+
+.lg-edit__top {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.8rem;
+}
+
+.lg-edit__amount {
+  flex: 1;
+  min-width: 0;
+}
+
+.lg-edit__amount .amount__input {
+  font-size: 1.6rem;
+}
+
+.lg-edit__date {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+.lg-edit .ledger__need[hidden] {
+  display: none;
+}
+
+.lg-edit__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@container (min-width: 34rem) {
+  .lg-find__body {
+    display: grid;
+    grid-template-columns: 12.5rem minmax(0, 1fr);
+    gap: 1.4rem;
+    align-items: start;
+  }
+
+  .lg-find__filters {
+    position: sticky;
+    top: 0;
+    gap: 0.95rem;
+  }
+
+  .lg-filter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+
+  .lg-filter__label {
+    width: auto;
+  }
+
+  .lg-filter__chips {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}

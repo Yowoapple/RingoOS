@@ -134,6 +134,7 @@
         <span class="date-pick" data-no-drag>
           <button type="button" class="date-today" id="ledger-today" hidden>今天</button>
           <button type="button" class="tag date-tag" id="ledger-date" aria-label="記帳日期，按一下可以換一天"></button>
+          <button type="button" class="lg-find-btn" id="ledger-find" aria-label="搜尋紀錄" title="搜尋紀錄（Ctrl+F）"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 10.4 13.6 13.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
         </span>
       </div>
       <div class="ledger" id="ledger">
@@ -180,6 +181,26 @@
                   <span class="list__state-hint">輸入金額後按「記下這筆」。點一筆紀錄可以修改，往左滑可以刪除</span>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+        <section class="lg-find" data-ledger="find" aria-label="搜尋紀錄" hidden>
+          <div class="lg-find__bar" data-find="bar">
+            <svg class="lg-find__glass" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 10.4 13.6 13.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <input class="lg-find__input" data-find="q" placeholder="搜尋備註、分類或金額，例如 午餐、>500" aria-label="搜尋紀錄" autocomplete="off" spellcheck="false">
+            <button type="button" class="lg-find__clear" data-find="clear" aria-label="清除搜尋" hidden><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 3.5l5 5M8.5 3.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+            <button type="button" class="btn btn--ghost lg-find__done" data-find="done">完成</button>
+          </div>
+          <div class="lg-find__body">
+            <aside class="lg-find__filters" data-find="filters" aria-label="篩選"></aside>
+            <div class="lg-find__results">
+              <div class="lg-find__sum" data-find="sum"><span class="lg-find__count"><span class="mono" data-find="count"></span> 筆</span><span class="lg-find__total mono" data-find="total"></span><button type="button" class="lg-find__reset" data-find="reset" hidden>清除篩選</button></div>
+              <div class="lg-find__groups" data-find="groups"></div>
+              <div class="list__state lg-find__empty" data-find="empty" hidden>
+                <span class="list__state-title">找不到符合的紀錄</span>
+                <span class="list__state-hint">換個關鍵字，或放寬篩選條件</span>
+              </div>
+              <button type="button" class="btn btn--secondary lg-find__more" data-find="more" hidden></button>
             </div>
           </div>
         </section>

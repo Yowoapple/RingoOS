@@ -9,6 +9,8 @@ import { createMonthGrid } from '../../ui/month-grid.js';
 import { createDatePicker } from '../../ui/datepicker.js';
 import { createOdometer, formatAmount } from '../../ui/odometer.js';
 import { Fx } from '../../ui/fx-tier.js';
+import { renderEntryRow } from './row-view.js';
+import { createLedgerFind } from './ledger-find.js';
 
 const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 const WEEK_TAG = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -43,7 +45,7 @@ function parseAmount(text) {
   return Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : 0;
 }
 
-export function createLedgerApp({ root, dateTag, todayButton, host, island }) {
+export function createLedgerApp({ root, dateTag, todayButton, findButton, host, island, isActive = () => false }) {
   const $ = (name) => root.querySelector(`[data-ledger="${name}"]`);
   const form = $('form');
   const amountInput = $('amount');
@@ -272,34 +274,7 @@ export function createLedgerApp({ root, dateTag, todayButton, host, island }) {
   }
 
   function renderRow(row) {
-    const holder = document.createElement('template');
-    holder.innerHTML = '<span class="lg-mark" aria-hidden="true"></span><span class="row__main"><span class="row__cat"></span><span class="row__note"></span></span><span class="row__amt mono"></span>';
-    const fragment = holder.content;
-    const mark = fragment.querySelector('.lg-mark');
-    if (row.type === 'transfer') {
-      const out = row.signed < 0;
-      mark.classList.add('lg-mark--transfer');
-      mark.innerHTML = out
-        ? '<svg viewBox="0 0 12 12"><path d="M10 6H2.5M5.2 3.2 2.4 6l2.8 2.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-        : '<svg viewBox="0 0 12 12"><path d="M2 6h7.5M6.8 3.2 9.6 6 6.8 8.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-      fragment.querySelector('.row__cat').textContent = row.goalTitle;
-      const note = fragment.querySelector('.row__note');
-      note.textContent = out ? '從目標取出' : row.transferType === 'auto' ? '每月自動存入' : '存到目標';
-      fragment.querySelector('.row__amt').textContent = formatAmount(row.amount);
-      return fragment;
-    }
-    if (row.recurring) {
-      mark.classList.add('lg-mark--recurring');
-      mark.innerHTML = '<svg viewBox="0 0 12 12"><path d="M9.3 4.4A3.6 3.6 0 0 0 2.6 5M2.7 7.6a3.6 3.6 0 0 0 6.7.6M9.5 2.6v1.9H7.6M2.5 9.4V7.5h1.9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    } else if (row.necessity) {
-      mark.classList.add(`lg-mark--${row.necessity}`);
-    }
-    fragment.querySelector('.row__cat').textContent = row.category;
-    const note = fragment.querySelector('.row__note');
-    note.textContent = row.note || (row.recurring ? '固定支出' : '');
-    note.hidden = !note.textContent;
-    fragment.querySelector('.row__amt').textContent = `${row.type === 'income' ? '+' : '−'}${formatAmount(row.amount)}`;
-    return fragment;
+    return renderEntryRow(row);
   }
 
   function desiredRows() {
@@ -596,8 +571,29 @@ export function createLedgerApp({ root, dateTag, todayButton, host, island }) {
   renderTag();
   reconcileQuiet();
 
+  const finder = findButton ? createLedgerFind({
+    ledgerRoot: root,
+    button: findButton,
+    host,
+    island,
+    onToggle(on) {
+      if (on) exitEdit();
+      dateTag.closest('.date-pick').classList.toggle('is-finding', on);
+    },
+  }) : null;
+
+  window.addEventListener('keydown', (event) => {
+    if (!finder || !isActive()) return;
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'f') {
+      event.preventDefault();
+      finder.open();
+    }
+  });
+
   return {
     refreshGlass: () => segment.refreshGlass(),
     measure: () => segment.measure(),
+    find: (filters) => finder && finder.open(filters),
+    closeFind: () => finder && finder.close(),
   };
 }

@@ -212,6 +212,21 @@ function updateEntry(dateKey, type, entryId, patch) {
   return { type: nextType, entry: updated };
 }
 
+function moveEntry(fromDateKey, type, entryId, toDateKey, patch = {}) {
+  if (fromDateKey === toDateKey) return updateEntry(fromDateKey, type, entryId, patch);
+  const day = state.days[fromDateKey];
+  if (!day) return null;
+  const list = listFor(day, type);
+  const idx = list.findIndex((e) => e.id === entryId);
+  if (idx === -1) return null;
+  const [entry] = list.splice(idx, 1);
+  const nextType = patch.type === 'income' || patch.type === 'expense' ? patch.type : type;
+  const updated = shapeEntry(nextType, { ...entry, ...patch, id: entryId });
+  listFor(ensureDay(toDateKey), nextType).push(updated);
+  notify();
+  return { type: nextType, entry: updated, dateKey: toDateKey };
+}
+
 function getEntryIndex(dateKey, type, entryId) {
   const day = state.days[dateKey];
   if (!day) return -1;
@@ -855,6 +870,7 @@ export const Data = {
   removeEntry,
   restoreEntry,
   updateEntry,
+  moveEntry,
   getEntryIndex,
   getDayEntries,
   getDayTasks,
