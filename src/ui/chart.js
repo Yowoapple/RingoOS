@@ -57,6 +57,7 @@ export function createBarChart(root, labelsRoot, { values, labels, todayIndex, f
     const step = bars.length > 12 ? 14 : 55;
     bars.forEach((entry, i) => {
       entry.tip.textContent = format(data[i]);
+      entry.column.classList.toggle('is-zero', !data[i]);
       const target = data[i] / max;
       const run = () => entry.motion.to({ h: target }, MotionSettings.reduced ? MotionSettings.spring('focus') : undefined);
       if (stagger && !MotionSettings.reduced) timers.push(window.setTimeout(run, i * step));

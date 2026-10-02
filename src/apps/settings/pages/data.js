@@ -175,11 +175,12 @@ export function dataPage(ctx) {
   });
 
   const wallToggle = toggle(false, (on) => { withWall = on; }, '匯出時包含桌布');
-  const wallRow = row({ label: '包含桌布', hint: '照片桌布會讓檔案大好幾 MB；換電腦時想一起帶走再打開', control: wallToggle.el, keywords: '桌布 照片 wallpaper 匯出' });
+  const wallRow = row({ label: '包含桌布', hint: '換電腦時想一起帶走再打開', control: wallToggle.el, keywords: '桌布 照片 wallpaper 匯出' });
 
   function syncWallRow() {
     const has = !!(appearance && appearance.hasPhoto);
     wallRow.el.hidden = !has;
+    if (has) wallRow.hintEl.textContent = `檔案會多約 ${formatBytes(appearance.photoData.length)}；換電腦時想一起帶走再打開`;
     if (!has && withWall) {
       withWall = false;
       wallToggle.api.set(false);

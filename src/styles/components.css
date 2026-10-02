@@ -429,7 +429,7 @@
 }
 
 .chart__col:hover .chart__tip,
-.chart__col.is-today .chart__tip {
+.chart__col.is-today:not(.is-zero) .chart__tip {
   opacity: 1;
 }
 
