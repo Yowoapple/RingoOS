@@ -216,9 +216,21 @@ function createBell(button) {
   function set(next) {
     const previous = count;
     count = Math.max(0, next);
-    badge.hidden = count === 0;
-    button.setAttribute('aria-label', count > 0 ? `日程提醒，${count} 件` : '日程提醒');
-    if (count === 0) return;
+    button.setAttribute('aria-label', count > 0 ? `通知，${count} 則未讀` : '通知');
+    if (count === 0) {
+      if (previous === 0 || MotionSettings.reduced) {
+        badge.hidden = true;
+        return;
+      }
+      pop.to({ s: 0 }, { response: 0.22, damping: 1 }).then(() => {
+        if (count === 0) {
+          badge.hidden = true;
+          pop.set({ s: 1 });
+        }
+      });
+      return;
+    }
+    badge.hidden = false;
     odometer.set(count, previous === 0 ? { from: count } : undefined);
     if (count > previous && !MotionSettings.reduced) {
       pop.set({ s: previous === 0 ? 0.3 : 0.7 });
@@ -231,7 +243,7 @@ function createBell(button) {
   return { set, ring, get count() { return count; } };
 }
 
-export function createMenubar({ root, store, titles, onOpen }) {
+export function createMenubar({ root, store, titles, onOpen, onBell }) {
   const platter = createPlatter(root);
   const setTitle = createAppTitle(root.querySelector('.mb-app__text'));
   createClock(root);
@@ -241,6 +253,7 @@ export function createMenubar({ root, store, titles, onOpen }) {
   root.querySelectorAll('[data-open]').forEach((el) => {
     el.addEventListener('click', () => onOpen(el.dataset.open));
   });
+  if (onBell) root.querySelector('.mb-bell').addEventListener('click', onBell);
 
   function syncTitle() {
     const id = store.focusedId;
@@ -257,7 +270,11 @@ export function createMenubar({ root, store, titles, onOpen }) {
     setPlaying: radio.set,
     setPlayingLabel: radio.setLabel,
     get playing() { return radio.playing; },
+    setUnread: bell.set,
     setReminders: bell.set,
+    ringBell: bell.ring,
+    get unread() { return bell.count; },
     get reminders() { return bell.count; },
+    bellButton: root.querySelector('.mb-bell'),
   };
 }

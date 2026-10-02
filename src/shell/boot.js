@@ -10,6 +10,9 @@ import { Fx } from '../ui/fx-tier.js';
 import { createIsland } from '../ui/island.js';
 import { pressable } from '../ui/motion-kit.js';
 import { createNotices } from '../ui/notices.js';
+import { createNotifier } from './notifications.js';
+import { createNotifyCenter } from './notify-center.js';
+import { startTriggers } from './notify-triggers.js';
 import { createDesktop } from './desktop.js';
 import { createMenubar } from './menubar.js';
 import { createSettings } from './settings.js';
@@ -130,7 +133,31 @@ function start() {
   $('app-sources').remove();
 
   const notices = createNotices($('notices'), renderIcon);
-  const menubar = createMenubar({ root: $('menubar'), store, titles, onOpen: (id) => wm.open(id) });
+  let center = null;
+  const menubar = createMenubar({ root: $('menubar'), store, titles, onOpen: (id) => wm.open(id), onBell: (event) => center && center.toggle({ keyboard: event.detail === 0 }) });
+  let activateItem = () => {};
+  const notifier = createNotifier({
+    onShow(item) {
+      if (center && center.open) return;
+      if (window.innerWidth < 768) {
+        if (island.mode === 'idle') island.toast({ text: item.title, action: '查看', duration: 5000, onAction: () => notifier.activate(item.id) });
+        return;
+      }
+      notices.push({ app: item.app, title: item.title, body: item.body, meta: titles.get(item.app) || '系統', onClick: () => notifier.activate(item.id) });
+    },
+    onActivate: (item) => activateItem(item),
+  });
+  center = createNotifyCenter({
+    host: $('desk'),
+    bell: menubar.bellButton,
+    notifier,
+    renderIcon,
+    appTitle: (id) => titles.get(id) || '系統',
+  });
+  const syncUnread = () => menubar.setUnread(notifier.unread);
+  notifier.subscribe(syncUnread);
+  syncUnread();
+  const triggers = startTriggers(notifier);
 
   const island = createIsland({
     root: $('island'),
@@ -246,9 +273,7 @@ function start() {
       mbWeather.querySelector('.mb-temp').textContent = `${Math.round(info.temperature)}°`;
       mbWeather.setAttribute('aria-label', `${info.location.name} ${info.current.text} ${Math.round(info.temperature)} 度`);
       mbWeather.hidden = false;
-    },
-    onAlert({ text }) {
-      island.toast({ text, action: '查看', duration: 6000, onAction: () => wm.open('weather') });
+      triggers.weather(info);
     },
   });
 
@@ -267,10 +292,15 @@ function start() {
 
   const radio = createRadioApp({ root: $('radio'), area: $('wm-area'), island, dialogs, store, wm, menubar });
 
+  activateItem = (item) => {
+    const target = item.target || {};
+    if (item.app === 'overview' && target.mode) overview.show(target.mode, target.anchorKey);
+    if (item.app === 'calendar' && target.dateKey) calendar.show(target.dateKey);
+    if (APPS.some((app) => app.id === item.app)) wm.open(item.app);
+  };
+
   function syncReminders() {
-    const open = Calc.getUpcomingTaskSummary().count;
-    menubar.setReminders(open);
-    desktop.setBadge('calendar', open);
+    desktop.setBadge('calendar', Calc.getUpcomingTaskSummary().count);
   }
   Data.subscribe(syncReminders);
   syncReminders();
@@ -375,7 +405,7 @@ function start() {
 
   console.info('%cRingoOS%c 2.0 by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
   if (new URLSearchParams(window.location.search).has('debug')) {
-    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar, weather, calculator, radio };
+    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar, weather, calculator, radio, notifier, center, triggers, notices };
   }
 }
 

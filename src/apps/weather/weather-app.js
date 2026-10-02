@@ -629,7 +629,7 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
       rise(sunEl, { delay: 200, y: 12 });
       rise(quipEl, { delay: 380, y: 10 });
     }
-    if (onData) onData({ location, current, today, temperature: shown });
+    if (onData) onData({ location, current, today, temperature: shown, hourly: data.hourly, timezone: timeZone, alerts: alerts || [] });
   }
 
   async function refresh({ force = false, intro = false } = {}) {

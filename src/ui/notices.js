@@ -34,9 +34,11 @@ export function createNotices(root, renderIcon) {
     });
   }
 
-  function push({ app, title, body, meta = '剛剛' }) {
+  function push({ app, title, body, meta = '剛剛', onClick }) {
     const el = document.createElement('article');
     el.className = 'notice chrome';
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
     el.innerHTML = `${renderIcon(app)}<div><div class="notice__top"><span class="notice__title"></span><span class="tag"></span></div><div class="notice__body"></div></div>`;
     el.querySelector('.notice__title').textContent = title;
     el.querySelector('.tag').textContent = meta;
@@ -56,10 +58,31 @@ export function createNotices(root, renderIcon) {
     motion.to({ x: 0, s: 1, o: 1 }, MotionSettings.reduced ? MotionSettings.spring('open') : { response: 0.55, damping: 0.64 });
     settleShifts(before);
 
-    el.addEventListener('click', () => dismiss(card));
+    const activate = () => {
+      dismiss(card);
+      if (onClick) onClick();
+    };
+    el.addEventListener('click', activate);
+    el.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        activate();
+      } else if (event.key === 'Escape' || event.key === 'Delete') {
+        dismiss(card);
+      }
+    });
+    el.addEventListener('pointerenter', () => window.clearTimeout(card.timer));
+    el.addEventListener('pointerleave', () => {
+      window.clearTimeout(card.timer);
+      card.timer = window.setTimeout(() => dismiss(card), 2600);
+    });
     card.timer = window.setTimeout(() => dismiss(card), LIFETIME);
     cards.slice(MAX).forEach(dismiss);
   }
 
-  return { push };
+  function dismissAll() {
+    cards.slice().forEach(dismiss);
+  }
+
+  return { push, dismissAll };
 }
