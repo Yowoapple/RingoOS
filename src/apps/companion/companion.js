@@ -7,10 +7,13 @@ import { Fx } from '../../ui/fx-tier.js';
 import { buildInsight } from '../reminder/insight.js';
 import { Persona } from '../reminder/persona.js';
 import { REACTIONS, SIZES, clampInto, findPerch, pickEgg, pickIdle, project, reactionForNotice, restUntil, stashSide } from './behavior.js';
+import { GOALS, count as countLife, decay, dayOf, feed, goalsFor, levelOf, markSeen, normalize, nudgeMood, stateOf, sync as syncDay } from './pet-model.js';
+import { eventLine, stateLine } from './pet-lines.js';
 
 const BASE = '/characters/coffeebean/';
 const STATE_KEY = 'yoworingo.v2.pet';
 const PREFS_KEY = 'yoworingo.v2.pet-prefs';
+const LIFE_KEY = 'yoworingo.v2.pet-life';
 const DEFAULT_PREFS = { enabled: true, size: 'm', chatty: 'some', yield: true };
 const CHATTY_MS = { some: 6 * 60000, often: 2 * 60000 };
 const WEARY_MS = 15 * 60000;
@@ -58,6 +61,39 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   let landing = false;
   let peakSpeed = 0;
   let seat = null;
+  let life = normalize(Storage.get(LIFE_KEY, null));
+  let lifeTimer = 0;
+
+  function saveLife() {
+    window.clearTimeout(lifeTimer);
+    lifeTimer = window.setTimeout(() => Storage.set(LIFE_KEY, JSON.parse(JSON.stringify(life))), 300);
+  }
+
+  function lifeVars() {
+    const lv = levelOf(life.bond);
+    return { name: life.name, streak: life.streak.count, title: lv.title };
+  }
+
+  function lifeCtx() {
+    const key = today();
+    const day = Data.getDayEntries(key);
+    const income = day.income || [];
+    const expenses = day.expenses || [];
+    const all = [...income, ...expenses];
+    const monthKey = Data.toMonthKey(key);
+    const budgets = Data.getMonthlyBudgets(monthKey);
+    const monthly = Object.values(budgets).reduce((sum, v) => sum + (Number(v) || 0), 0);
+    return {
+      entries: all.length,
+      tagged: expenses.filter((e) => e.necessity === 'need' || e.necessity === 'want').length,
+      noted: all.filter((e) => e.note && String(e.note).trim()).length,
+      pendingTasks: Data.getDayTasks(key).filter((t) => !t.done).length,
+      goals: (Data.getState().settings.savingsGoals || []).length,
+      dailyBudget: monthly ? monthly / Calc.getMonthDateKeys(monthKey).length : 0,
+      expense: expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0),
+      hour: new Date().getHours(),
+    };
+  }
 
   const el = document.createElement('div');
   el.className = 'pet';
@@ -198,6 +234,10 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   let wanted = '';
   function sprite(file) {
     wanted = file;
+    if (!life.seen.includes(file)) {
+      life = markSeen(life, file);
+      saveLife();
+    }
     const url = `${BASE}${file}`;
     if (loaded.has(url)) {
       img.src = url;
@@ -225,8 +265,43 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   function refreshIdle() {
     const insight = mood();
     const weary = Date.now() - lastInput > WEARY_MS;
-    idleFile = pickIdle(insight ? insight.status : 'empty', today(), { music, weary });
+    idleFile = pickIdle(insight ? insight.status : 'empty', today(), { music, weary, pet: stateOf(life) });
     if (!transient) sprite(idleFile);
+  }
+
+  function syncLife() {
+    const now = Date.now();
+    const before = stateOf(life);
+    life = decay(life, now);
+    const out = syncDay(life, today(), lifeCtx());
+    life = out.life;
+    saveLife();
+    out.events.forEach((event, i) => {
+      window.setTimeout(() => handleLifeEvent(event), i * 1400);
+    });
+    if (stateOf(life) !== before) refreshIdle();
+    if (cardOpen) updateStats();
+  }
+
+  function handleLifeEvent(event) {
+    const vars = lifeVars();
+    if (event.type === 'checkin') {
+      react(REACTIONS.checkin);
+      const milestone = [100, 30, 7].find((n) => event.streak === n);
+      say(eventLine(milestone ? `streak${milestone}` : 'checkin', voice(), vars, event.streak));
+    } else if (event.type === 'goal') {
+      say(eventLine('goal', voice(), vars, Date.now()));
+    } else if (event.type === 'level') {
+      react(REACTIONS.levelUp);
+      say(eventLine('level', voice(), { ...vars, title: event.title }, event.level));
+      island.toast({ text: `${life.name} 升到 Lv${event.level}`, note: event.title, duration: 3600 });
+    }
+  }
+
+  function changeLife(next) {
+    life = next;
+    saveLife();
+    syncLife();
   }
 
   function react(reaction) {
@@ -641,6 +716,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     if (pat.flips >= 4 && now > pat.cool) {
       pat = { dir: 0, flips: 0, since: 0, cool: now + 4000 };
       react(REACTIONS.pat);
+      changeLife(nudgeMood(countLife(life, today(), 'pats'), 4));
       if (prefs.chatty !== 'off') say(['嘿嘿', '再摸一下', '好舒服'][Math.floor(Math.random() * 3)]);
     }
   }
@@ -743,43 +819,95 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     return `${weather.location ? weather.location.name : ''} ${weather.current.text} ${Math.round(weather.temperature)}°`.trim();
   }
 
-  function fact(label, value, onClick) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'pet-card__fact';
-    b.innerHTML = '<span></span><b></b>';
-    b.querySelector('span').textContent = label;
-    b.querySelector('b').textContent = value;
-    b.addEventListener('click', () => {
-      closeCard();
-      onClick();
+  const RING = '<svg viewBox="0 0 36 36" aria-hidden="true"><circle class="pet-ring__track" cx="18" cy="18" r="15"/><circle class="pet-ring__fill" cx="18" cy="18" r="15" pathLength="1" transform="rotate(-90 18 18)"/></svg>';
+  let statEls = null;
+
+  function stat(label, key) {
+    const wrap = document.createElement('div');
+    wrap.className = `pet-stat pet-stat--${key}`;
+    wrap.innerHTML = `<span class="pet-ring">${RING}<b class="mono"></b></span><span class="pet-stat__label"></span>`;
+    wrap.querySelector('.pet-stat__label').textContent = label;
+    return wrap;
+  }
+
+  function updateStats() {
+    if (!statEls) return;
+    const lv = levelOf(life.bond);
+    const values = { full: life.fullness / 100, mood: life.mood / 100, bond: lv.progress };
+    const labels = { full: `${Math.round(life.fullness)}`, mood: `${Math.round(life.mood)}`, bond: `${lv.level}` };
+    Object.entries(statEls.rings).forEach(([key, node]) => {
+      node.querySelector('.pet-ring__fill').style.strokeDashoffset = String(1 - clamp(values[key], 0, 1));
+      node.querySelector('b').textContent = labels[key];
     });
-    return b;
+    statEls.title.textContent = `Lv${lv.level} · ${lv.title}`;
+    statEls.streak.textContent = life.streak.count ? `連續 ${life.streak.count} 天` : '今天還沒打卡';
+    statEls.feed.textContent = `餵點心 · ${life.treats}`;
+    statEls.feed.disabled = life.treats <= 0;
+    const day = dayOf(life, today());
+    statEls.goals.forEach(({ id, node }) => {
+      const done = !!day.goals[id];
+      node.classList.toggle('is-done', done);
+      node.setAttribute('aria-checked', String(done));
+    });
+  }
+
+  function feedTreat() {
+    const out = feed(life, today());
+    const vars = lifeVars();
+    if (!out.ok) {
+      say(eventLine(out.reason === 'empty' ? 'noTreat' : 'tooFull', voice(), vars));
+      return;
+    }
+    life = out.life;
+    saveLife();
+    react(REACTIONS.eat);
+    if (out.levelUp) handleLifeEvent({ type: 'level', ...out.levelUp });
+    updateStats();
+    refreshIdle();
   }
 
   function buildCard() {
     card.textContent = '';
-    const insight = mood();
-    const pieces = [line(insight ? insight.lead : '今天也一起加油', 'pet-card__lead')];
-    if (insight && insight.sub) pieces.push(line(insight.sub, 'pet-card__sub'));
-    const facts = document.createElement('div');
-    facts.className = 'pet-card__facts';
-    const task = nextTask();
-    if (task) facts.append(fact('下一件', task.text, () => wm.open('calendar')));
-    const wx = weatherLine();
-    if (wx) facts.append(fact('天氣', wx, () => wm.open('weather')));
-    if (facts.childElementCount) pieces.push(facts);
+    syncLife();
+    const head = document.createElement('div');
+    head.className = 'pet-card__head';
+    head.innerHTML = '<p class="pet-card__name"></p><p class="pet-card__meta"><span></span><span class="mono"></span></p>';
+    head.querySelector('.pet-card__name').textContent = life.name;
+    const stats = document.createElement('div');
+    stats.className = 'pet-card__stats';
+    const rings = { full: stat('飽足', 'full'), mood: stat('心情', 'mood'), bond: stat('親密', 'bond') };
+    Object.values(rings).forEach((node) => stats.append(node));
+    const speech = line(stateLine(stateOf(life), voice(), lifeVars(), Math.floor(Date.now() / 60000)), 'pet-card__lead');
+    const goalsBox = document.createElement('div');
+    goalsBox.className = 'pet-card__goals';
+    goalsBox.setAttribute('role', 'list');
+    goalsBox.setAttribute('aria-label', '今日小目標');
+    const goals = goalsFor(today(), lifeCtx()).map((id) => {
+      const node = document.createElement('div');
+      node.className = 'pet-goal';
+      node.setAttribute('role', 'listitem');
+      node.innerHTML = '<i aria-hidden="true"></i><span></span>';
+      node.querySelector('span').textContent = GOALS[id].label;
+      goalsBox.append(node);
+      return { id, node };
+    });
     const actions = document.createElement('div');
     actions.className = 'pet-card__actions';
-    [['記一筆', () => { closeCard(); island.open(); }, true], ['看總覽', () => { closeCard(); wm.open('overview'); }], ['逗她', () => react(pickAnEgg())]].forEach(([label, fn, main]) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = `pet-card__btn${main ? ' is-main' : ''}`;
-      b.textContent = label;
-      b.addEventListener('click', fn);
-      actions.append(b);
-    });
-    pieces.push(actions);
+    const log = document.createElement('button');
+    log.type = 'button';
+    log.className = 'pet-card__btn is-main';
+    log.textContent = '記一筆';
+    log.addEventListener('click', () => { closeCard(); island.open(); });
+    const feedButton = document.createElement('button');
+    feedButton.type = 'button';
+    feedButton.className = 'pet-card__btn';
+    feedButton.addEventListener('click', feedTreat);
+    const tease = document.createElement('button');
+    tease.type = 'button';
+    tease.className = 'pet-card__btn';
+    tease.textContent = '逗她';
+    tease.addEventListener('click', () => react(pickAnEgg()));
+    actions.append(log, feedButton, tease);
     const restRow = document.createElement('div');
     restRow.className = 'pet-card__rest';
     restRow.innerHTML = '<span>先休息</span>';
@@ -791,8 +919,10 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
       b.addEventListener('click', () => rest(value));
       restRow.append(b);
     });
-    pieces.push(restRow);
+    statEls = { rings, goals, feed: feedButton, title: head.querySelector('.pet-card__meta span'), streak: head.querySelector('.pet-card__meta .mono') };
+    const pieces = [head, stats, speech, goalsBox, actions, restRow];
     pieces.forEach((piece) => card.append(piece));
+    updateStats();
     return pieces;
   }
 
@@ -900,20 +1030,18 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   bubble.addEventListener('click', () => openCard());
 
   function nextLine() {
-    const insight = mood();
-    const options = [];
-    if (insight) options.push(insight.sub || insight.lead);
+    lineIndex += 1;
+    const own = stateLine(stateOf(life), voice(), lifeVars(), lineIndex);
+    if (lineIndex % 3 !== 0) return own;
     const task = nextTask();
-    if (task) options.push(`別忘了：${task.text}`);
+    if (task && lineIndex % 2 === 0) return `別忘了：${task.text}`;
     const wx = weatherLine();
-    if (wx) options.push(wx);
-    if (!options.length) return null;
-    lineIndex = (lineIndex + 1) % options.length;
-    return options[lineIndex];
+    return wx || own;
   }
 
   window.setInterval(() => {
     if (document.visibilityState !== 'visible') return;
+    syncLife();
     const gap = CHATTY_MS[prefs.chatty];
     if (gap && !speaking && Date.now() - lastSpoke > gap && Date.now() - lastInput < 10 * 60000) say(nextLine());
     if (mode === 'rest' && restAt && Date.now() >= restAt) wake();
@@ -927,7 +1055,10 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
 
   window.addEventListener('yoworingo:entry-added', () => react(REACTIONS.added));
   window.addEventListener('yoworingo:entry-removed', () => react(REACTIONS.removed));
-  window.addEventListener('yoworingo:goal-deposit', () => react(REACTIONS.deposit));
+  window.addEventListener('yoworingo:goal-deposit', () => {
+    react(REACTIONS.deposit);
+    changeLife(nudgeMood(countLife(life, today(), 'deposits'), 8));
+  });
   window.addEventListener('yoworingo:persona-change', refreshIdle);
 
   function countDone() {
@@ -940,15 +1071,21 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   doneCount = countDone();
   Data.subscribe(() => {
     const next = countDone();
-    if (next > doneCount) react(REACTIONS.taskDone);
+    if (next > doneCount) {
+      react(REACTIONS.taskDone);
+      life = nudgeMood(countLife(life, today(), 'tasksDone', next - doneCount), 6);
+    }
     doneCount = next;
+    syncLife();
     refreshIdle();
   });
 
   if (notifier) {
     notifier.subscribe(({ type }) => {
-      if (type !== 'add' || notifier.quiet) return;
-      react(reactionForNotice(notifier.history[0]));
+      if (type !== 'add') return;
+      const item = notifier.history[0];
+      if (item && item.key && (item.key.startsWith('budget-100') || item.key.startsWith('budget-cat'))) changeLife(nudgeMood(life, -10));
+      if (!notifier.quiet) react(reactionForNotice(item));
     });
   }
 
@@ -992,6 +1129,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
         followPerch();
       }
     }
+    syncLife();
     refreshIdle();
     setVisible();
     if (mode === 'rest' || MotionSettings.reduced) {
@@ -1039,6 +1177,16 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     setWeather(info) {
       weather = info;
     },
+    get name() { return life.name; },
+    setName(next) {
+      const name = String(next || '').trim().slice(0, 12);
+      if (!name || name === life.name) return;
+      life = { ...life, name };
+      saveLife();
+      if (cardOpen) closeCard(true);
+      say(`我是 ${name}，請多指教。`);
+    },
+    get life() { return JSON.parse(JSON.stringify(life)); },
     wake,
     say,
     get mode() { return mode; },

@@ -12,6 +12,9 @@ export const REACTIONS = {
   added: { file: 'nod_head_yes.webp', ms: 2000 },
   removed: { file: 'shake_head_no.webp', ms: 2000 },
   deposit: { file: 'notification_donation.webp', ms: 2600 },
+  eat: { file: 'cake.webp', ms: 2400 },
+  checkin: { file: 'arrive_with_spoon.webp', ms: 2400 },
+  levelUp: { file: 'rose.webp', ms: 2800 },
   taskDone: { file: 'cheer_up.webp', ms: 2200 },
   over: { file: 'crying_1.webp', ms: 2800 },
   overAll: { file: 'crying_2.webp', ms: 3000 },
@@ -44,9 +47,16 @@ function hash(text) {
   return value;
 }
 
-export function pickIdle(status, dateKey, { music = false, weary = false } = {}) {
+export const PET_IDLE = {
+  hungry: ['craving.webp', 'licking_lips.webp'],
+  sad: ['nervous_2.webp', 'dazed.webp'],
+  happy: ['laughing.webp', 'cheer_up.webp', 'pat_head.webp'],
+};
+
+export function pickIdle(status, dateKey, { music = false, weary = false, pet = 'calm' } = {}) {
   if (music) return MUSIC_IDLE;
   if (weary) return WEARY_IDLE;
+  if (PET_IDLE[pet]) return PET_IDLE[pet][hash(`${dateKey}-${pet}`) % PET_IDLE[pet].length];
   const pool = IDLE[status] || IDLE.empty;
   return pool[hash(`${dateKey}-${status}`) % pool.length];
 }

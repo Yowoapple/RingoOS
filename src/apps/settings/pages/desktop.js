@@ -1,4 +1,4 @@
-import { group, h, row, segmented, select, slider, toggle } from '../kit.js';
+import { field, group, h, row, segmented, select, slider, toggle } from '../kit.js';
 
 const WIDGETS = [
   { key: 'island', label: '記一筆', hint: '選單列中間的靈動島，隨時快速記帳' },
@@ -48,10 +48,18 @@ export function desktopPage(ctx) {
     onChange: (v) => companion.setPrefs({ chatty: v }),
   });
   const yieldToggle = toggle(petPrefs.yield, (on) => companion.setPrefs({ yield: on }), '視窗放大時讓位');
+  const petName = field({
+    value: companion.name,
+    placeholder: 'SAYA',
+    label: '桌寵的名字',
+    validate: (v) => (String(v).trim().length > 12 ? '最多 12 個字' : ''),
+    onCommit: (v) => companion.setName(String(v).trim() || 'SAYA'),
+  });
 
   el.append(
     group([
       row({ label: '桌寵', hint: '點她打開卡片；拖到螢幕左右邊緣可以先藏起來', control: petOn.el, keywords: '角色 夥伴 coffeebean 寵物' }),
+      row({ label: '名字', hint: '卡片和她說的話都會用這個名字', control: petName.el, keywords: '桌寵 名字 SAYA 取名' }),
       row({ label: '大小', control: petSize.el, keywords: '桌寵 尺寸' }),
       row({ label: '說話頻率', hint: '勿擾時一律安靜', control: chatty.el, keywords: '桌寵 泡泡 對話' }),
       row({ label: '視窗放大時讓位', hint: '有視窗最大化或貼齊半邊時，她會先躲到邊緣', control: yieldToggle.el, keywords: '桌寵 擋住 讓開' }),
@@ -81,6 +89,7 @@ export function desktopPage(ctx) {
       petSize.api.select(['s', 'm', 'l'].indexOf(pet.size));
       chatty.api.set(pet.chatty);
       yieldToggle.api.set(pet.yield);
+      if (document.activeElement !== petName.input) petName.input.value = companion.name;
     },
     show() {
       petSize.api.measure();
