@@ -5,9 +5,22 @@ let rafId = null;
 let lastTime = null;
 let timeScale = 1;
 let manual = false;
+let ticking = false;
 
 function tickAll(dt) {
-  Array.from(active).forEach((motion) => motion.tick(dt));
+  ticking = true;
+  try {
+    Array.from(active).forEach((motion) => {
+      try {
+        motion.tick(dt);
+      } catch (err) {
+        active.delete(motion);
+        console.error('RingoOS: an animation failed and was stopped', err);
+      }
+    });
+  } finally {
+    ticking = false;
+  }
 }
 
 function frame(now) {
@@ -15,12 +28,15 @@ function frame(now) {
   const dt = lastTime === null ? 1 / 60 : (now - lastTime) / 1000;
   lastTime = now;
   tickAll(dt * timeScale);
-  if (active.size > 0 && !manual) rafId = requestAnimationFrame(frame);
-  else lastTime = null;
+  if (active.size > 0 && !manual) {
+    if (rafId === null) rafId = requestAnimationFrame(frame);
+  } else {
+    lastTime = null;
+  }
 }
 
 function ensureRunning() {
-  if (manual || rafId !== null || active.size === 0) return;
+  if (manual || ticking || rafId !== null || active.size === 0) return;
   lastTime = null;
   rafId = requestAnimationFrame(frame);
 }
