@@ -13,10 +13,10 @@ import { buildInsight } from './insight.js';
 const MODES = ['month', 'week'];
 const WIDE_REM = 34;
 const VOICE_OPTIONS = [
-  { value: 'neutral', label: '一般語氣' },
-  { value: 'maid', label: '女僕語氣' },
-  { value: 'wife', label: '老婆語氣' },
-  { value: 'sister', label: '妹妹語氣' },
+  { value: 'neutral', label: '一般' },
+  { value: 'maid', label: '女僕' },
+  { value: 'wife', label: '老婆' },
+  { value: 'sister', label: '妹妹' },
 ];
 const PERSONA_KEYS = ['yoworingo.persona-enabled', 'yoworingo.persona-type'];
 const OPENERS = /[「『（《〈(]/;
@@ -79,9 +79,36 @@ function attach(pieces) {
   return out;
 }
 
+const HAN = /^\p{Script=Han}$/u;
+
+function pairSingles(pieces) {
+  const out = [];
+  pieces.forEach((piece) => {
+    const last = out[out.length - 1];
+    if (HAN.test(piece) && last && HAN.test(last)) out[out.length - 1] = last + piece;
+    else out.push(piece);
+  });
+  return out;
+}
+
+const KAOMOJI = /[(（][^()（）\p{Script=Han}\n]{1,14}[)）][^\s\p{Script=Han}，。！？、]{0,3}/gu;
+
+function appendText(el, text) {
+  let last = 0;
+  for (const match of text.matchAll(KAOMOJI)) {
+    if (match.index > last) el.appendChild(document.createTextNode(text.slice(last, match.index)));
+    const keep = document.createElement('span');
+    keep.className = 'rm-keep';
+    keep.textContent = match[0];
+    el.appendChild(keep);
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) el.appendChild(document.createTextNode(text.slice(last)));
+}
+
 function words(text) {
   if (!segmenter) return attach(Array.from(text));
-  return attach(Array.from(segmenter.segment(text), (part) => part.segment));
+  return attach(pairSingles(Array.from(segmenter.segment(text), (part) => part.segment)));
 }
 
 function chars(word) {
@@ -167,7 +194,7 @@ function createLine(el, { split = false, lift = 8 } = {}) {
     tokens.forEach((token) => {
       if (typeof token === 'string') {
         if (!split) {
-          el.appendChild(document.createTextNode(token));
+          appendText(el, token);
           return;
         }
         words(token).forEach((word) => {

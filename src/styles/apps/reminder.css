@@ -283,3 +283,7 @@ button.rm-clue:focus-visible {
     grid-template-columns: repeat(auto-fill, minmax(6.6rem, 1fr));
   }
 }
+
+.rm-keep {
+  white-space: nowrap;
+}
