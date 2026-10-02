@@ -146,7 +146,7 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
       homebar: el.querySelector('[data-wm-homebar]'),
       morph: createMotion({ p: 0, ox: 0, oy: 0, fade: 1 }, { response: 0.42, damping: 0.86, restDelta: { p: 0.0002, ox: 0.05, oy: 0.05, fade: 0.001 } }),
       frame: createMotion({ x: 0, y: 0, w: app.frame.w, h: app.frame.h }, { response: 0.4, damping: 0.9, restDelta: 0.05 }),
-      pulse: createMotion({ s: 1 }, { response: 0.3, damping: 1, restDelta: 0.0001 }),
+      pulse: createMotion({ s: 1, y: 0 }, { response: 0.3, damping: 1, restDelta: { s: 0.0001, y: 0.05 } }),
       applied: { w: -1, h: -1, rest: null },
       visible: false,
     };
@@ -179,7 +179,7 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
     win.el.style.opacity = String(clamp(m.fade, 0, 1));
     if (atRest) {
       const tx = f.x + (w * (1 - pulse)) / 2;
-      const ty = f.y + (h * (1 - pulse)) / 2;
+      const ty = f.y + (h * (1 - pulse)) / 2 + win.pulse.get('y');
       win.el.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${pulse})`;
       if (win.applied.rest !== true) {
         win.frameEl.style.clipPath = '';
@@ -247,6 +247,25 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
     if (MotionSettings.reduced) return;
     win.pulse.set({ s: 0.985 });
     win.pulse.to({ s: 1 }, MotionSettings.spring('focus'));
+  }
+
+  function liftWindow(win) {
+    if (MotionSettings.reduced) return;
+    win.el.classList.add('is-lifting');
+    win.pulse.set({ s: 0.965, y: 0 });
+    win.pulse.to({ s: 1, y: 0 }, { response: 0.5, damping: 0.42, velocity: { s: 0.9, y: -340 } }).then((done) => {
+      if (done) win.el.classList.remove('is-lifting');
+    });
+  }
+
+  function summon(id) {
+    const record = store.get(id);
+    if (!record || record.state !== 'open') {
+      open(id);
+      return;
+    }
+    if (store.focusedId !== id) store.focus(id);
+    liftWindow(windows.get(id));
   }
 
   function pulseBackdrop() {
@@ -624,6 +643,7 @@ export function createWindowManager({ root, areaEl, backdropEl, apps, store, doc
 
   return {
     open,
+    summon,
     restoreSession,
     isOpen(id) { return store.get(id)?.state === 'open'; },
     isFocused(id) { return store.focusedId === id && store.get(id)?.state === 'open'; },

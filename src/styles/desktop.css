@@ -39,6 +39,10 @@
   transition: box-shadow 260ms ease;
 }
 
+.wm-window.is-lifting .wm-window__shadow {
+  box-shadow: var(--wm-shadow-drag);
+}
+
 .wm-titlebar {
   position: relative;
   z-index: 2;
