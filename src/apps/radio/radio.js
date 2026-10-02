@@ -26,7 +26,7 @@ const subscribers = new Set();
 
 function notify() {
   subscribers.forEach((cb) => {
-    try { cb(getState()); } catch (err) { console.error('Life Ledger：電台狀態通知失敗', err); }
+    try { cb(getState()); } catch (err) { console.error('RingoOS：電台狀態通知失敗', err); }
   });
 }
 
@@ -176,7 +176,7 @@ function ensureAudio() {
   audioEl.addEventListener('error', () => {
     isPlaying = false;
     lastError = '電台目前連不上，可能是斷線或網址失效';
-    console.error('Life Ledger：電台播放失敗', audioEl.error, audioEl.error && audioEl.error.code, audioEl.src);
+    console.error('RingoOS：電台播放失敗', audioEl.error, audioEl.error && audioEl.error.code, audioEl.src);
     notify();
   });
   audioEl.addEventListener('waiting', () => {
@@ -211,7 +211,7 @@ function play(stationId) {
     result.catch((err) => {
       lastError = '無法自動播放，請再點一次播放鍵';
       isPlaying = false;
-      console.error('Life Ledger：play() 被拒絕', err && err.name, err && err.message, audio.src);
+      console.error('RingoOS：play() 被拒絕', err && err.name, err && err.message, audio.src);
       notify();
     });
   }

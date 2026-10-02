@@ -4,7 +4,7 @@ import { MotionSettings } from '../motion/presets.js';
 import { Storage } from '../core/storage/storage.js';
 import { Data } from '../core/data-model.js';
 import { sanitizeSession, serializeSession } from '../wm/session.js';
-import { scaledApps } from '../system/apps.js';
+import { scaledApps } from './apps.js';
 import { APPS, renderIcon } from '../ui/icons.js';
 import { Fx } from '../ui/fx-tier.js';
 import { createIsland } from '../ui/island.js';
@@ -231,7 +231,7 @@ function start() {
     nextButton: $('reminder-next'),
     onReveal({ mode, anchorKey }) {
       overview.show(mode, anchorKey);
-      wm.open('overview');
+      wm.summon('overview');
     },
     onCompose() {
       wm.open('daily-entry');
@@ -305,7 +305,7 @@ function start() {
     const target = item.target || {};
     if (item.app === 'overview' && target.mode) overview.show(target.mode, target.anchorKey);
     if (item.app === 'calendar' && target.dateKey) calendar.show(target.dateKey);
-    if (APPS.some((app) => app.id === item.app)) wm.open(item.app);
+    if (APPS.some((app) => app.id === item.app)) wm.summon(item.app);
   };
 
   function readDesktop() {
