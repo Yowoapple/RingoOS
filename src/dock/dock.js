@@ -29,15 +29,19 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
   const hideMotion = createMotion({ h: 0 }, { response: 0.32, damping: 1, restDelta: 0.001 });
 
   function hideDistance() {
-    return layout.size + layout.pad * 2 + 24;
+    const bg = root.querySelector('.dock__bg');
+    const tall = bg ? bg.offsetHeight : 0;
+    return Math.max(layout.size + layout.pad * 2, tall) + 24;
   }
 
   function hideOffset() {
     return hideMotion.get('h') * hideDistance();
   }
 
+  let suppressed = false;
+
   function updateHidden() {
-    const shown = !autoHide || hovering || edgePeek || performance.now() < holdUntil;
+    const shown = !suppressed && (!autoHide || hovering || edgePeek || performance.now() < holdUntil);
     hideMotion.to({ h: shown ? 0 : 1 }, shown ? { response: 0.28, damping: 0.9 } : { response: 0.36, damping: 1 });
   }
 
@@ -291,6 +295,12 @@ export function createDock({ root, apps, store, renderIcon, onActivate }) {
     setAutoHide(value) {
       autoHide = !!value;
       root.classList.toggle('dock--autohide', autoHide);
+      updateHidden();
+    },
+    setSuppressed(on) {
+      if (suppressed === !!on) return;
+      suppressed = !!on;
+      root.classList.toggle('is-suppressed', suppressed);
       updateHidden();
     },
     peek(ms = 900) {

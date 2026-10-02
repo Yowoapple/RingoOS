@@ -226,7 +226,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   }
 
   function setSize(next) {
-    size = SIZES[next] || SIZES.m;
+    size = Math.min(SIZES[next] || SIZES.m, Math.max(120, Math.round(window.innerWidth * 0.42)));
     el.style.setProperty('--pet-size', `${size}px`);
   }
 
@@ -814,7 +814,11 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     const b = bounds();
     const right = a.x + size * offset + w < window.innerWidth - 8;
     const left = right ? a.x + size * offset : a.x + size * (1 - offset) - w;
-    const top = clamp(a.headY - 26, b.top, b.bottom - h);
+    const dock = document.getElementById('dock');
+    const dockRect = dock ? dock.getBoundingClientRect() : null;
+    const overDock = dockRect && dockRect.height > 0 && dockRect.top < window.innerHeight - 4 && left < dockRect.right && left + w > dockRect.left;
+    const floor = overDock ? Math.max(b.top + h, dockRect.top - 8) : b.bottom;
+    const top = clamp(a.headY - 26, b.top, floor - h);
     const tail = clamp(a.headY - top, 16, h - 16);
     node.style.left = `${clamp(left, 8, window.innerWidth - w - 8).toFixed(2)}px`;
     node.style.top = `${top.toFixed(2)}px`;
@@ -1165,6 +1169,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   });
 
   window.addEventListener('resize', () => {
+    setSize(prefs.size);
     if (mode === 'free') pos.set(clampInto({ x: pos.get('x'), y: pos.get('y') }, box(), bounds()));
     if (hidden()) pos.set({ x: stashX(stash) });
     paint();

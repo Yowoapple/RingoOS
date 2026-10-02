@@ -229,6 +229,12 @@ export function createDesktop({ desk, areaEl, dockEl, wallEl, apps, renderIcon }
     if (group) bindTrafficLights(group);
     bindScrollEdge(win);
   });
+  const syncPhoneDock = () => {
+    dock.setSuppressed(wm.layout === 'phone' && store.all().some((r) => r.state === 'open'));
+  };
+  store.subscribe(syncPhoneDock);
+  window.addEventListener('resize', () => window.requestAnimationFrame(syncPhoneDock));
+  syncPhoneDock();
   createDockDots({ dockEl, store, apps });
   createDockTip({ dockEl, dock, apps, host: desk });
 

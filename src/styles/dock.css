@@ -116,6 +116,10 @@
   bottom: 14px;
 }
 
+.dock.is-suppressed {
+  pointer-events: none;
+}
+
 .dock[data-layout="phone"] .dock__bg {
   border-radius: 30px;
 }
