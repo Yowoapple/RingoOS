@@ -195,8 +195,9 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     }, reaction.ms);
   }
 
-  function persist() {
-    Storage.set(STATE_KEY, { x: Math.round(pos.get('x')), y: Math.round(pos.get('y')), stash: mode === 'stash' ? stash : null, perch: mode === 'perch' ? perch : null, restUntil: restAt });
+  function persist(at) {
+    const point = at || { x: pos.get('x'), y: pos.get('y') };
+    Storage.set(STATE_KEY, { x: Math.round(point.x), y: Math.round(point.y), stash: mode === 'stash' ? stash : null, perch: mode === 'perch' ? perch : null, restUntil: restAt });
   }
 
   function lifted(on) {
@@ -281,6 +282,8 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
       lifted(false);
       const target = clampInto(thrown, box(), b);
       pos.to(target, soft({ response: 0.55, damping: 0.62, velocity: { x: vx, y: vy } }));
+      persist(target);
+      return;
     }
     persist();
   }
@@ -295,7 +298,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     landing = true;
     peakSpeed = 0;
     pos.to({ x }, soft({ response: 0.5, damping: 0.55 }));
-    persist();
+    persist({ x, y: pos.get('y') });
   }
 
   function unyield() {

@@ -9,6 +9,12 @@
 
 .wm-area {
   z-index: 10;
+  pointer-events: none;
+}
+
+.wm-area > .wm-window,
+.wm-area > .yt-layer {
+  pointer-events: auto;
 }
 
 .wm-window__frame {
