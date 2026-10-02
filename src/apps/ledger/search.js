@@ -2,7 +2,7 @@ export const PERIODS = ['all', 'month', 'quarter', 'year'];
 export const KINDS = ['all', 'expense', 'income', 'transfer'];
 
 export function emptyFilters() {
-  return { q: '', kind: 'all', period: 'all', categories: [], min: null, max: null, fixed: false };
+  return { q: '', kind: 'all', period: 'all', range: null, categories: [], min: null, max: null, fixed: false };
 }
 
 function monthsBack(todayKey, count) {
@@ -80,14 +80,17 @@ export function collect(state, transfers = []) {
 export function search(items, filters, todayKey) {
   const f = { ...emptyFilters(), ...filters };
   const tokens = parseQuery(f.q);
-  const start = periodStart(f.period, todayKey);
+  const ranged = f.period === 'range' && f.range;
+  const start = ranged ? f.range.from : periodStart(f.period, todayKey);
+  const end = ranged ? f.range.to : null;
   const cats = new Set(f.categories || []);
   const min = Number.isFinite(f.min) ? f.min : null;
   const max = Number.isFinite(f.max) ? f.max : null;
   const results = items.filter((item) => {
     if (f.kind !== 'all' && item.kind !== f.kind) return false;
     if (start && item.dateKey < start) return false;
-    if (item.dateKey > todayKey && f.period !== 'all') return false;
+    if (end && item.dateKey > end) return false;
+    if (!ranged && item.dateKey > todayKey && f.period !== 'all') return false;
     if (cats.size && !cats.has(item.category)) return false;
     if (min !== null && item.amount < min) return false;
     if (max !== null && item.amount > max) return false;

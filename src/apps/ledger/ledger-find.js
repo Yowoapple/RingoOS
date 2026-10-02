@@ -246,6 +246,7 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
         filters = { ...filters, [key]: [...set] };
       } else {
         filters = { ...filters, [key]: value };
+        if (key === 'period' && value !== 'range') filters.range = null;
       }
       paint();
       pop(row.querySelector(`[data-value="${CSS.escape(value)}"]`));
@@ -270,7 +271,7 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
   }
 
   const kindSection = filterSection('類型', 'kind', () => KIND_LABELS);
-  const periodSection = filterSection('期間', 'period', () => PERIOD_LABELS);
+  const periodSection = filterSection('期間', 'period', () => (filters.range ? [...PERIOD_LABELS, ['range', filters.range.label]] : PERIOD_LABELS));
   const catSection = filterSection('分類', 'categories', categoryOptions, { multi: true });
 
   const amountWrap = document.createElement('div');
@@ -690,6 +691,7 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
   function open(next = null) {
     if (next) {
       filters = { ...emptyFilters(), ...next };
+      if (filters.range) filters.period = 'range';
       limit = PAGE;
     }
     if (isOpen) {

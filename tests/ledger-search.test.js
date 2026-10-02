@@ -45,6 +45,11 @@ describe('ledger search', () => {
     expect(search(items, { q: '旅行' }, TODAY).results.map((r) => r.kind)).toEqual(['transfer']);
   });
 
+  it('limits results to a date range handed over from the overview', () => {
+    const out = search(items, { period: 'range', range: { from: '2026-10-01', to: '2026-10-02', label: '10/01—10/02' } }, TODAY);
+    expect(out.results.map((r) => r.id).sort()).toEqual(['b', 'c', 'd', 't']);
+  });
+
   it('knows when any filter is on', () => {
     expect(isFiltered({})).toBe(false);
     expect(isFiltered({ q: '  ' })).toBe(false);

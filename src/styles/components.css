@@ -451,47 +451,6 @@
   color: var(--ink-3);
 }
 
-.rank {
-  display: grid;
-  grid-template-columns: minmax(2.6rem, max-content) minmax(0, 1fr) max-content;
-  column-gap: 0.6rem;
-  row-gap: 0.5rem;
-}
-
-.rank__row {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: subgrid;
-  align-items: center;
-  font-size: 0.75rem;
-}
-
-.rank__name {
-  max-width: 7rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.rank__amt {
-  text-align: right;
-}
-
-.rank__track {
-  height: 0.22rem;
-  border-radius: var(--r-pill);
-  background: var(--paper-2);
-  overflow: hidden;
-}
-
-.rank__fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--ink-2);
-  transform-origin: 0 50%;
-}
-
 .i-base { fill: url(#ico-light); }
 .i-tile { fill: var(--ico-tile); }
 .i-ink { fill: var(--ico-ink); }

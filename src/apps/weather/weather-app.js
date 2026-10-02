@@ -3,6 +3,7 @@ import { MotionSettings } from '../../motion/presets.js';
 import { Storage } from '../../core/storage/storage.js';
 import { createOdometer } from '../../ui/odometer.js';
 import { Fx } from '../../ui/fx-tier.js';
+import { monotonePath } from '../../ui/curve.js';
 import { Persona } from '../reminder/persona.js';
 import { glyph } from './glyphs.js';
 import { pickQuip } from './quips.js';
@@ -423,25 +424,7 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
   }
 
   function smooth(points) {
-    const n = points.length;
-    if (n < 2) return '';
-    const dx = [];
-    const slope = [];
-    for (let i = 0; i < n - 1; i += 1) {
-      dx.push(points[i + 1][0] - points[i][0]);
-      slope.push((points[i + 1][1] - points[i][1]) / dx[i]);
-    }
-    const tangent = [slope[0]];
-    for (let i = 1; i < n - 1; i += 1) {
-      tangent.push(slope[i - 1] * slope[i] <= 0 ? 0 : (3 * (dx[i - 1] + dx[i])) / ((2 * dx[i] + dx[i - 1]) / slope[i - 1] + (dx[i] + 2 * dx[i - 1]) / slope[i]));
-    }
-    tangent.push(slope[n - 2]);
-    let d = `M${points[0][0].toFixed(1)} ${points[0][1].toFixed(1)}`;
-    for (let i = 0; i < n - 1; i += 1) {
-      const h = dx[i] / 3;
-      d += ` C${(points[i][0] + h).toFixed(1)} ${(points[i][1] + tangent[i] * h).toFixed(1)} ${(points[i + 1][0] - h).toFixed(1)} ${(points[i + 1][1] - tangent[i + 1] * h).toFixed(1)} ${points[i + 1][0].toFixed(1)} ${points[i + 1][1].toFixed(1)}`;
-    }
-    return d;
+    return points.length < 2 ? '' : monotonePath(points);
   }
 
   function renderChart(data, timeZone, intro) {

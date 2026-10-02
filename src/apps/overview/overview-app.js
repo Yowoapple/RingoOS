@@ -6,6 +6,8 @@ import { createSegmented } from '../../ui/segmented.js';
 import { createOdometer, formatAmount } from '../../ui/odometer.js';
 import { createBarChart } from '../../ui/chart.js';
 import { Fx } from '../../ui/fx-tier.js';
+import { createDonut, createPaceChart, createTrend } from './charts.js';
+import { monthKeysBack, paceSeries, slices } from './series.js';
 
 const MODES = ['month', 'week'];
 const WEEK_LABELS = ['一', '二', '三', '四', '五', '六', '日'];
@@ -44,7 +46,7 @@ function spring(config) {
   return MotionSettings.reduced ? MotionSettings.spring('focus') : config;
 }
 
-export function createOverviewApp({ root, periodTag, nowButton, prevButton, nextButton }) {
+export function createOverviewApp({ root, periodTag, nowButton, prevButton, nextButton, onFind }) {
   const $ = (name) => root.querySelector(`[data-ov="${name}"]`);
   const heroLabel = $('hero-label');
   const rangeTag = $('range');
@@ -55,7 +57,6 @@ export function createOverviewApp({ root, periodTag, nowButton, prevButton, next
   const projectionEl = $('projection');
   const budgetLine = $('budget-line');
   const chartTitle = $('chart-title');
-  const rankEl = $('rank');
   const rankEmpty = $('rank-empty');
   const needBlock = $('need-block');
   const needPct = $('need-pct');
@@ -73,6 +74,28 @@ export function createOverviewApp({ root, periodTag, nowButton, prevButton, next
   const savedOdo = createOdometer($('saved'), { value: 0, format: signed });
   const savedCell = $('saved-cell');
   const chart = createBarChart($('chart'), $('chart-labels'), { values: [], labels: [], todayIndex: -1, format: (v) => formatAmount(v) });
+  const paceTitle = $('pace-title');
+  const pacePrev = $('pace-prev');
+  const paceNow = $('pace-now');
+  const paceAxis = $('pace-axis');
+  let paceKeys = [];
+  const pace = createPaceChart($('pace'), { labelFor: (i) => (paceKeys[i] ? shortDate(paceKeys[i]) : '') });
+  if (typeof ResizeObserver === 'function') new ResizeObserver(() => pace.resize()).observe($('pace'));
+  const donut = createDonut($('donut'), {
+    onFind(categories) {
+      const keys = periodKeys();
+      if (onFind) onFind({ categories, range: { from: keys[0], to: keys[keys.length - 1], label: tagText(keys) } });
+    },
+  });
+  const trend = createTrend($('trend'), {
+    onPick(monthKey) {
+      const [y, m] = monthKey.split('-').map(Number);
+      const last = new Date(y, m, 0);
+      anchor = last > today() ? today() : last;
+      if (mode !== 'month') segment.select(0);
+      else render({ stagger: true });
+    },
+  });
 
   const budgetMotion = createMotion({ f: 0 }, { response: 0.6, damping: 0.8, restDelta: 0.0005 });
   budgetMotion.onUpdate(({ f }) => {
@@ -189,77 +212,55 @@ export function createOverviewApp({ root, periodTag, nowButton, prevButton, next
     chart.update({ values, labels, todayIndex: keys.indexOf(todayKey), stagger });
   }
 
-  const rankRows = new Map();
-
-  function rankRow(category) {
-    const row = document.createElement('div');
-    row.className = 'rank__row';
-    row.innerHTML = '<span class="rank__name"></span><span class="rank__track"><span class="rank__fill"></span></span><span class="rank__amt mono"></span>';
-    row.querySelector('.rank__name').textContent = category;
-    const fill = row.querySelector('.rank__fill');
-    const width = createMotion({ f: 0 }, { response: 0.55, damping: 0.72, restDelta: 0.0005 });
-    width.onUpdate(({ f }) => {
-      fill.style.transform = `scaleX(${Math.max(0, f)})`;
-    });
-    fill.style.transform = 'scaleX(0)';
-    const shift = createMotion({ y: 0, o: 1 }, { response: 0.5, damping: 0.74, restDelta: { y: 0.3, o: 0.003 } });
-    shift.onUpdate(({ y, o }) => {
-      const t = Math.max(0, Math.min(1, o));
-      const settled = Math.abs(y) < 0.3 && t > 0.997;
-      row.style.transform = settled ? '' : `translate3d(0, ${y}px, 0) scale(${0.96 + 0.04 * t})`;
-      row.style.opacity = t > 0.997 ? '' : String(t);
-      row.style.filter = t < 0.97 && Fx.tier !== 'solid' ? `blur(${((1 - t) * 4).toFixed(2)}px)` : '';
-    });
-    return { row, fill, width, shift, amt: row.querySelector('.rank__amt') };
+  function renderPace(keys, intro) {
+    const todayKey = Data.toDateKey(today());
+    const daily = keys.map((key) => Calc.summarizeDateKeys([key]).expense);
+    const previousDaily = previousKeys(keys).map((key) => Calc.summarizeDateKeys([key]).expense);
+    const monthKey = Data.toMonthKey(keys[0]);
+    const monthly = Object.values(Data.getMonthlyBudgets(monthKey)).reduce((sum, value) => sum + (Number(value) || 0), 0);
+    const budget = mode === 'month' ? monthly : Math.round((monthly * 7) / Calc.getMonthDateKeys(monthKey).length);
+    paceKeys = keys;
+    const current = isCurrent();
+    if (mode === 'month') {
+      const month = Number(monthKey.slice(5, 7));
+      const prevMonth = Number(Calc.getPreviousMonthKey(monthKey).slice(5, 7));
+      paceNow.textContent = current ? '本月' : `${month} 月`;
+      pacePrev.textContent = current ? '上月' : `${prevMonth} 月`;
+    } else {
+      paceNow.textContent = current ? '本週' : '這週';
+      pacePrev.textContent = current ? '上週' : '前一週';
+    }
+    paceTitle.textContent = mode === 'month' ? '累計支出' : '這週累計';
+    const axis = paceAxis.children;
+    axis[0].textContent = shortDate(keys[0]);
+    axis[1].textContent = shortDate(keys[Math.floor((keys.length - 1) / 2)]);
+    axis[2].textContent = shortDate(keys[keys.length - 1]);
+    pace.update(paceSeries({ daily, previousDaily, todayIndex: keys.indexOf(todayKey), budget }), { intro });
   }
 
-  function renderRank(summary) {
+  function renderDonut(summary, intro) {
     const monthKey = Data.toMonthKey(periodKeys()[0]);
     const over = new Set(mode === 'month'
       ? Calc.computeMonthSummary(monthKey).budgetBreakdown.filter((item) => item.status === 'danger').map((item) => item.category)
       : []);
-    const ranked = Calc.getSortedCategoryBreakdown(summary.expenseByCategory).filter((item) => item.amount > 0).slice(0, RANK_LIMIT);
-    const before = new Map();
-    rankRows.forEach((entry, category) => before.set(category, entry.row.getBoundingClientRect().top));
-    const keep = new Set(ranked.map((item) => item.category));
-    rankRows.forEach((entry, category) => {
-      if (keep.has(category)) return;
-      entry.width.stop();
-      entry.shift.stop();
-      entry.row.remove();
-      rankRows.delete(category);
-    });
-    const max = ranked.length ? ranked[0].amount : 1;
-    ranked.forEach((item, i) => {
-      let entry = rankRows.get(item.category);
-      const fresh = !entry;
-      if (fresh) {
-        entry = rankRow(item.category);
-        rankRows.set(item.category, entry);
-      }
-      rankEl.appendChild(entry.row);
-      entry.amt.textContent = formatAmount(item.amount);
-      entry.row.classList.toggle('is-over', over.has(item.category));
-      const run = () => entry.width.to({ f: item.amount / max }, spring({ response: 0.55, damping: 0.72 }));
-      if (fresh && !MotionSettings.reduced) {
-        entry.shift.set({ y: 8, o: 0 });
-        window.setTimeout(() => {
-          entry.shift.to({ y: 0, o: 1 }, { response: 0.42, damping: 0.72 });
-          run();
-        }, 40 + i * 36);
-      } else {
-        run();
-      }
-    });
-    rankRows.forEach((entry, category) => {
-      if (!before.has(category) || MotionSettings.reduced) return;
-      const delta = before.get(category) - entry.row.getBoundingClientRect().top;
-      if (Math.abs(delta) < 0.5) return;
-      entry.shift.set({ y: entry.shift.get('y') + delta, o: entry.shift.get('o') });
-      entry.shift.to({ y: 0, o: 1 }, { response: 0.5, damping: 0.74 });
-    });
-    rankEmpty.hidden = ranked.length > 0;
+    const data = slices(summary.expenseByCategory, RANK_LIMIT);
+    const current = isCurrent();
+    const label = mode === 'month' ? (current ? '這個月' : `${Number(monthKey.slice(5, 7))} 月`) : (current ? '這週' : '那一週');
+    donut.update(data, { label, intro, over });
+    rankEmpty.hidden = data.items.length > 0;
     rankEmpty.textContent = mode === 'month' ? '這個月還沒有支出' : '這週還沒有支出';
+  }
+
+  function renderTrend(intro) {
+    const active = Data.toMonthKey(Data.toDateKey(anchor));
+    const latest = Data.toMonthKey(Data.toDateKey(today()));
+    const recent = monthKeysBack(latest, 6);
+    const end = recent.includes(active) ? latest : active;
+    const months = monthKeysBack(end, 6).map((key) => {
+      const sum = Calc.summarizeDateKeys(Calc.getMonthDateKeys(key));
+      return { key, expense: sum.expense, income: sum.income, saved: sum.saved };
+    });
+    trend.update(months, active, { intro });
   }
 
   function renderNecessity(keys) {
@@ -345,7 +346,9 @@ export function createOverviewApp({ root, periodTag, nowButton, prevButton, next
     renderBudget(keys, summary);
     renderNotes(keys);
     renderChart(keys, stagger);
-    renderRank(summary);
+    renderPace(keys, false);
+    renderDonut(summary, false);
+    renderTrend(false);
     renderNecessity(keys);
   }
 
@@ -392,6 +395,10 @@ export function createOverviewApp({ root, periodTag, nowButton, prevButton, next
       renderBudget(keys, summary);
       renderChart(keys, false);
       chart.grow();
+      renderPace(keys, true);
+      renderDonut(summary, true);
+      renderTrend(true);
     },
+    resize: () => pace.resize(),
   };
 }

@@ -216,6 +216,11 @@ function start() {
   });
 
   const overview = createOverviewApp({
+    onFind(filters) {
+      const already = wm.isOpen('daily-entry');
+      wm.summon('daily-entry');
+      window.setTimeout(() => ledger.find(filters), already ? 0 : 320);
+    },
     root: $('overview'),
     periodTag: $('overview-period'),
     nowButton: $('overview-now'),

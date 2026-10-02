@@ -258,15 +258,24 @@
           <p class="ov__note" data-ov="budget-line" hidden></p>
         </section>
         <section class="ov__side" aria-label="圖表">
-          <div class="ov__block">
+          <div class="ov__block ov__block--pace">
+            <div class="ov-head"><span class="ov-head__label" data-ov="pace-title">累計支出</span><span class="ov-legend"><i class="ov-legend__key ov-legend__key--now"></i><span data-ov="pace-now">本月</span><i class="ov-legend__key ov-legend__key--prev"></i><span data-ov="pace-prev">上月</span></span></div>
+            <div data-ov="pace"></div>
+            <div class="pace__axis mono" data-ov="pace-axis"><span></span><span></span><span></span></div>
+          </div>
+          <div class="ov__block ov__block--donut">
+            <div class="ov-head"><span class="ov-head__label">花在哪裡</span></div>
+            <div data-ov="donut"></div>
+            <p class="ov__empty" data-ov="rank-empty" hidden></p>
+          </div>
+          <div class="ov__block ov__block--trend">
+            <div class="ov-head"><span class="ov-head__label">近 6 個月</span><span class="ov-legend"><i class="ov-legend__key ov-legend__key--out"></i>支出<i class="ov-legend__key ov-legend__key--in"></i>收入<i class="ov-legend__key ov-legend__key--save"></i>存起來</span></div>
+            <div data-ov="trend"></div>
+          </div>
+          <div class="ov__block ov__block--daily">
             <div class="ov-head"><span class="ov-head__label" data-ov="chart-title">每日支出</span></div>
             <div class="chart" data-ov="chart"></div>
             <div class="chart__labels" data-ov="chart-labels"></div>
-          </div>
-          <div class="ov__block">
-            <div class="ov-head"><span class="ov-head__label">花最多的分類</span></div>
-            <div class="rank" data-ov="rank"></div>
-            <p class="ov__empty" data-ov="rank-empty" hidden></p>
           </div>
           <div class="ov__block" data-ov="need-block" hidden>
             <div class="ov-head"><span class="ov-head__label">需要與想要</span><span class="tag" data-ov="need-pct"></span></div>
