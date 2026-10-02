@@ -56,6 +56,14 @@
   --glyph-cut: transparent;
 }
 
+.mb-weather .wx-g .g-acc {
+  fill: currentColor;
+}
+
+.mb-weather .wx-g .g-ray {
+  stroke: currentColor;
+}
+
 .mb-weather[hidden] {
   display: none;
 }
@@ -436,8 +444,11 @@
   font-family: var(--font-mono);
   font-size: 5.2rem;
   font-weight: 500;
-  letter-spacing: -0.06em;
   line-height: 1;
+}
+
+.wx-temp__num > * + * {
+  margin-left: -0.07em;
 }
 
 .wx-temp__deg {

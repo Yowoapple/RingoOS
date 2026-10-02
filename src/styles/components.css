@@ -264,7 +264,10 @@
   font-family: var(--font-mono);
   font-size: 2.9rem;
   font-weight: 500;
-  letter-spacing: -0.05em;
+}
+
+.big__num > * + * {
+  margin-left: -0.05em;
 }
 
 .odo {
