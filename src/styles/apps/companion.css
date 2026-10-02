@@ -6,7 +6,7 @@
   width: var(--pet-size, 200px);
   height: var(--pet-size, 200px);
   touch-action: none;
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 32 32'%3E%3Cpath d='M11 16V7.5a2 2 0 0 1 4 0V15m0-6.5a2 2 0 0 1 4 0V15m0-5a2 2 0 0 1 4 0v6.5m0-3.5a2 2 0 0 1 4 0V20c0 5-3.6 9-8.5 9h-1.6c-2.6 0-4.6-1.1-6.2-3.2l-4.3-5.9a2 2 0 0 1 3-2.6L11 19.5' fill='white' stroke='%230e0e10' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 13 6, grab;
+  cursor: image-set(url("../../assets/cursors/pat.svg") 1x, url("../../assets/cursors/pat@2x.svg") 2x) 15 12, grab;
   user-select: none;
   -webkit-user-select: none;
   outline: none;
