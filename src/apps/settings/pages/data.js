@@ -3,7 +3,7 @@ import { MotionSettings } from '../../../motion/presets.js';
 import { Storage } from '../../../core/storage/storage.js';
 import { Data } from '../../../core/data-model.js';
 import { isLedgerShape } from '../../../core/migrations.js';
-import { button, clamp, group, h, row, swapText, text } from '../kit.js';
+import { button, clamp, group, h, row, swapText, text, toggle } from '../kit.js';
 
 const VERSION = '26.0.0';
 const HOLD_MS = 1500;
@@ -109,7 +109,8 @@ function holdButton(label, onDone) {
 }
 
 export function dataPage(ctx) {
-  const { island, dialogs, frame } = ctx;
+  const { island, dialogs, frame, appearance } = ctx;
+  let withWall = false;
   const el = h('div', 'st-page__body');
 
   const usage = h('div', 'st-usage');
@@ -159,6 +160,8 @@ export function dataPage(ctx) {
 
   const exportButton = button('匯出 JSON', 'btn--primary st-mini', () => {
     const payload = { ...Data.getState(), ringoos: { version: VERSION, exportedAt: new Date().toISOString() } };
+    const photo = withWall && appearance ? appearance.photoData : null;
+    if (photo) payload.wallpaper = { dataUrl: photo };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -168,8 +171,20 @@ export function dataPage(ctx) {
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    island.toast({ text: '已匯出備份', note: 'JSON', duration: 2400 });
+    island.toast({ text: photo ? '已匯出備份與桌布' : '已匯出備份', note: 'JSON', duration: 2400 });
   });
+
+  const wallToggle = toggle(false, (on) => { withWall = on; }, '匯出時包含桌布');
+  const wallRow = row({ label: '包含桌布', hint: '照片桌布會讓檔案大好幾 MB；換電腦時想一起帶走再打開', control: wallToggle.el, keywords: '桌布 照片 wallpaper 匯出' });
+
+  function syncWallRow() {
+    const has = !!(appearance && appearance.hasPhoto);
+    wallRow.el.hidden = !has;
+    if (!has && withWall) {
+      withWall = false;
+      wallToggle.api.set(false);
+    }
+  }
 
   const fileInput = h('input');
   fileInput.type = 'file';
@@ -222,6 +237,15 @@ export function dataPage(ctx) {
       b.innerHTML = `<b class="mono">${current[key]}</b> ${unit}`;
       nowCol.append(b);
     });
+    const wallIn = doc.wallpaper && typeof doc.wallpaper.dataUrl === 'string' && doc.wallpaper.dataUrl.startsWith('data:image/') ? doc.wallpaper.dataUrl : null;
+    if (wallIn && appearance) {
+      const a = h('p', 'st-compare__line');
+      a.textContent = '含桌布';
+      fileCol.append(a);
+      const b = h('p', 'st-compare__line');
+      b.textContent = appearance.hasPhoto ? '有桌布' : '沒有桌布';
+      nowCol.append(b);
+    }
     const ok = await dialogs.present({
       source: drop,
       frame: frame(),
@@ -233,6 +257,8 @@ export function dataPage(ctx) {
     });
     if (!ok) return;
     const backup = JSON.parse(JSON.stringify(Data.getState()));
+    const wallBefore = appearance ? appearance.photoData : null;
+    const wallState = appearance ? appearance.state.wall : null;
     try {
       const clean = { ...doc };
       delete clean.ringoos;
@@ -242,8 +268,27 @@ export function dataPage(ctx) {
       island.toast({ text: err.message || '匯入失敗', duration: 4200 });
       return;
     }
+    const wallApplied = !!(wallIn && appearance && appearance.setPhotoData(wallIn));
     measureUsage();
-    island.toast({ text: '已匯入備份', action: '復原', duration: 6000, onAction: () => { Data.replaceStore(backup); measureUsage(); } });
+    syncWallRow();
+    island.toast({
+      text: wallApplied ? '已匯入備份與桌布' : '已匯入備份',
+      action: '復原',
+      duration: 6000,
+      onAction: () => {
+        Data.replaceStore(backup);
+        if (wallApplied) {
+          if (wallBefore) {
+            appearance.setPhotoData(wallBefore);
+            if (wallState !== 'photo') appearance.set('wall', wallState);
+          } else {
+            appearance.clearPhoto();
+          }
+        }
+        measureUsage();
+        syncWallRow();
+      },
+    });
   }
 
   const wipe = holdButton('清除所有資料', () => {
@@ -260,7 +305,8 @@ export function dataPage(ctx) {
   el.append(
     group([usage], { className: 'st-group--pad' }),
     group([
-      row({ label: '備份', hint: '帳本、代辦、預算、分類與存錢目標；不含氣象署授權碼與桌布', control: transfer, keywords: '匯出 export 下載 backup json' }),
+      row({ label: '備份', hint: '帳本、代辦、預算、分類與存錢目標；不含氣象署授權碼', control: transfer, keywords: '匯出 export 下載 backup json' }),
+      wallRow,
       drop,
       fileInput,
     ], { className: 'st-group--pad' }),
@@ -272,6 +318,8 @@ export function dataPage(ctx) {
   Data.subscribe(() => {
     if (el.isConnected) measureUsage();
   });
+  if (appearance) appearance.subscribe(syncWallRow);
+  syncWallRow();
 
   return {
     id: 'data',
@@ -279,6 +327,9 @@ export function dataPage(ctx) {
     lede: '備份、匯入與這台電腦上的空間',
     icon: 'data',
     el,
-    show: measureUsage,
+    show: () => {
+      syncWallRow();
+      measureUsage();
+    },
   };
 }

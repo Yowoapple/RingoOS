@@ -171,6 +171,17 @@ export function createAppearance({ root, regions }) {
       emit();
     },
     get hasPhoto() { return !!photo; },
+    get photoData() { return photo; },
+    setPhotoData(dataUrl) {
+      if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) return false;
+      photo = dataUrl;
+      Storage.set(WALL_KEY, photo);
+      state.wall = 'photo';
+      persist();
+      apply();
+      emit();
+      return true;
+    },
     refresh: refreshTones,
     subscribe(listener) {
       listeners.add(listener);
