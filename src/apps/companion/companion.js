@@ -66,7 +66,10 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
 
   function saveLife() {
     window.clearTimeout(lifeTimer);
-    lifeTimer = window.setTimeout(() => Storage.set(LIFE_KEY, JSON.parse(JSON.stringify(life))), 300);
+    lifeTimer = window.setTimeout(() => {
+      lifeTimer = 0;
+      Storage.set(LIFE_KEY, JSON.parse(JSON.stringify(life)));
+    }, 300);
   }
 
   function lifeVars() {
@@ -1217,28 +1220,54 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
 
   boot();
 
+  if (typeof Storage.subscribe === 'function') {
+    Storage.subscribe(({ keys }) => {
+      if (keys.includes(LIFE_KEY) && !lifeTimer) {
+        const before = stateOf(life);
+        const incoming = Storage.get(LIFE_KEY, null);
+        if (incoming) {
+          life = normalize(incoming);
+          if (stateOf(life) !== before) refreshIdle();
+          if (cardOpen) updateStats();
+        }
+      }
+      if (keys.includes(PREFS_KEY)) {
+        const next = { ...DEFAULT_PREFS, ...(Storage.get(PREFS_KEY, null) || {}) };
+        const patch = {};
+        Object.keys(next).forEach((key) => {
+          if (next[key] !== prefs[key]) patch[key] = next[key];
+        });
+        if (Object.keys(patch).length) applyPrefs(patch);
+      }
+    });
+  }
+
+  function applyPrefs(patch) {
+    prefs = { ...prefs, ...patch };
+    if (patch.size) {
+      setSize(prefs.size);
+      if (mode === 'free') pos.to(clampInto({ x: pos.get('x'), y: pos.get('y') }, box(), bounds()), soft(SPRING));
+      if (hidden()) pos.set({ x: stashX(stash) });
+      if (!MotionSettings.reduced) {
+        fx.set({ press: 0.9 });
+        fx.to({ press: 1 }, { response: 0.42, damping: 0.42 });
+      }
+    }
+    if (patch.enabled !== undefined) {
+      if (prefs.enabled && !MotionSettings.reduced) {
+        fx.set({ show: 0 });
+        fx.to({ show: 1 }, { response: 0.5, damping: 0.55 });
+      }
+      setVisible();
+    }
+    if (patch.yield !== undefined) applyYield();
+  }
+
   return {
     get prefs() { return { ...prefs }; },
     setPrefs(patch) {
-      prefs = { ...prefs, ...patch };
+      applyPrefs(patch);
       Storage.set(PREFS_KEY, prefs);
-      if (patch.size) {
-        setSize(prefs.size);
-        if (mode === 'free') pos.to(clampInto({ x: pos.get('x'), y: pos.get('y') }, box(), bounds()), soft(SPRING));
-        if (hidden()) pos.set({ x: stashX(stash) });
-        if (!MotionSettings.reduced) {
-          fx.set({ press: 0.9 });
-          fx.to({ press: 1 }, { response: 0.42, damping: 0.42 });
-        }
-      }
-      if (patch.enabled !== undefined) {
-        if (prefs.enabled && !MotionSettings.reduced) {
-          fx.set({ show: 0 });
-          fx.to({ show: 1 }, { response: 0.5, damping: 0.55 });
-        }
-        setVisible();
-      }
-      if (patch.yield !== undefined) applyYield();
     },
     setWeather(info) {
       weather = info;
