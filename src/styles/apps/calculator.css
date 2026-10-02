@@ -1,0 +1,340 @@
+.wm-window__body--calculator {
+  display: flex;
+  overflow: hidden;
+}
+
+.calc {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.3rem;
+  padding: 0.35rem 1rem 1rem;
+}
+
+.calc.is-wide {
+  grid-template-columns: minmax(16rem, 1fr) minmax(12rem, 0.85fr);
+}
+
+.calc__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.calc__screen {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  min-height: 7rem;
+  padding: 0.3rem 0.15rem 0;
+}
+
+.calc__expr {
+  min-height: 1.3em;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  text-align: right;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.calc__result {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  overflow: hidden;
+  cursor: copy;
+}
+
+.calc__result:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-ctl);
+}
+
+.calc__num {
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: calc(3.5rem * var(--fit, 1));
+  font-weight: 500;
+  line-height: 1.12;
+  white-space: nowrap;
+  transform-origin: right center;
+}
+
+.calc__num.is-error {
+  color: var(--danger);
+}
+
+.calc__under {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 1.9rem;
+}
+
+.calc__error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.calc__error[hidden],
+.calc__record[hidden],
+.calc__tape-clear[hidden] {
+  display: none;
+}
+
+.calc__record {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.75rem;
+  margin-left: auto;
+  padding: 0 0.8rem 0 0.65rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transform-origin: right center;
+}
+
+.calc__record svg {
+  width: 0.6rem;
+  height: 0.6rem;
+}
+
+.calc__keys {
+  position: relative;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: minmax(2.6rem, 1fr);
+  gap: 0.45rem;
+  min-height: 0;
+}
+
+.calc__blob {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  border-radius: 0.9rem;
+  background: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, width, height;
+}
+
+.calc-key {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0.9rem;
+  background: var(--key-bg, rgba(var(--key-rgb, 14, 14, 16), var(--key-a, 0.055)));
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 140ms ease, color 180ms ease;
+}
+
+:root[data-theme="dark"] .calc-key,
+:root[data-theme="dark"] .calc__tape-clear {
+  --key-rgb: 255, 255, 255;
+}
+
+:root[data-theme="dark"] .calc-key {
+  --key-a: 0.07;
+}
+
+.calc-key:hover {
+  --key-a: 0.1;
+}
+
+.calc-key.is-down {
+  --key-a: 0.16;
+}
+
+.calc-key:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.calc-key svg {
+  width: 1.15rem;
+  height: 1rem;
+}
+
+.calc-key--fn {
+  color: var(--ink-2);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.calc-key--op {
+  color: var(--accent-text);
+  font-size: 1.4rem;
+}
+
+.calc-key--op.is-active {
+  --key-bg: transparent;
+  color: var(--accent-on);
+}
+
+.calc-key--eq {
+  --key-bg: var(--accent);
+  color: var(--accent-on);
+  font-size: 1.4rem;
+}
+
+.calc-key--eq:hover {
+  --key-bg: color-mix(in oklab, var(--accent), white 8%);
+}
+
+.calc-key--eq.is-down {
+  --key-bg: color-mix(in oklab, var(--accent), black 12%);
+}
+
+.calc__tape {
+  display: none;
+}
+
+.calc.is-wide .calc__tape {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 0;
+  padding-left: 1.2rem;
+  box-shadow: inset 1px 0 0 var(--line);
+}
+
+.calc__tape-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 1.6rem;
+}
+
+.calc__tape-title {
+  color: var(--ink-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.calc__tape-clear {
+  height: 1.5rem;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: rgba(var(--key-rgb, 14, 14, 16), 0.06);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 0.64rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.calc__tape-clear:hover {
+  color: var(--danger);
+}
+
+.calc__tape-stage {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.calc__tape-stage:hover {
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.row--tape .row__slide {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.6rem;
+  padding: 0.55rem 0.5rem;
+  cursor: pointer;
+}
+
+.tape__main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.tape__expr {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tape__result {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.tape__time {
+  color: var(--ink-3);
+  font-size: 0.56rem;
+}
+
+.calc-ghost {
+  position: fixed;
+  z-index: 90;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  pointer-events: none;
+  transform-origin: left top;
+}
+
+@container (min-width: 52rem) {
+  .calc__num {
+    font-size: calc(4.4rem * var(--fit, 1));
+  }
+
+  .calc-key {
+    font-size: 1.35rem;
+  }
+
+  .calc__keys {
+    gap: 0.55rem;
+  }
+}

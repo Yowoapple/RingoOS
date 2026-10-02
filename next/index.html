@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="/src/styles/apps/reminder.css">
   <link rel="stylesheet" href="/src/styles/apps/calendar.css">
   <link rel="stylesheet" href="/src/styles/apps/weather.css">
+  <link rel="stylesheet" href="/src/styles/apps/calculator.css">
 </head>
 <body>
   <svg class="sr-only" aria-hidden="true" focusable="false">
@@ -393,6 +394,58 @@
             <span class="wx-foot__cwa" data-wx="cwa-wrap" hidden>臺灣特報：<button type="button" class="wx-link" data-wx="cwa"></button></span>
           </footer>
         </div>
+      </div>
+    </div>
+    <div class="app-source" data-app-id="calculator">
+      <div class="calc" id="calculator">
+        <section class="calc__main">
+          <div class="calc__screen">
+            <p class="calc__expr" data-calc="expr" aria-live="polite"></p>
+            <button type="button" class="calc__result" data-calc="result" aria-label="複製結果"><span class="calc__num" data-calc="num">0</span></button>
+            <div class="calc__under">
+              <p class="calc__error" data-calc="error" hidden></p>
+              <button type="button" class="calc__record" data-calc="record" hidden><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.8v8.4M1.8 6h8.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>記成一筆</span></button>
+            </div>
+          </div>
+          <div class="calc__keys" data-calc="keys">
+            <span class="calc__blob" data-calc="blob" aria-hidden="true"></span>
+            <button type="button" class="calc-key calc-key--fn" data-key="clear">AC</button>
+            <button type="button" class="calc-key calc-key--fn" data-key="sign" aria-label="正負號">±</button>
+            <button type="button" class="calc-key calc-key--fn" data-key="percent" aria-label="百分比">%</button>
+            <button type="button" class="calc-key calc-key--op" data-key="/" aria-label="除">÷</button>
+            <button type="button" class="calc-key" data-key="7">7</button>
+            <button type="button" class="calc-key" data-key="8">8</button>
+            <button type="button" class="calc-key" data-key="9">9</button>
+            <button type="button" class="calc-key calc-key--op" data-key="*" aria-label="乘">×</button>
+            <button type="button" class="calc-key" data-key="4">4</button>
+            <button type="button" class="calc-key" data-key="5">5</button>
+            <button type="button" class="calc-key" data-key="6">6</button>
+            <button type="button" class="calc-key calc-key--op" data-key="-" aria-label="減">−</button>
+            <button type="button" class="calc-key" data-key="1">1</button>
+            <button type="button" class="calc-key" data-key="2">2</button>
+            <button type="button" class="calc-key" data-key="3">3</button>
+            <button type="button" class="calc-key calc-key--op" data-key="+" aria-label="加">+</button>
+            <button type="button" class="calc-key calc-key--fn" data-key="back" aria-label="退格"><svg viewBox="0 0 20 16" aria-hidden="true"><path d="M7 2.5h9.5a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H7L2 8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.6 5.6l4.8 4.8M14.4 5.6l-4.8 4.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+            <button type="button" class="calc-key" data-key="0">0</button>
+            <button type="button" class="calc-key" data-key=".">.</button>
+            <button type="button" class="calc-key calc-key--eq" data-key="=" aria-label="等於">=</button>
+          </div>
+        </section>
+        <aside class="calc__tape" aria-label="計算紀錄">
+          <div class="calc__tape-head">
+            <span class="calc__tape-title">紀錄</span>
+            <button type="button" class="calc__tape-clear" data-calc="tape-clear" hidden>清除</button>
+          </div>
+          <div class="list__stage calc__tape-stage" data-calc="tape-stage">
+            <div class="list__view" data-view="rows" data-calc="tape" role="list" aria-label="算過的式子"></div>
+            <div class="list__view" data-view="empty">
+              <div class="list__state">
+                <span class="list__state-title">還沒有紀錄</span>
+                <span class="list__state-hint">按下等號後，算式會收進這裡；點一筆可以把結果拿回來繼續算</span>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
     <div class="app-source" data-app-id="settings">

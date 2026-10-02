@@ -21,6 +21,7 @@ import { createCalendarApp } from '../apps/calendar/calendar-app.js';
 import { createDialogHost } from '../ui/dialog.js';
 import { createWeatherApp } from '../apps/weather/weather-app.js';
 import { glyph } from '../apps/weather/glyphs.js';
+import { createCalculatorApp } from '../apps/calculator/calculator-app.js';
 import { Calc } from '../core/calculations.js';
 
 const SESSION_KEY = 'yoworingo.v2.windows';
@@ -30,7 +31,6 @@ const MAGNIFY_KEY = 'yoworingo.v2.dock-magnify';
 const SAVE_DELAY = 300;
 const ACCENT_NAMES = { apple: '青蘋果', signal: '信號橘', ultramarine: '群青' };
 const MOVING_IN = {
-  calculator: '四則運算與鍵盤操作',
   radio: '唱片機與選台清單',
 };
 
@@ -70,7 +70,7 @@ function collectContent(app) {
   return {
     titlebar: titlebar ? Array.from(titlebar.children) : [],
     body: Array.from(source.children).filter((node) => node !== titlebar),
-    bodyClass: { settings: 'wm-window__body--settings', calendar: 'wm-window__body--calendar' }[app.id] || null,
+    bodyClass: { settings: 'wm-window__body--settings', calendar: 'wm-window__body--calendar', calculator: 'wm-window__body--calculator' }[app.id] || null,
   };
 }
 
@@ -112,6 +112,7 @@ function start() {
   sizes.get('life-reminder').size = { w: Math.round(800 * ratio), h: Math.round(600 * ratio) };
   sizes.get('calendar').size = { w: Math.round(940 * ratio), h: Math.round(640 * ratio) };
   sizes.get('weather').size = { w: Math.round(880 * ratio), h: Math.round(640 * ratio) };
+  sizes.get('calculator').size = { w: Math.round(760 * ratio), h: Math.round(580 * ratio) };
   const apps = APPS.map((app) => ({
     id: app.id,
     title: app.title,
@@ -251,6 +252,19 @@ function start() {
     },
   });
 
+  const calculator = createCalculatorApp({
+    root: $('calculator'),
+    island,
+    dialogs,
+    isActive: () => store.focusedId === 'calculator' && store.get('calculator').state === 'open',
+    onRecord(amount) {
+      const input = $('island-amount');
+      input.value = String(amount);
+      if (island.mode === 'open') input.focus({ preventScroll: true });
+      else island.open();
+    },
+  });
+
   function syncReminders() {
     const open = Calc.getUpcomingTaskSummary().count;
     menubar.setReminders(open);
@@ -324,6 +338,7 @@ function start() {
     }
     if ((type === 'open' || type === 'restore') && id === 'calendar') calendar.intro();
     if ((type === 'open' || type === 'restore') && id === 'weather') weather.intro();
+    if ((type === 'open' || type === 'restore') && id === 'calculator') calculator.intro();
     if ((type === 'open' || type === 'restore') && id === 'life-reminder') {
       reminder.refreshGlass();
       reminder.intro();
@@ -354,7 +369,7 @@ function start() {
 
   console.info('%cRingoOS%c 2.0 by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
   if (new URLSearchParams(window.location.search).has('debug')) {
-    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar, weather };
+    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, overview, reminder, calendar, weather, calculator };
   }
 }
 
