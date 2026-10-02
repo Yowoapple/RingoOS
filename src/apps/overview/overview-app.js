@@ -70,6 +70,8 @@ export function createOverviewApp({ root, periodTag, nowButton, prevButton, next
   const expenseOdo = createOdometer($('expense'), { value: 0 });
   const incomeOdo = createOdometer($('income'), { value: 0, format: signed });
   const netOdo = createOdometer($('net'), { value: 0, format: signed });
+  const savedOdo = createOdometer($('saved'), { value: 0, format: signed });
+  const savedCell = $('saved-cell');
   const chart = createBarChart($('chart'), $('chart-labels'), { values: [], labels: [], todayIndex: -1, format: (v) => formatAmount(v) });
 
   const budgetMotion = createMotion({ f: 0 }, { response: 0.6, damping: 0.8, restDelta: 0.0005 });
@@ -335,6 +337,10 @@ export function createOverviewApp({ root, periodTag, nowButton, prevButton, next
     expenseOdo.set(summary.expense);
     incomeOdo.set(summary.income);
     netOdo.set(summary.net);
+    const showSaved = summary.saved !== 0 || (Data.getState().settings.savingsGoals || []).length > 0;
+    savedCell.hidden = !showSaved;
+    savedCell.parentElement.classList.toggle('stats--3', showSaved);
+    savedOdo.set(summary.saved);
     renderDelta(keys, summary);
     renderBudget(keys, summary);
     renderNotes(keys);

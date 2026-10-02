@@ -373,6 +373,14 @@
   font-weight: 700;
 }
 
+.stats--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stats > [hidden] {
+  display: none;
+}
+
 .chart {
   position: relative;
   display: grid;

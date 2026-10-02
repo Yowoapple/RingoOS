@@ -341,6 +341,39 @@ function start() {
   const previousMonth = Calc.getPreviousMonthKey(Data.toMonthKey(todayKey()));
   Data.applyMonthlyAutoSavings(previousMonth, Calc.computeMonthSummary(previousMonth).net);
 
+  function announcePosted(posted) {
+    if (!posted.length) return;
+    const total = posted.reduce((sum, p) => sum + p.amount, 0);
+    island.toast({
+      text: posted.length === 1 ? `已入帳 · ${posted[0].name}` : `已入帳 · ${posted.length} 筆固定支出`,
+      amount: total,
+      strike: false,
+      action: '復原',
+      duration: 6000,
+      onAction() {
+        posted.forEach((p) => Data.removeEntry(p.dateKey, 'expense', p.entryId));
+      },
+    });
+  }
+
+  function runRecurring() {
+    if (!Data.hasDueRecurring()) return;
+    const work = () => {
+      Data.reloadFromStorage();
+      return Data.postDueRecurring();
+    };
+    if (navigator.locks && navigator.locks.request) {
+      navigator.locks.request('yoworingo-recurring', work).then(announcePosted).catch(() => {});
+    } else {
+      announcePosted(work());
+    }
+  }
+  window.setTimeout(runRecurring, 1400);
+  window.setInterval(runRecurring, 60000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') runRecurring();
+  });
+
   function syncReminders() {
     desktop.setBadge('calendar', Calc.getUpcomingTaskSummary().count);
   }

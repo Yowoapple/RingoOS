@@ -70,7 +70,77 @@ export function createLedgerApp({ root, dateTag, todayButton, host, island }) {
 
   const totalOdo = createOdometer(totalEl, { value: 0, format: (value) => `${totalSign}NT$ ${formatAmount(value)}` });
   const stage = createStage(stageEl, { initial: 'rows' });
-  const recurring = createToggle($('recurring'), { checked: false });
+  const dayBox = $('day');
+  const dayInput = $('day-input');
+  const dayReveal = createMotion({ v: 0 }, { response: 0.42, damping: 0.62, restDelta: 0.002 });
+  dayReveal.onUpdate(({ v }) => {
+    const t = Math.max(0, Math.min(1, v));
+    dayBox.style.opacity = String(t);
+    dayBox.style.transform = t > 0.999 && v <= 1.001 ? '' : `translate3d(${((1 - t) * -8).toFixed(2)}px, 0, 0) scale(${(0.86 + 0.14 * v).toFixed(4)})`;
+    dayBox.style.filter = t < 0.98 && Fx.tier !== 'solid' ? `blur(${((1 - t) * 4).toFixed(2)}px)` : '';
+  });
+
+  function defaultDay() {
+    return date.getDate();
+  }
+
+  function readDay() {
+    const value = parseInt(dayInput.value, 10);
+    return Number.isFinite(value) ? Math.min(31, Math.max(1, value)) : defaultDay();
+  }
+
+  function showDay(on, { instant = false } = {}) {
+    if (on) {
+      if (!dayInput.value) dayInput.value = String(defaultDay());
+      if (dayBox.hidden) {
+        dayBox.hidden = false;
+        if (instant || MotionSettings.reduced) dayReveal.set({ v: 1 });
+        else {
+          dayReveal.set({ v: 0 });
+          dayReveal.to({ v: 1 }, { response: 0.42, damping: 0.62 });
+        }
+      }
+      return;
+    }
+    if (dayBox.hidden) return;
+    if (instant || MotionSettings.reduced) {
+      dayReveal.set({ v: 0 });
+      dayBox.hidden = true;
+      return;
+    }
+    dayReveal.to({ v: 0 }, { response: 0.2, damping: 1 }).then((done) => {
+      if (done) dayBox.hidden = true;
+    });
+  }
+
+  function nudgeDay(delta) {
+    let value = readDay() + delta;
+    if (value > 31) value = 1;
+    if (value < 1) value = 31;
+    dayInput.value = String(value);
+  }
+
+  dayInput.addEventListener('input', () => {
+    const digits = dayInput.value.replace(/\D/g, '').slice(0, 2);
+    dayInput.value = digits;
+    if (Number(digits) > 31) dayInput.value = '31';
+  });
+  dayInput.addEventListener('blur', () => {
+    dayInput.value = String(readDay());
+  });
+  dayInput.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      nudgeDay(event.key === 'ArrowUp' ? 1 : -1);
+    }
+  });
+  dayInput.addEventListener('wheel', (event) => {
+    if (document.activeElement !== dayInput) return;
+    event.preventDefault();
+    nudgeDay(event.deltaY < 0 ? 1 : -1);
+  }, { passive: false });
+
+  const recurring = createToggle($('recurring'), { checked: false, onChange: (on) => showDay(on) });
 
   const segment = createSegmented($('type'), {
     onChange(index) {
@@ -206,6 +276,18 @@ export function createLedgerApp({ root, dateTag, todayButton, host, island }) {
     holder.innerHTML = '<span class="lg-mark" aria-hidden="true"></span><span class="row__main"><span class="row__cat"></span><span class="row__note"></span></span><span class="row__amt mono"></span>';
     const fragment = holder.content;
     const mark = fragment.querySelector('.lg-mark');
+    if (row.type === 'transfer') {
+      const out = row.signed < 0;
+      mark.classList.add('lg-mark--transfer');
+      mark.innerHTML = out
+        ? '<svg viewBox="0 0 12 12"><path d="M10 6H2.5M5.2 3.2 2.4 6l2.8 2.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        : '<svg viewBox="0 0 12 12"><path d="M2 6h7.5M6.8 3.2 9.6 6 6.8 8.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      fragment.querySelector('.row__cat').textContent = row.goalTitle;
+      const note = fragment.querySelector('.row__note');
+      note.textContent = out ? '從目標取出' : row.transferType === 'auto' ? '每月自動存入' : '存到目標';
+      fragment.querySelector('.row__amt').textContent = formatAmount(row.amount);
+      return fragment;
+    }
     if (row.recurring) {
       mark.classList.add('lg-mark--recurring');
       mark.innerHTML = '<svg viewBox="0 0 12 12"><path d="M9.3 4.4A3.6 3.6 0 0 0 2.6 5M2.7 7.6a3.6 3.6 0 0 0 6.7.6M9.5 2.6v1.9H7.6M2.5 9.4V7.5h1.9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -222,22 +304,33 @@ export function createLedgerApp({ root, dateTag, todayButton, host, island }) {
 
   function desiredRows() {
     const { income, expenses } = Data.getDayEntries(key());
+    const transfers = Data.getTransfers([key()]).map((t) => ({
+      id: t.id,
+      type: 'transfer',
+      transferType: t.type,
+      amount: t.amount,
+      signed: t.signed,
+      goalId: t.goalId,
+      goalTitle: t.goalTitle,
+      createdAt: Date.parse(t.date) || 0,
+    }));
     const rows = [
       ...income.map((entry) => ({ ...entry, type: 'income' })),
       ...expenses.map((entry) => ({ ...entry, type: 'expense' })),
+      ...transfers,
     ];
     return rows.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }
 
   function renderHeader(rows) {
-    const net = rows.reduce((sum, row) => sum + (row.type === 'income' ? row.amount : -row.amount), 0);
+    const net = rows.reduce((sum, row) => sum + (row.type === 'income' ? row.amount : row.type === 'expense' ? -row.amount : 0), 0);
     dayLabelEl.textContent = `${dayLabel(date)} · ${rows.length} 筆`;
     totalSign = net > 0 ? '+' : net < 0 ? '−' : '';
     totalOdo.set(Math.abs(net));
   }
 
   function signature(row) {
-    return JSON.stringify([row.type, row.amount, row.category, row.note, row.recurring, row.necessity]);
+    return JSON.stringify([row.type, row.amount, row.category, row.note, row.recurring, row.necessity, row.goalTitle, row.signed]);
   }
 
   function reconcile() {
@@ -261,6 +354,28 @@ export function createLedgerApp({ root, dateTag, todayButton, host, island }) {
 
   function handleDelete(row) {
     const dateKey = key();
+    if (row.type === 'transfer') {
+      const snapshot = Data.removeGoalTransfer(row.goalId, row.id);
+      lastSeen.delete(row.id);
+      if (!snapshot) return;
+      if (snapshot.blocked) {
+        restoring.add(row.id);
+        reconcile();
+        island.toast({ text: `${row.goalTitle} 的錢已經取出一部分，先取消那筆取出`, duration: 3600 });
+        return;
+      }
+      island.toast({
+        text: `${row.signed < 0 ? '已取消取出' : '已取消存入'} · ${row.goalTitle}`,
+        amount: row.amount,
+        income: row.signed < 0,
+        action: '復原',
+        onAction() {
+          restoring.add(row.id);
+          Data.restoreGoalTransfer(snapshot);
+        },
+      });
+      return;
+    }
     const index = Data.getEntryIndex(dateKey, row.type, row.id);
     if (index < 0) return;
     const entry = Data.getDayEntries(dateKey)[row.type === 'income' ? 'income' : 'expenses'][index];
@@ -283,6 +398,10 @@ export function createLedgerApp({ root, dateTag, todayButton, host, island }) {
     render: renderRow,
     onDelete: handleDelete,
     onSelect(row) {
+      if (row && row.type === 'transfer') {
+        if (editing) exitEdit({ keepSelection: true });
+        return;
+      }
       if (row) enterEdit(row);
       else if (editing) exitEdit({ keepSelection: true });
     },
@@ -294,6 +413,8 @@ export function createLedgerApp({ root, dateTag, todayButton, host, island }) {
     necessity = null;
     syncNecessity();
     recurring.set(false);
+    showDay(false, { instant: true });
+    dayInput.value = '';
   }
 
   function enterEdit(row) {
@@ -308,7 +429,11 @@ export function createLedgerApp({ root, dateTag, todayButton, host, island }) {
     noteInput.value = row.note || '';
     necessity = row.necessity || null;
     syncNecessity();
+    const template = row.recurringId ? Data.getRecurringTemplate(row.recurringId) : null;
+    dayInput.value = template ? String(template.day) : '';
+    editing.recurringId = template ? template.id : null;
     recurring.set(!!row.recurring);
+    showDay(!!row.recurring, { instant: true });
     submit.textContent = '更新這筆';
     cancel.hidden = false;
   }
@@ -321,6 +446,17 @@ export function createLedgerApp({ root, dateTag, todayButton, host, island }) {
     cancel.hidden = true;
     resetForm();
     if (!keepSelection) rowList.clearSelection();
+  }
+
+  function adoptAsTemplate(dateKey, entryId, { amount, category, note, necessity: need, day }) {
+    Data.addRecurring({
+      name: note || category,
+      amount,
+      category,
+      day,
+      necessity: need,
+      postedEntry: { monthKey: Data.toMonthKey(dateKey), dateKey, entryId },
+    });
   }
 
   function shake(element) {
@@ -343,15 +479,24 @@ export function createLedgerApp({ root, dateTag, todayButton, host, island }) {
     const category = currentCategory();
     const note = noteInput.value.trim();
     const income = type === 'income';
+    const fixed = !income && recurring.checked;
+    const day = readDay();
     if (editing) {
-      Data.updateEntry(editing.dateKey, editing.type, editing.id, { type, amount, category, note, recurring: recurring.checked, necessity });
-      island.celebrate({ label: `已更新 · ${category}`, amount, income });
+      const linked = editing.recurringId;
+      Data.updateEntry(editing.dateKey, editing.type, editing.id, { type, amount, category, note, recurring: fixed, necessity, recurringId: fixed ? linked : null });
+      if (fixed && linked) Data.updateRecurring(linked, { day, amount, category, name: note || category, necessity });
+      else if (fixed) adoptAsTemplate(editing.dateKey, editing.id, { amount, category, note, necessity, day });
+      island.celebrate({ label: fixed && !linked ? `已更新 · 每月 ${day} 號固定支出` : `已更新 · ${category}`, amount, income });
       exitEdit();
       return;
     }
     if (income) Data.addIncomeEntry(key(), { amount, category, note });
-    else Data.addExpenseEntry(key(), { amount, category, note, recurring: recurring.checked, necessity });
-    const label = sameDay(date, today()) ? `已記下 · ${category}` : `已補記 · ${date.getMonth() + 1}/${date.getDate()} ${category}`;
+    else {
+      const entryId = Data.addExpenseEntry(key(), { amount, category, note, recurring: fixed, necessity });
+      if (fixed) adoptAsTemplate(key(), entryId, { amount, category, note, necessity, day });
+    }
+    let label = sameDay(date, today()) ? `已記下 · ${category}` : `已補記 · ${date.getMonth() + 1}/${date.getDate()} ${category}`;
+    if (fixed) label = `已記下 · 每月 ${day} 號自動入帳`;
     island.celebrate({ label, amount, income });
     resetForm();
     amountInput.focus();

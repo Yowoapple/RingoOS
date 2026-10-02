@@ -285,7 +285,7 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     paintCountdown();
   }
 
-  function toast({ text: message, amount = null, income = false, note = '', action, onAction, duration = 4000 }) {
+  function toast({ text: message, amount = null, income = false, note = '', action, onAction, duration = 4000, strike = true }) {
     clearTimers();
     measure();
     const from = mode;
@@ -324,7 +324,7 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
       later(() => undoMotion.to({ a: 1 }, spring({ response: 0.3, damping: 1 })), start + 260);
     }
     rowsIn(toastMotions, start + 150, 50);
-    if (amount !== null) later(() => undoMotion.to({ k: 1 }, spring({ response: 0.32, damping: 1 })), start + 480);
+    if (amount !== null && strike) later(() => undoMotion.to({ k: 1 }, spring({ response: 0.32, damping: 1 })), start + 480);
     later(() => armToast(duration), start + 300);
   }
 

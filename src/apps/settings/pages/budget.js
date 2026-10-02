@@ -3,7 +3,7 @@ import { MotionSettings } from '../../../motion/presets.js';
 import { Data } from '../../../core/data-model.js';
 import { Calc } from '../../../core/calculations.js';
 import { createOdometer } from '../../../ui/odometer.js';
-import { button, clamp, field, group, h, money, select, text } from '../kit.js';
+import { button, clamp, field, group, h, money, pulse, segmented, select, swapText, text, toggle } from '../kit.js';
 
 const AUTO = [{ value: '0', label: '不自動存' }, { value: '5', label: '每月 5%' }, { value: '10', label: '每月 10%' }, { value: '15', label: '每月 15%' }, { value: '20', label: '每月 20%' }, { value: '30', label: '每月 30%' }];
 
@@ -68,11 +68,28 @@ export function budgetPage(ctx) {
   const total = createOdometer(hero.querySelector('.odo-host'), { value: 0, format: (v) => `NT$ ${Math.round(v).toLocaleString('en-US')}` });
   const heroBar = bar();
   hero.append(heroBar.el);
-  const copyButton = button('沿用上個月', 'btn--secondary st-mini', () => {
-    const count = Data.copyMonthlyBudgets(Calc.getPreviousMonthKey(monthKey), monthKey);
-    island.toast({ text: count ? '已沿用上個月的預算' : '這個月的預算都已經設好了', note: count ? `${count} 個分類` : '', duration: 2600 });
+  const resetButton = button('改回每月預算', 'btn--secondary st-mini', () => {
+    const before = Data.getBudgetOverrides(monthKey);
+    const target = monthKey;
+    if (!Data.resetMonthToTemplate(target)) return;
+    island.toast({
+      text: `${Number(target.slice(5, 7))} 月已改回每月預算`,
+      action: '復原',
+      duration: 5000,
+      onAction: () => Object.entries(before).forEach(([category, amount]) => Data.setMonthlyBudget(target, category, amount)),
+    });
   });
-  hero.append(copyButton);
+  hero.append(resetButton);
+
+  let scope = 0;
+  const scopeSeg = segmented(['每月預算', '只調這個月'], 0, (index) => {
+    scope = index;
+    renderBudgets();
+    rows.forEach((entry) => pulse(entry.item));
+  }, { label: '預算的範圍' });
+  const scopeHint = text('p', 'st-note st-budget-scope__hint', '');
+  const scopeBox = h('div', 'st-budget-scope');
+  scopeBox.append(scopeSeg.el, scopeHint);
 
   const list = h('div', 'st-budgets');
   const rows = new Map();
@@ -81,28 +98,35 @@ export function budgetPage(ctx) {
     const item = h('div', 'st-budget');
     item.dataset.search = `${category} 預算`.toLowerCase();
     item.dataset.label = `${category}預算`;
-    const name = text('span', 'st-budget__name', category);
+    const name = h('span', 'st-budget__name');
+    name.append(text('span', '', category), text('em', 'st-budget__tag', '這個月'));
     const spent = text('span', 'st-budget__spent mono', '');
     const meter = bar();
     const input = field({
       prefix: 'NT$',
       inputmode: 'numeric',
       placeholder: '未設定',
-      label: `${category}的每月預算`,
+      label: `${category}的預算`,
       mono: true,
       validate: (v) => amountCheck(v),
       onCommit(v) {
         const value = parseAmount(v) || 0;
-        Data.setMonthlyBudget(monthKey, category, value);
+        if (scope === 0) Data.setBudgetTemplate(category, value, monthKey);
+        else Data.setMonthlyBudget(monthKey, category, value);
       },
     });
     item.append(name, spent, input.el, meter.el);
-    return { item, spent, meter, input };
+    return { item, spent, meter, input, tag: name.querySelector('.st-budget__tag') };
   }
 
   function renderBudgets() {
     const categories = Data.getState().settings.expenseCategories;
     const budgets = Data.getMonthlyBudgets(monthKey);
+    const plan = Data.getBudgetPlan(monthKey);
+    const overrides = Data.getBudgetOverrides(monthKey);
+    const shown = scope === 0 ? plan : budgets;
+    const month = Number(monthKey.slice(5, 7));
+    scopeHint.textContent = scope === 0 ? '之後每個月都照這份預算，不用再重設' : `只改 ${month} 月，其他月份照每月預算`;
     const summary = Calc.summarizeDateKeys(Calc.getMonthDateKeys(monthKey));
     rows.forEach((value, key) => {
       if (!categories.includes(key)) {
@@ -118,10 +142,13 @@ export function budgetPage(ctx) {
       }
       if (list.children[i] !== entry.item) list.insertBefore(entry.item, list.children[i] || null);
       const limit = budgets[category] || 0;
+      const value = shown[category] || 0;
       const used = summary.expenseByCategory[category] || 0;
       entry.spent.textContent = limit ? `${money(used)} / ${money(limit)}` : used ? `本月 ${money(used)}` : '';
+      entry.tag.hidden = !(category in overrides) || !Object.keys(plan).length;
+      entry.input.input.setAttribute('aria-label', scope === 0 ? `${category}的每月預算` : `${category}在 ${month} 月的預算`);
       if (document.activeElement !== entry.input.input) {
-        entry.input.input.value = limit ? Math.round(limit).toLocaleString('en-US') : '';
+        entry.input.input.value = value ? Math.round(value).toLocaleString('en-US') : '';
         if (entry.input.el.classList.contains('is-invalid')) entry.input.api.setError('');
       }
       entry.meter.el.hidden = !limit;
@@ -129,14 +156,126 @@ export function budgetPage(ctx) {
     });
     const sum = Object.values(budgets).reduce((acc, v) => acc + (Number(v) || 0), 0);
     total.set(sum);
-    const month = Number(monthKey.slice(5, 7));
+    const adjusted = Data.isMonthAdjusted(monthKey);
     heroLabel.textContent = `${month} 月總預算`;
-    heroMeta.textContent = sum ? `已花 ${money(summary.expense)} · 剩 ${money(Math.max(0, sum - summary.expense))}` : '在下面替每個分類設定預算';
+    const base = sum ? `已花 ${money(summary.expense)} · 剩 ${money(Math.max(0, sum - summary.expense))}` : '在下面替每個分類設定預算';
+    swapText(heroMeta, adjusted ? `${base} · 這個月有特別調整` : base);
     heroBar.el.hidden = !sum;
     heroBar.set(sum ? summary.expense / sum : 0, sum && summary.expense > sum);
-    const previous = Data.getMonthlyBudgets(Calc.getPreviousMonthKey(monthKey));
-    copyButton.hidden = !Object.keys(previous).some((key) => previous[key] > 0 && !(budgets[key] > 0) && categories.includes(key));
+    resetButton.hidden = !adjusted;
   }
+
+  const fixedList = h('div', 'st-fixed');
+  const fixedRows = new Map();
+  const fixedEmpty = text('p', 'st-note', '記帳時打開「固定支出」，或在這裡新增。到了那天會自動記上一筆，可以復原。');
+
+  function fixedRow(template) {
+    const item = h('div', 'st-fixed__row');
+    const main = h('button', 'st-fixed__main');
+    main.type = 'button';
+    const day = h('span', 'st-fixed__day mono');
+    const copy = h('span', 'st-fixed__copy');
+    const title = text('span', 'st-fixed__title', '');
+    const meta = text('span', 'st-fixed__meta', '');
+    copy.append(title, meta);
+    const amount = text('span', 'st-fixed__amt mono', '');
+    main.append(day, copy, amount);
+    main.addEventListener('click', () => openFixed(template.id, main));
+    const active = toggle(template.active, (on) => Data.updateRecurring(template.id, { active: on }), `${template.name}自動入帳`);
+    item.append(main, active.el);
+    return { item, day, title, meta, amount, active };
+  }
+
+  function nextDue(template) {
+    const now = new Date();
+    const key = Data.toDateKey(now);
+    const thisMonth = Data.toMonthKey(key);
+    const posted = template.posted || {};
+    if (!posted[thisMonth] && template.since <= thisMonth) return '這個月';
+    return '下個月';
+  }
+
+  function renderFixed() {
+    const list = Data.getRecurring();
+    const ids = new Set(list.map((t) => t.id));
+    fixedRows.forEach((value, id) => {
+      if (!ids.has(id)) {
+        value.item.remove();
+        fixedRows.delete(id);
+      }
+    });
+    list.forEach((template, i) => {
+      let entry = fixedRows.get(template.id);
+      if (!entry) {
+        entry = fixedRow(template);
+        fixedRows.set(template.id, entry);
+      }
+      if (fixedList.children[i] !== entry.item) fixedList.insertBefore(entry.item, fixedList.children[i] || null);
+      entry.item.classList.toggle('is-off', !template.active);
+      entry.day.textContent = String(template.day).padStart(2, '0');
+      entry.title.textContent = template.name;
+      entry.meta.textContent = template.active ? `${template.category} · 每月 ${template.day} 號 · ${nextDue(template)}入帳` : `${template.category} · 已暫停`;
+      entry.amount.textContent = `−${money(template.amount).replace('NT$ ', '')}`;
+      entry.active.api.set(template.active);
+      entry.item.dataset.search = `${template.name} ${template.category} 固定支出 訂閱 房租`.toLowerCase();
+      entry.item.dataset.label = template.name;
+    });
+    fixedEmpty.hidden = list.length > 0;
+  }
+
+  function openFixed(templateId, source) {
+    const template = templateId ? Data.getRecurringTemplate(templateId) : null;
+    const categories = Data.getState().settings.expenseCategories;
+    const box = h('div', 'st-form');
+    const name = field({ placeholder: '例如：房租、Netflix', label: '名稱', value: template ? template.name : '' });
+    const amount = field({ prefix: 'NT$', inputmode: 'numeric', placeholder: '金額', label: '金額', mono: true, value: template ? String(template.amount) : '', validate: (v) => amountCheck(v, { allowEmpty: false }) });
+    let category = template ? template.category : categories[0];
+    const pick = select({ options: categories.map((c) => ({ value: c, label: c })), value: category, menuHost, label: '分類', onChange: (v) => { category = v; } });
+    const dayField = field({ prefix: '每月', inputmode: 'numeric', placeholder: '1–31', label: '每月幾號', mono: true, value: String(template ? template.day : new Date().getDate()), validate: (v) => (/^\d{1,2}$/.test(v.trim()) && Number(v) >= 1 && Number(v) <= 31 ? '' : '請輸入 1 到 31') });
+    const line = h('div', 'st-form__pair');
+    line.append(pick.el, dayField.el);
+    box.append(name.el, amount.el, line);
+    if (!template) box.append(text('p', 'st-note', '如果這個月的那天還沒到，這個月就會開始記；已經過了就從下個月開始。'));
+    const submit = () => {
+      const label = name.input.value.trim();
+      const value = parseAmount(amount.input.value);
+      const day = Number(dayField.input.value);
+      if (!label) {
+        name.api.setError('請輸入名稱');
+        return;
+      }
+      if (!(value > 0)) {
+        amount.api.setError('請輸入大於 0 的金額');
+        return;
+      }
+      if (!(day >= 1 && day <= 31)) {
+        dayField.api.setError('請輸入 1 到 31');
+        return;
+      }
+      if (template) Data.updateRecurring(template.id, { name: label.slice(0, 20), amount: value, category, day });
+      else Data.addRecurring({ name: label.slice(0, 20), amount: value, category, day });
+      dialogs.close(true);
+    };
+    const actions = [{ label: '取消', className: 'btn--secondary', value: false }, { label: template ? '儲存' : '新增', className: 'btn--primary', close: false, focus: false, onClick: submit }];
+    if (template) {
+      actions.unshift({
+        label: '刪除',
+        className: 'btn--danger',
+        close: false,
+        onClick: () => {
+          const snapshot = Data.removeRecurring(template.id);
+          dialogs.close(true);
+          if (snapshot) island.toast({ text: `已刪除固定支出 · ${template.name}`, action: '復原', duration: 5000, onAction: () => Data.restoreRecurring(snapshot) });
+        },
+      });
+    }
+    dialogs.present({ source, frame: frame(), title: template ? template.name : '新的固定支出', content: box, width: 21, actions });
+    window.setTimeout(() => (template ? amount : name).input.focus({ preventScroll: true }), 180);
+  }
+
+  const addFixed = button('＋ 新增固定支出', 'btn--secondary', () => openFixed(null, addFixed));
+  const fixedFoot = h('div', 'st-actions');
+  fixedFoot.append(addFixed);
 
   const goalsEl = h('div', 'st-goals');
   const goalCards = new Map();
@@ -159,11 +298,12 @@ export function budgetPage(ctx) {
       onChange: (v) => Data.setGoalAutoSavePercent(goal.id, Number(v)),
     });
     const actions = h('div', 'st-goal__actions');
-    const deposit = button('存入', 'btn--secondary st-mini', () => openDeposit(goal.id, deposit));
+    const deposit = button('存入', 'btn--secondary st-mini', () => openDeposit(goal.id, deposit, 'in'));
+    const withdraw = button('取出', 'btn--secondary st-mini', () => openDeposit(goal.id, withdraw, 'out'));
     const remove = button('刪除', 'btn--ghost st-mini', () => removeGoal(goal.id));
-    actions.append(auto.el, deposit, remove);
+    actions.append(auto.el, deposit, withdraw, remove);
     card.append(r.el, body, actions);
-    return { card, r, title, amount, meta, auto };
+    return { card, r, title, amount, meta, auto, withdraw };
   }
 
   function renderGoals() {
@@ -191,25 +331,34 @@ export function budgetPage(ctx) {
       if (goal.currentAmount >= goal.targetAmount && goal.targetAmount > 0) parts.push('已達成');
       entry.meta.textContent = parts.join(' · ');
       entry.auto.api.set(String(goal.autoSavePercent || 0));
+      entry.withdraw.disabled = !(goal.currentAmount > 0);
       entry.r.set(goal.targetAmount > 0 ? goal.currentAmount / goal.targetAmount : 0);
     });
     emptyGoals.hidden = goals.length > 0;
   }
 
-  function openDeposit(goalId, source) {
+  function openDeposit(goalId, source, direction = 'in') {
     const goal = Data.getState().settings.savingsGoals.find((g) => g.id === goalId);
     if (!goal) return;
-    const amount = field({ prefix: 'NT$', inputmode: 'numeric', placeholder: '0', label: '存入金額', mono: true, validate: (v) => amountCheck(v, { allowEmpty: false }) });
+    const out = direction === 'out';
+    const check = (v) => {
+      const error = amountCheck(v, { allowEmpty: false });
+      if (error) return error;
+      if (out && parseAmount(v) > goal.currentAmount) return `最多可以取出 ${money(goal.currentAmount)}`;
+      return '';
+    };
+    const amount = field({ prefix: 'NT$', inputmode: 'numeric', placeholder: '0', label: out ? '取出金額' : '存入金額', mono: true, validate: check });
     const submit = () => {
-      const error = amountCheck(amount.input.value, { allowEmpty: false });
+      const error = check(amount.input.value);
       const value = parseAmount(amount.input.value);
       if (error || !(value > 0)) {
         amount.api.setError(error || '請輸入大於 0 的金額');
         return;
       }
-      Data.depositToGoal(goalId, value);
+      if (out) Data.withdrawFromGoal(goalId, value);
+      else Data.depositToGoal(goalId, value);
       dialogs.close(true);
-      island.celebrate({ label: `已存入 · ${goal.title}`, amount: value, income: true });
+      island.celebrate({ label: out ? `已取出 · ${goal.title}` : `已存入 · ${goal.title}`, amount: value, income: true });
     };
     amount.input.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
@@ -220,10 +369,11 @@ export function budgetPage(ctx) {
     dialogs.present({
       source,
       frame: frame(),
-      title: `存入「${goal.title}」`,
+      title: out ? `從「${goal.title}」取出` : `存入「${goal.title}」`,
+      text: out ? `目前 ${money(goal.currentAmount)}；取出的錢會記在今天的帳本，不算收入` : '存入的錢會記在今天的帳本，不算支出',
       content: amount.el,
       width: 18,
-      actions: [{ label: '取消', className: 'btn--secondary', value: false }, { label: '存入', className: 'btn--primary', close: false, focus: false, onClick: submit }],
+      actions: [{ label: '取消', className: 'btn--secondary', value: false }, { label: out ? '取出' : '存入', className: 'btn--primary', close: false, focus: false, onClick: submit }],
     });
     window.setTimeout(() => amount.input.focus({ preventScroll: true }), 180);
   }
@@ -278,7 +428,8 @@ export function budgetPage(ctx) {
 
   el.append(
     group([hero], { className: 'st-group--pad' }),
-    group([list], { title: '每個分類', className: 'st-group--pad' }),
+    group([scopeBox, list], { title: '每個分類', className: 'st-group--pad' }),
+    group([fixedList, fixedEmpty, fixedFoot], { title: '固定支出', className: 'st-group--pad' }),
     group([goalsEl, emptyGoals, goalFoot], { title: '存錢目標', className: 'st-group--pad' }),
   );
 
@@ -286,6 +437,7 @@ export function budgetPage(ctx) {
     const nowMonth = Data.toMonthKey(Data.toDateKey(new Date()));
     if (nowMonth !== monthKey) monthKey = nowMonth;
     renderBudgets();
+    renderFixed();
     renderGoals();
   }
 
@@ -300,6 +452,9 @@ export function budgetPage(ctx) {
     lede: '這個月想花多少、想存多少',
     icon: 'budget',
     el,
-    show: render,
+    show: () => {
+      render();
+      scopeSeg.api.measure();
+    },
   };
 }
