@@ -78,7 +78,7 @@
   gap: 0.6rem;
 }
 
-.ledger__day {
+.ledger__every {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -87,11 +87,11 @@
   transform-origin: left center;
 }
 
-.ledger__day[hidden] {
+.ledger__every[hidden] {
   display: none;
 }
 
-.ledger__day-input {
+.ledger__every-input {
   width: 2.1rem;
   height: 1.55rem;
   padding: 0;
@@ -105,7 +105,7 @@
   outline: none;
 }
 
-.ledger__day-input:focus-visible {
+.ledger__every-input:focus-visible {
   box-shadow: 0 0 0 1.5px var(--accent);
 }
 
