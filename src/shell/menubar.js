@@ -222,12 +222,14 @@ function createBell(button) {
         badge.hidden = true;
         return;
       }
-      pop.to({ s: 0 }, { response: 0.22, damping: 1 }).then(() => {
-        if (count === 0) {
-          badge.hidden = true;
-          pop.set({ s: 1 });
-        }
-      });
+      pop.to({ s: 1.24 }, { response: 0.14, damping: 1 })
+        .then(() => (count === 0 ? pop.to({ s: 0 }, { response: 0.3, damping: 0.72 }) : false))
+        .then((done) => {
+          if (done && count === 0) {
+            badge.hidden = true;
+            pop.set({ s: 1 });
+          }
+        });
       return;
     }
     badge.hidden = false;

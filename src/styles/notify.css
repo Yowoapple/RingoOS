@@ -44,7 +44,10 @@
 .nc__glass,
 .nc__fill {
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100%;
   pointer-events: none;
 }
 
@@ -171,8 +174,7 @@
   flex: none;
   margin-bottom: 0.35rem;
   border-radius: calc(var(--nc-r) - var(--nc-pad));
-  background: color-mix(in oklab, var(--ink) 4.5%, transparent);
-  overflow: hidden;
+  transform-origin: 50% 0;
   will-change: transform, opacity;
 }
 
@@ -184,16 +186,23 @@
   padding: 0.68rem 0.8rem 0.72rem 0.8rem;
   border: 0;
   border-radius: inherit;
-  background: transparent;
+  background: color-mix(in oklab, var(--ink) 4.5%, transparent);
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 160ms ease;
+  touch-action: pan-y;
+  transition: background 160ms ease, transform 420ms cubic-bezier(0.3, 1.7, 0.45, 1);
 }
 
 .nc-item__main:hover {
-  background: color-mix(in oklab, var(--ink) 4%, transparent);
+  background: color-mix(in oklab, var(--ink) 8%, transparent);
+  transform: scale(1.012);
+}
+
+.nc-item__main:active {
+  transform: scale(0.97);
+  transition-duration: 120ms;
 }
 
 .nc-item__main:focus-visible,

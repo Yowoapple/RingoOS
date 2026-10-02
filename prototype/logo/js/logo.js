@@ -1,7 +1,8 @@
 import '@fontsource-variable/geist-mono';
-import { createMotion } from '../../../src/motion/animator.js';
+import { Animator, createMotion } from '../../../src/motion/animator.js';
 
 const VARIANTS = [
+  { id: 'B+', name: '描邊＋液滴（選定）', motion: 'pour', note: '以 B 為基底：平常是和字同粗的描邊膠囊。被拉長時像液滴一樣灌滿簽名色，放開後彈回、顏色退掉。選單列與 16px 分頁圖示這種小尺寸自動換成實心，辨識度跟 A 一樣。' },
   { id: 'A', name: '實心膠囊', motion: 'stretch', note: '最直接：O 就是一顆強調色膠囊。和 Dock 的執行中指示、選取液滴、靈動島是同一個形狀，整個系統的語言收在這一筆裡。' },
   { id: 'B', name: '描邊膠囊', motion: 'draw', note: '線條和 Geist Mono 的筆畫一樣粗，最安靜、最像字。缺點是小尺寸時跟普通的 O 差不多。' },
   { id: 'C', name: '靈動島', motion: 'dot', note: '墨色膠囊加一顆強調色小點，直接引用靈動島。小點以後可以拿來表示狀態（播放中、有通知）。' },
@@ -29,7 +30,10 @@ function dropShape(r1, r2, d) {
 }
 
 function wordmark(v, size = '') {
-  const cls = `wm wm--${v.id}${size ? ` wm--${size}` : ''}`;
+  const cls = `wm wm--${v.id === 'B+' ? 'P' : v.id}${size ? ` wm--${size}` : ''}`;
+  if (v.id === 'B+') {
+    return `<span class="${cls}" role="img" aria-label="RingoOS"><span class="wm__r">Ringo</span><span class="wm__os"><span class="wm__o" aria-hidden="true"><i class="wm__pour"></i></span>S</span></span>`;
+  }
   if (v.id === 'F') {
     return `<span class="${cls}" role="img" aria-label="RingoOS"><span class="wm__r">ringo</span><span class="wm__o" aria-hidden="true"></span><span class="wm__os">os</span></span>`;
   }
@@ -46,8 +50,9 @@ function wordmark(v, size = '') {
   return `<span class="${cls}" role="img" aria-label="RingoOS"><span class="wm__r">Ringo</span><span class="wm__os"><span class="wm__o" aria-hidden="true">${inner}</span>S</span></span>`;
 }
 
-function mark(v) {
+function mark(v, small = false) {
   const body = {
+    'B+': small ? '<rect class="m-acc" x="11" y="22" width="42" height="20" rx="10"/>' : '<rect class="m-line" x="13.25" y="24.25" width="37.5" height="15.5" rx="7.75"/>',
     A: '<rect class="m-acc" x="11" y="22" width="42" height="20" rx="10"/>',
     B: '<rect class="m-line" x="13.25" y="24.25" width="37.5" height="15.5" rx="7.75"/>',
     C: '<rect class="m-ink" x="11" y="22" width="42" height="20" rx="10"/><circle class="m-acc" cx="43" cy="32" r="4.6"/>',
@@ -63,7 +68,7 @@ function mark(v) {
 }
 
 function tabMock(v) {
-  return `<div class="tab"><span class="fav fav--16">${mark(v)}</span><span class="tab__title">RingoOS</span><span class="tab__x" aria-hidden="true"></span></div>`;
+  return `<div class="tab"><span class="fav fav--16">${mark(v, true)}</span><span class="tab__title">RingoOS</span><span class="tab__x" aria-hidden="true"></span></div>`;
 }
 
 function section(v, i) {
@@ -97,8 +102,8 @@ function section(v, i) {
         <figcaption class="mono">APP ICON · 64 / 40 PX</figcaption>
       </figure>
       <figure class="lb-cell lb-cell--tabs">
-        <div class="strip ctx--dark">${tabMock(v)}<span class="fav fav--32">${mark(v)}</span><span class="fav fav--16">${mark(v)}</span></div>
-        <div class="strip ctx--light">${tabMock(v)}<span class="fav fav--32">${mark(v)}</span><span class="fav fav--16">${mark(v)}</span></div>
+        <div class="strip ctx--dark">${tabMock(v)}<span class="fav fav--32">${mark(v)}</span><span class="fav fav--16">${mark(v, true)}</span></div>
+        <div class="strip ctx--light">${tabMock(v)}<span class="fav fav--32">${mark(v)}</span><span class="fav fav--16">${mark(v, true)}</span></div>
         <figcaption class="mono">FAVICON · 32 / 16 PX</figcaption>
       </figure>
       <figure class="lb-cell lb-cell--readme">
@@ -146,6 +151,34 @@ const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function animator(wm, kind) {
   const o = wm.querySelector('.wm__o');
+  if (kind === 'pour') {
+    const pour = o.querySelector('.wm__pour');
+    let base = 0;
+    let em = 16;
+    const m = createMotion({ w: 0, p: 1, f: 0 }, { response: 0.4, damping: 0.6, restDelta: { w: 0.0005, p: 0.0005, f: 0.001 } });
+    m.onUpdate(({ w, p, f }) => {
+      if (!base) return;
+      const extra = w * em;
+      o.style.width = Math.abs(w) < 0.0005 ? '' : `${base + extra}px`;
+      const squash = Math.min(0.14, Math.max(0, extra / base) * 0.22);
+      o.style.transform = Math.abs(p - 1) < 0.0005 && squash < 0.001 ? '' : `scale(${p}, ${p * (1 - squash)})`;
+      const level = Math.max(0, Math.min(1, f));
+      pour.style.transform = level < 0.001 ? '' : `scaleX(${level.toFixed(4)})`;
+      pour.style.opacity = level < 0.001 ? '' : '1';
+    });
+    return async () => {
+      o.style.width = '';
+      base = o.getBoundingClientRect().width / (m.get('p') || 1);
+      em = parseFloat(getComputedStyle(o).fontSize);
+      await m.to({ p: 0.9 }, soft({ response: 0.14, damping: 1 }, reduced));
+      m.to({ p: 1 }, soft({ response: 0.38, damping: 0.42 }, reduced));
+      m.to({ f: 1 }, soft({ response: 0.3, damping: 0.7 }, reduced));
+      await m.to({ w: 0.62 }, soft({ response: 0.26, damping: 0.6 }, reduced));
+      m.to({ w: 0 }, soft({ response: 0.46, damping: 0.5 }, reduced));
+      await new Promise((resolve) => window.setTimeout(resolve, 260));
+      await m.to({ f: 0 }, soft({ response: 0.5, damping: 0.9 }, reduced));
+    };
+  }
   if (kind === 'pop') {
     const m = createMotion({ p: 1 }, { response: 0.4, damping: 0.5, restDelta: 0.0005 });
     m.onUpdate(({ p }) => {
@@ -282,3 +315,5 @@ document.fonts.ready.then(() => {
   document.documentElement.style.setProperty('--cap', capRatio().toFixed(3));
   requestAnimationFrame(wire);
 });
+
+if (new URLSearchParams(window.location.search).has('debug')) window.__logoLab = { Animator, players };

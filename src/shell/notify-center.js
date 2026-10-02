@@ -1,17 +1,22 @@
 import { createMotion } from '../motion/animator.js';
 import { MotionSettings } from '../motion/presets.js';
-import { Fx } from '../ui/fx-tier.js';
 
 const MOON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 10.1A5.6 5.6 0 0 1 5.9 2.8a5.6 5.6 0 1 0 7.3 7.3z" fill="currentColor"/></svg>';
 const CROSS = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-const MAX_STAGGER = 8;
+
+const OPEN_W = { response: 0.36, damping: 0.56 };
+const OPEN_H = { response: 0.5, damping: 0.54 };
+const CLOSE_W = { response: 0.3, damping: 0.86 };
+const CLOSE_H = { response: 0.38, damping: 0.8 };
+function link(i) {
+  return { response: 0.14 + Math.min(i, 9) * 0.024, damping: 0.58 };
+}
+const SETTLE = { response: 0.46, damping: 0.55 };
+const GROW = { response: 0.42, damping: 0.6 };
+const DROP = { response: 0.5, damping: 0.5 };
 
 function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
-}
-
-function soft(config) {
-  return MotionSettings.reduced ? MotionSettings.spring('focus') : config;
 }
 
 function toPx(value, el) {
@@ -77,25 +82,93 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
   const glass = panel.querySelector('.nc__glass');
   const fill = panel.querySelector('.nc__fill');
   const body = panel.querySelector('.nc__body');
+  const head = panel.querySelector('.nc__head');
   const list = panel.querySelector('.nc__list');
   const empty = panel.querySelector('.nc__empty');
   const scroll = panel.querySelector('.nc__scroll');
+  const foot = panel.querySelector('.nc__foot');
   const dnd = panel.querySelector('.nc__dnd');
   const quietNote = panel.querySelector('.nc__quiet');
   const countEl = panel.querySelector('.nc__count');
   const clearButton = panel.querySelector('.nc__clear');
 
-  const shape = createMotion({ o: 0 }, { response: 0.42, damping: 0.66, restDelta: 0.0005 });
+  const shape = createMotion({ w: 0, h: 0, H: 0 }, { response: 0.42, damping: 0.6, restDelta: { w: 0.0005, h: 0.0005, H: 0.2 } });
   const rows = new Map();
+  const pieceOf = new WeakMap();
+  let pieces = [];
   let open = false;
   let fresh = new Set();
   let box = { w: 0, h: 0, bl: 0, bt: 0, bw: 0, bh: 0, r: 18, br: 10 };
-  let timers = [];
   let clearing = false;
 
-  function later(fn, ms) {
-    if (MotionSettings.reduced) fn();
-    else timers.push(window.setTimeout(fn, ms));
+  function piece(el) {
+    let p = pieceOf.get(el);
+    if (p) return p;
+    p = {
+      el,
+      top: 0,
+      width: 0,
+      leaving: false,
+      m: createMotion({ r: 0, dy: 0, s: 1 }, { response: 0.4, damping: 0.6, restDelta: { r: 0.0005, dy: 0.1, s: 0.0005 } }),
+      mx: createMotion({ x: 0 }, { response: 0.4, damping: 0.6, restDelta: 0.0005 }),
+    };
+    const paint = () => paintPiece(p, p.m.get('r'), p.m.get('dy'), p.mx.get('x'), p.m.get('s'));
+    p.m.onUpdate(() => {
+      paint();
+      queueDraw();
+    });
+    p.mx.onUpdate(paint);
+    pieceOf.set(el, p);
+    return p;
+  }
+
+  function paintPiece(p, r, dy, x, s) {
+    const raw = r * p.top;
+    const y = (raw > 0 ? 18 * Math.tanh(raw / 18) : raw) + dy;
+    if (Math.abs(y) < 0.05 && Math.abs(x) < 0.0005 && Math.abs(s - 1) < 0.0005 && r > -0.0005) {
+      p.el.style.transform = '';
+      p.el.style.opacity = '';
+      return;
+    }
+    const vy = p.m.velocity('r') * p.top + p.m.velocity('dy');
+    const vx = p.mx.velocity('x') * (p.width || 300);
+    const ky = MotionSettings.reduced ? 0 : clamp(Math.abs(vy) / 4200, 0, 0.1);
+    const kx = MotionSettings.reduced ? 0 : clamp(Math.abs(vx) / 3200, 0, 0.18);
+    const squeeze = r < 0 ? clamp(1 + r, 0.08, 1) : 1 + 0.07 * Math.tanh(r * 6);
+    const sx = s * (1 + kx) * (1 - ky * 0.55) * (r < 0 ? 0.9 + 0.1 * squeeze : 1);
+    const sy = s * (1 + ky) * (1 - kx * 0.55) * squeeze;
+    p.el.style.transform = `translate3d(${(x * (p.width || 300)).toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`;
+    const reveal = clamp(1.3 + r * 1.3, 0, 1);
+    const gone = x > 0.55 ? clamp(1 - (x - 0.55) / 0.55, 0, 1) : 1;
+    p.el.style.opacity = String(reveal * gone);
+  }
+
+  function layoutTop(el) {
+    let y = 0;
+    let node = el;
+    while (node && node !== panel) {
+      y += node.offsetTop;
+      node = node.offsetParent;
+    }
+    return el !== scroll && scroll.contains(el) ? y - scroll.scrollTop : y;
+  }
+
+  function collect() {
+    const next = [head];
+    if (!quietNote.hidden) next.push(quietNote);
+    Array.from(list.children).forEach((el) => next.push(el));
+    if (!empty.hidden) next.push(empty);
+    next.push(foot);
+    pieces = next.map(piece);
+    pieces.forEach((p) => {
+      p.el.style.transformOrigin = '50% 0';
+      p.inScroll = scroll.contains(p.el);
+      p.top = Math.max(8, layoutTop(p.el));
+      p.width = p.el.offsetWidth;
+      p.height = p.el.offsetHeight;
+    });
+    scrollBottom = layoutTop(scroll) + scroll.clientHeight;
+    footPad = Math.max(0, panel.offsetHeight - layoutTop(foot) - foot.offsetHeight);
   }
 
   function place() {
@@ -116,57 +189,84 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
       r: toPx(getComputedStyle(panel).getPropertyValue('--nc-r'), panel) || 18,
       br: Math.min(rect.height / 2, parseFloat(getComputedStyle(bell).borderTopLeftRadius) || 10),
     };
-    glass.style.clipPath = `inset(0 round ${box.r}px)`;
   }
 
-  function paint({ o }) {
-    const t = clamp(o, 0, 1);
-    const k = 1 - t;
-    const top = box.bt * k;
-    const left = box.bl * k;
-    const right = (box.w - box.bl - box.bw) * k;
-    const bottom = (box.h - box.bt - box.bh) * k;
-    const r = box.br + (box.r - box.br) * t;
-    const clip = `inset(${top}px ${right}px ${bottom}px ${left}px round ${r}px)`;
-    fill.style.clipPath = clip;
-    body.style.clipPath = clip;
-    shadow.style.transform = `translate3d(${left}px, ${top}px, 0)`;
-    shadow.style.width = `${Math.max(0, box.w - left - right)}px`;
-    shadow.style.height = `${Math.max(0, box.h - top - bottom)}px`;
-    shadow.style.borderRadius = `${r}px`;
-    const over = Math.max(0, o - 1);
-    panel.style.transformOrigin = `${box.bl + box.bw / 2}px ${box.bt + box.bh / 2}px`;
-    panel.style.transform = over > 0.0005 ? `scale(${1 + over * 0.08})` : '';
-    glass.style.opacity = open && o > 0.97 ? '1' : '0';
-    panel.style.visibility = o > 0.002 || open ? 'visible' : 'hidden';
+  function pieceBottom(p) {
+    const r = p.m.get('r');
+    const raw = r * p.top;
+    const y = (raw > 0 ? 18 * Math.tanh(raw / 18) : raw) + p.m.get('dy');
+    const squeeze = r < 0 ? clamp(1 + r, 0.08, 1) : 1 + 0.07 * Math.tanh(r * 6);
+    return p.top + y + p.height * squeeze * p.m.get('s');
   }
-  shape.onUpdate(paint);
 
-  function rowMotion(el) {
-    const motion = createMotion({ e: 0, x: 0, h: 1 }, { response: 0.3, damping: 0.78, restDelta: { e: 0.002, x: 0.002, h: 0.002 } });
-    let natural = 0;
-    motion.onUpdate(({ e, x, h }) => {
-      const t = clamp(e, 0, 1);
-      el.style.opacity = String(clamp(Math.min(t, 1 - Math.abs(x)), 0, 1));
-      const y = (1 - t) * 8;
-      el.style.transform = t > 0.999 && Math.abs(x) < 0.002 ? '' : `translate3d(${(x * el.offsetWidth * 0.6).toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${0.96 + 0.04 * t})`;
-      el.style.filter = t < 0.98 && Fx.tier !== 'solid' ? `blur(${((1 - t) * 5).toFixed(2)}px)` : '';
-      if (h > 0.999) {
-        el.style.height = '';
-        el.style.marginBottom = '';
-      } else {
-        if (!natural) natural = el.scrollHeight;
-        el.style.height = `${Math.max(0, h) * natural}px`;
-        el.style.marginBottom = `${(Math.max(0, h) - 1) * 0.35}rem`;
-      }
+  function contentBottom() {
+    if (!pieces.length) return null;
+    const cap = scrollBottom;
+    let bottom = 0;
+    pieces.forEach((p) => {
+      const b = pieceBottom(p);
+      bottom = Math.max(bottom, p.inScroll ? Math.min(b, cap + (b - p.top - p.height)) : b);
     });
-    return {
-      motion,
-      measure() {
-        natural = 0;
-      },
-    };
+    return bottom + footPad;
   }
+
+  let scrollBottom = 0;
+  let footPad = 0;
+  let drawQueued = false;
+
+  function queueDraw() {
+    if (drawQueued) return;
+    drawQueued = true;
+    queueMicrotask(() => {
+      drawQueued = false;
+      paintShape(shape.values);
+    });
+  }
+
+  function paintShape({ w, h, H }) {
+    const tw = clamp(w, 0, 1);
+    const th = clamp(h, 0, 1);
+    const left = box.bl * (1 - tw);
+    const right = (box.w - box.bl - box.bw) * (1 - tw);
+    const top = box.bt * (1 - th);
+    const hug = MotionSettings.reduced ? null : contentBottom();
+    const bottom = Math.max(box.bt + box.bh, hug === null ? box.bt + box.bh + (Math.max(1, H) - box.bt - box.bh) * th : hug);
+    const full = Math.max(box.h, bottom);
+    const r = box.br + (box.r - box.br) * Math.min(tw, th);
+    const shapeClip = `inset(${top.toFixed(2)}px ${right.toFixed(2)}px ${(full - bottom).toFixed(2)}px ${left.toFixed(2)}px round ${r.toFixed(2)}px)`;
+    fill.style.height = `${full}px`;
+    glass.style.height = `${full}px`;
+    fill.style.clipPath = shapeClip;
+    glass.style.clipPath = shapeClip;
+    body.style.clipPath = `inset(${top.toFixed(2)}px ${right.toFixed(2)}px ${(box.h - bottom).toFixed(2)}px ${left.toFixed(2)}px round ${r.toFixed(2)}px)`;
+    shadow.style.transform = `translate3d(${left.toFixed(2)}px, ${top.toFixed(2)}px, 0)`;
+    shadow.style.width = `${Math.max(0, box.w - left - right)}px`;
+    shadow.style.height = `${Math.max(0, bottom - top)}px`;
+    shadow.style.borderRadius = `${r}px`;
+    const ow = Math.max(0, w - 1);
+    const oh = Math.max(0, h - 1);
+    const sx = (1 + ow * 0.14) * (1 - oh * 0.06);
+    const sy = (1 + oh * 0.12) * (1 - ow * 0.05);
+    panel.style.transformOrigin = `${(box.bl + box.bw / 2).toFixed(1)}px ${(box.bt + box.bh / 2).toFixed(1)}px`;
+    panel.style.transform = Math.abs(sx - 1) > 0.0005 || Math.abs(sy - 1) > 0.0005 ? `scale(${sx.toFixed(4)}, ${sy.toFixed(4)})` : '';
+    glass.style.opacity = open && tw > 0.9 && th > 0.9 ? '1' : '0';
+    panel.style.visibility = tw > 0.002 || th > 0.002 || open ? 'visible' : 'hidden';
+  }
+
+  function drive({ h }) {
+    if (pieces.length && !MotionSettings.reduced && !clearing) {
+      const lead = h < 1 ? h - 1 : (h - 1) * 0.35;
+      const target = open ? lead : Math.min(0, lead);
+      const last = pieces.length - 1;
+      pieces.forEach((p, i) => {
+        if (Math.abs(p.m.get('r') - target) > 0.0005 || Math.abs(p.m.velocity('r')) > 0.001) p.m.to({ r: target }, link(last - i));
+      });
+    }
+  }
+  shape.onUpdate((values) => {
+    drive(values);
+    paintShape(values);
+  });
 
   function buildRow(item) {
     const el = document.createElement('article');
@@ -188,7 +288,13 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
     const bodyEl = el.querySelector('.nc-item__body');
     bodyEl.textContent = item.body;
     bodyEl.hidden = !item.body;
-    el.querySelector('.nc-item__main').addEventListener('click', () => {
+    const main = el.querySelector('.nc-item__main');
+    main.addEventListener('click', (event) => {
+      if (el.dataset.dragged) {
+        event.preventDefault();
+        delete el.dataset.dragged;
+        return;
+      }
       notifier.activate(item.id);
       hide({ focus: false });
     });
@@ -196,9 +302,52 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
       event.stopPropagation();
       dismiss(item.id);
     });
-    const entry = { el, item, ...rowMotion(el) };
-    rows.set(item.id, entry);
-    return entry;
+    swipe(el, item.id);
+    rows.set(item.id, { el, item });
+    return el;
+  }
+
+  function swipe(el, id) {
+    let start = null;
+    let dragging = false;
+    let last = { x: 0, t: 0, v: 0 };
+    el.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0 || event.target.closest('.nc-item__x')) return;
+      start = { x: event.clientX, y: event.clientY };
+      dragging = false;
+      last = { x: event.clientX, t: performance.now(), v: 0 };
+    });
+    el.addEventListener('pointermove', (event) => {
+      if (!start) return;
+      const dx = event.clientX - start.x;
+      const dy = event.clientY - start.y;
+      if (!dragging) {
+        if (Math.abs(dx) < 6 || Math.abs(dx) < Math.abs(dy)) return;
+        dragging = true;
+        try { el.setPointerCapture(event.pointerId); } catch (err) { dragging = true; }
+      }
+      const now = performance.now();
+      const dt = Math.max(1, now - last.t);
+      last = { x: event.clientX, t: now, v: ((event.clientX - last.x) / dt) * 1000 };
+      const p = piece(el);
+      const width = p.width || el.offsetWidth;
+      const moved = dx > 0 ? dx : dx * 0.3;
+      p.mx.set({ x: moved / width });
+    });
+    const release = () => {
+      if (!start) return;
+      start = null;
+      if (!dragging) return;
+      dragging = false;
+      el.dataset.dragged = '1';
+      window.setTimeout(() => delete el.dataset.dragged, 0);
+      const p = piece(el);
+      const width = p.width || el.offsetWidth;
+      if (p.mx.get('x') > 0.35 || last.v > 700) dismiss(id, last.v / width);
+      else p.mx.to({ x: 0 }, { response: 0.4, damping: 0.55, velocity: { x: last.v / width } });
+    };
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
   }
 
   function groupOf(item, now) {
@@ -231,31 +380,26 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
     quietNote.textContent = prefs.dnd.on ? '勿擾中：通知會安靜收進這裡，不跳出來' : `勿擾時段 ${prefs.dnd.from}–${prefs.dnd.to}：通知會安靜收進這裡`;
   }
 
-  function layout({ animate = false } = {}) {
+  function layout() {
     const now = new Date();
     const history = notifier.history;
     const ids = new Set(history.map((item) => item.id));
     rows.forEach((entry, id) => {
-      if (!ids.has(id) && !entry.leaving) {
+      if (!ids.has(id)) {
         entry.el.remove();
         rows.delete(id);
       }
     });
     const nodes = [];
     let lastGroup = null;
-    const added = [];
     history.forEach((item) => {
       const group = groupOf(item, now);
       if (group !== lastGroup) {
         nodes.push(list.querySelector(`.nc__group[data-group="${group}"]`) || header(group));
         lastGroup = group;
       }
-      let entry = rows.get(item.id);
-      if (!entry) {
-        entry = buildRow(item);
-        added.push(entry);
-      }
-      nodes.push(entry.el);
+      const entry = rows.get(item.id);
+      nodes.push(entry ? entry.el : buildRow(item));
     });
     Array.from(list.querySelectorAll('.nc__group')).forEach((el) => {
       if (!nodes.includes(el)) el.remove();
@@ -263,129 +407,121 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
     nodes.forEach((node, i) => {
       if (list.children[i] !== node) list.insertBefore(node, list.children[i] || null);
     });
-    added.forEach((entry, i) => {
-      if (!animate || MotionSettings.reduced) {
-        entry.motion.set({ e: 1, h: 1 });
-        return;
-      }
-      entry.motion.set({ e: 0, h: 0 });
-      entry.measure();
-      entry.motion.to({ h: 1 }, soft({ response: 0.42, damping: 0.74 }));
-      later(() => entry.motion.to({ e: 1 }, soft({ response: 0.36, damping: 0.74 })), 50 + Math.min(i, MAX_STAGGER) * 28);
-    });
     refreshMeta();
   }
 
-  function intro() {
-    const entries = Array.from(list.querySelectorAll('.nc-item')).map((el) => rows.get(el.dataset.id)).filter(Boolean);
-    const heads = Array.from(panel.querySelectorAll('.nc__head, .nc__quiet:not([hidden]), .nc__group, .nc__empty:not([hidden]), .nc__foot'));
-    if (MotionSettings.reduced) {
-      entries.forEach((entry) => entry.motion.set({ e: 1, h: 1, x: 0 }));
-      return;
-    }
-    entries.forEach((entry, i) => {
-      entry.motion.set({ e: 0, h: 1, x: 0 });
-      later(() => entry.motion.to({ e: 1 }, { response: 0.32, damping: 0.76 }), 70 + Math.min(i, MAX_STAGGER) * 30);
-    });
-    heads.forEach((el, i) => {
-      const motion = createMotion({ e: 0 }, { response: 0.32, damping: 0.78, restDelta: 0.002 });
-      motion.onUpdate(({ e }) => {
-        const t = clamp(e, 0, 1);
-        el.style.opacity = t > 0.999 ? '' : String(t);
-        el.style.transform = t > 0.999 ? '' : `translate3d(0, ${((1 - t) * 6).toFixed(2)}px, 0)`;
-        el.style.filter = t < 0.98 && Fx.tier !== 'solid' ? `blur(${((1 - t) * 4).toFixed(2)}px)` : '';
-      });
-      later(() => motion.to({ e: 1 }), 40 + i * 26);
-    });
+  function settleHeight() {
+    box.h = panel.offsetHeight;
+    box.w = panel.offsetWidth;
+    if (MotionSettings.reduced) shape.set({ H: box.h });
+    else shape.to({ H: box.h }, GROW);
   }
 
-  function dismiss(id) {
+  function flip(mutate) {
+    const before = new Map(pieces.map((p) => [p.el, layoutTop(p.el)]));
+    mutate();
+    collect();
+    pieces.forEach((p) => {
+      const old = before.get(p.el);
+      if (old === undefined) {
+        if (MotionSettings.reduced) return;
+        p.m.set({ r: 0, dy: -26, s: 0.86 });
+        p.mx.set({ x: 0 });
+        p.m.to({ dy: 0, s: 1 }, DROP);
+        return;
+      }
+      const delta = old - p.top;
+      if (Math.abs(delta) < 0.5 || MotionSettings.reduced) return;
+      p.m.set({ dy: p.m.get('dy') + delta });
+      p.m.to({ dy: 0 }, SETTLE);
+    });
+    settleHeight();
+  }
+
+  function dismiss(id, velocity = 0) {
     const entry = rows.get(id);
-    if (!entry || entry.leaving) return Promise.resolve();
-    entry.leaving = true;
+    if (!entry || clearing) return Promise.resolve();
+    const p = piece(entry.el);
+    if (p.leaving) return Promise.resolve();
+    p.leaving = true;
     const focusNext = entry.el.contains(document.activeElement);
     const finish = () => {
-      entry.el.remove();
-      rows.delete(id);
-      notifier.remove(id);
-      if (focusNext) {
-        const next = list.querySelector('.nc-item .nc-item__main') || dnd;
-        next.focus({ preventScroll: true });
-      }
+      flip(() => {
+        notifier.remove(id);
+        layout();
+      });
+      if (focusNext) (list.querySelector('.nc-item__main') || dnd).focus({ preventScroll: true });
     };
     if (MotionSettings.reduced) {
       finish();
       return Promise.resolve();
     }
-    entry.measure();
-    return entry.motion.to({ x: 1 }, { response: 0.28, damping: 1 }).then(() => entry.motion.to({ h: 0 }, { response: 0.36, damping: 0.84 })).then(finish);
+    return p.mx.to({ x: 1.3 }, { response: 0.3, damping: 0.92, velocity: { x: Math.max(1.4, velocity) } }).then(finish);
   }
 
   async function clearAll() {
-    if (clearing) return;
+    if (clearing || !rows.size) return;
     clearing = true;
-    const entries = Array.from(rows.values());
-    await Promise.all(entries.map((entry, i) => new Promise((resolve) => {
-      entry.leaving = true;
-      if (MotionSettings.reduced) {
-        resolve();
-        return;
-      }
-      window.setTimeout(() => entry.motion.to({ x: 1 }, { response: 0.26, damping: 1 }).then(resolve), Math.min(i, MAX_STAGGER) * 30);
-    })));
-    rows.forEach((entry) => entry.el.remove());
-    rows.clear();
-    list.textContent = '';
-    clearing = false;
-    notifier.clear();
-    refreshMeta();
+    const leaving = pieces.filter((p) => p.el.parentNode === list);
     if (!MotionSettings.reduced) {
-      const motion = createMotion({ e: 0 }, { response: 0.4, damping: 0.72, restDelta: 0.002 });
-      motion.onUpdate(({ e }) => {
-        const t = clamp(e, 0, 1);
-        empty.style.opacity = t > 0.999 ? '' : String(t);
-        empty.style.transform = t > 0.999 ? '' : `translate3d(0, ${((1 - t) * 10).toFixed(2)}px, 0)`;
-        empty.style.filter = t < 0.98 && Fx.tier !== 'solid' ? `blur(${((1 - t) * 5).toFixed(2)}px)` : '';
-      });
-      motion.to({ e: 1 });
+      await Promise.all(leaving.map((p, i) => p.mx.to({ x: 1.3 }, { response: 0.26 + Math.min(i, 10) * 0.035, damping: 0.9, velocity: { x: 1.2 } })));
     }
+    clearing = false;
+    flip(() => {
+      notifier.clear();
+      layout();
+    });
     dnd.focus({ preventScroll: true });
   }
 
   function show({ keyboard = false } = {}) {
     if (open) return;
-    timers.forEach((id) => window.clearTimeout(id));
-    timers = [];
     open = true;
     fresh = new Set(notifier.history.filter((item) => !item.read).map((item) => item.id));
     panel.classList.add('is-open');
     bell.setAttribute('aria-expanded', 'true');
+    panel.style.transform = '';
     layout();
     scroll.scrollTop = 0;
     place();
-    shape.set({ o: shape.get('o') });
-    shape.to({ o: 1 }, soft({ response: 0.42, damping: 0.66 }));
-    intro();
+    pieces.forEach((p) => {
+      p.m.set({ r: 0, dy: 0, s: 1 });
+      p.mx.set({ x: 0 });
+    });
+    collect();
+    if (MotionSettings.reduced) {
+      shape.set({ w: 1, h: 1, H: box.h });
+    } else {
+      if (shape.get('h') < 0.05) {
+        shape.set({ w: 0, h: 0, H: box.h });
+        pieces.forEach((p) => p.m.set({ r: -1 }));
+      } else {
+        shape.set({ H: box.h });
+      }
+      shape.to({ w: 1 }, OPEN_W);
+      shape.to({ h: 1 }, OPEN_H);
+    }
     notifier.markAllRead();
-    later(() => {
-      const first = keyboard ? panel.querySelector('.nc-item__main') || dnd : panel;
-      first.focus({ preventScroll: true });
-    }, 80);
+    window.setTimeout(() => {
+      if (!open) return;
+      (keyboard ? panel.querySelector('.nc-item__main') || dnd : panel).focus({ preventScroll: true });
+    }, MotionSettings.reduced ? 0 : 80);
   }
 
   function hide({ focus = true } = {}) {
     if (!open) return;
-    timers.forEach((id) => window.clearTimeout(id));
-    timers = [];
     open = false;
     bell.setAttribute('aria-expanded', 'false');
     glass.style.opacity = '0';
-    rows.forEach((entry) => {
-      if (!entry.leaving) entry.motion.to({ e: 0 }, soft({ response: 0.14, damping: 1 }));
-    });
-    later(() => shape.to({ o: 0 }, soft({ response: 0.34, damping: 0.8 })).then(() => {
-      if (!open) panel.classList.remove('is-open');
-    }), 50);
+    if (MotionSettings.reduced) {
+      shape.set({ w: 0, h: 0 });
+      panel.classList.remove('is-open');
+    } else {
+      shape.to({ w: 0 }, CLOSE_W);
+      shape.to({ h: 0 }, CLOSE_H).then((done) => {
+        if (done && !open) panel.classList.remove('is-open');
+      });
+    }
     if (focus) bell.focus({ preventScroll: true });
   }
 
@@ -406,11 +542,11 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
       return;
     }
     if (event.key === 'Tab') {
-      const focusables = Array.from(panel.querySelectorAll('button:not([hidden])')).filter((el) => el.offsetParent !== null);
+      const focusables = Array.from(panel.querySelectorAll('button')).filter((el) => !el.hidden && el.offsetParent !== null);
       if (!focusables.length) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
         event.preventDefault();
         last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
@@ -431,43 +567,38 @@ export function createNotifyCenter({ host, bell, notifier, renderIcon, appTitle 
   }, true);
 
   window.addEventListener('resize', () => {
-    if (open) {
-      place();
-      paint({ o: shape.get('o') });
-    }
+    if (!open) return;
+    place();
+    collect();
+    shape.set({ H: box.h });
   });
 
+  scroll.addEventListener('scroll', () => {
+    if (open) pieces.forEach((p) => { p.top = Math.max(8, layoutTop(p.el)); });
+  }, { passive: true });
+
   notifier.subscribe(({ type }) => {
-    if (clearing) return;
-    if (!open) return;
+    if (!open || clearing) return;
     if (type === 'add' || type === 'sync') {
       notifier.history.forEach((item) => {
         if (!rows.has(item.id) && !item.read) fresh.add(item.id);
       });
-      layout({ animate: true });
+      flip(() => layout());
       notifier.markAllRead();
-      window.requestAnimationFrame(() => {
-        if (!open) return;
-        box.h = panel.offsetHeight;
-        paint({ o: shape.get('o') });
-      });
+      return;
+    }
+    if (type === 'prefs') {
+      flip(() => refreshMeta());
       return;
     }
     refreshMeta();
   });
 
-  new ResizeObserver(() => {
-    if (!open || shape.get('o') < 0.97) return;
-    box.h = panel.offsetHeight;
-    box.w = panel.offsetWidth;
-    paint({ o: shape.get('o') });
-  }).observe(panel);
-
   window.setInterval(() => {
     if (open) refreshMeta();
   }, 30000);
 
-  paint({ o: 0 });
+  paintShape({ w: 0, h: 0, H: 0 });
 
   return {
     show,
