@@ -50,21 +50,29 @@ function rise(el, { delay = 0, x = 0, y = 10, max = 4, config = { response: 0.46
   later(() => motion.to({ e: 1 }, config), delay);
 }
 
+const swaps = new WeakMap();
+
 function swapText(el, text) {
-  if (el.textContent === text) return;
+  let state = swaps.get(el);
+  if (!state) {
+    const motion = createMotion({ e: 1 }, { response: 0.3, damping: 1, restDelta: 0.002 });
+    motion.onUpdate(({ e }) => {
+      const t = clamp01(e);
+      el.style.opacity = t > 0.999 ? '' : String(t);
+      el.style.filter = blur(t, 5);
+    });
+    state = { motion, target: el.textContent };
+    swaps.set(el, state);
+  }
+  if (state.target === text) return;
+  state.target = text;
   if (!el.textContent || MotionSettings.reduced) {
     el.textContent = text;
     return;
   }
-  const motion = createMotion({ e: 1 }, { response: 0.3, damping: 1, restDelta: 0.002 });
-  motion.onUpdate(({ e }) => {
-    const t = clamp01(e);
-    el.style.opacity = t > 0.999 ? '' : String(t);
-    el.style.filter = blur(t, 5);
-  });
-  motion.to({ e: 0 }, { response: 0.14, damping: 1 }).then(() => {
-    el.textContent = text;
-    motion.to({ e: 1 }, { response: 0.36, damping: 0.8 });
+  state.motion.to({ e: 0 }, { response: 0.14, damping: 1 }).then(() => {
+    el.textContent = state.target;
+    state.motion.to({ e: 1 }, { response: 0.36, damping: 0.8 });
   });
 }
 
@@ -226,6 +234,12 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
   const cwaWrap = $('cwa-wrap');
   const cwaButton = $('cwa');
   const placeText = placeButton.querySelector('.wx-place__text');
+  const obsEl = $('obs');
+  const obsWhere = $('obs-where');
+  const obsForecast = $('obs-forecast');
+  const descEl = $('desc');
+  const comfortEl = $('comfort');
+  const sourceEl = $('source');
 
   let view = null;
   let result = null;
@@ -303,27 +317,26 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
     updatedTag.classList.toggle('is-offline', !!result.offline);
   }
 
+  let glyphTarget = null;
+  const glyphMotion = createMotion({ e: 1 }, { response: 0.3, damping: 1, restDelta: 0.002 });
+  glyphMotion.onUpdate(({ e }) => {
+    const t = clamp01(e);
+    const rest = Math.abs(e - 1) < 0.002;
+    glyphEl.style.opacity = rest ? '' : String(t);
+    glyphEl.style.filter = rest ? '' : blur(t, 6);
+    glyphEl.style.transform = rest ? '' : `scale(${0.7 + 0.3 * Math.max(0, e)})`;
+  });
+
   function swapGlyph(name) {
-    const current = glyphEl.firstElementChild;
-    if (current && current.dataset.glyph === name) return;
-    if (!current || MotionSettings.reduced) {
+    if (glyphTarget === name) return;
+    glyphTarget = name;
+    if (!glyphEl.firstElementChild || MotionSettings.reduced) {
       glyphEl.innerHTML = glyph(name);
       return;
     }
-    const motion = createMotion({ e: 1 }, { response: 0.3, damping: 1, restDelta: 0.002 });
-    motion.onUpdate(({ e }) => {
-      const t = clamp01(e);
-      glyphEl.style.opacity = String(t);
-      glyphEl.style.filter = blur(t, 6);
-      glyphEl.style.transform = `scale(${0.7 + 0.3 * Math.max(0, e)})`;
-    });
-    motion.to({ e: 0 }, { response: 0.16, damping: 1 }).then(() => {
-      glyphEl.innerHTML = glyph(name);
-      motion.to({ e: 1 }, { response: 0.5, damping: 0.55 }).then(() => {
-        glyphEl.style.transform = '';
-        glyphEl.style.filter = '';
-        glyphEl.style.opacity = '';
-      });
+    glyphMotion.to({ e: 0 }, { response: 0.16, damping: 1 }).then(() => {
+      if (glyphEl.firstElementChild?.dataset.glyph !== glyphTarget) glyphEl.innerHTML = glyph(glyphTarget);
+      glyphMotion.to({ e: 1 }, { response: 0.5, damping: 0.55 });
     });
   }
 
@@ -568,10 +581,25 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
       bold[0].textContent = `${signedTemp(today.max)}°`;
       bold[1].textContent = `${signedTemp(today.min)}°`;
     }
-    if (intro) tempOdo.set(current.temperature, { from: 0 });
-    else tempOdo.set(current.temperature);
+    const observed = data.observed;
+    const shown = observed ? observed.temperature : current.temperature;
+    if (intro) tempOdo.set(shown, { from: 0 });
+    else tempOdo.set(shown);
+    obsEl.hidden = !observed;
+    if (observed) {
+      const at = formatter(timeZone, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(observed.time));
+      obsWhere.textContent = `${observed.name}站 · ${observed.km < 1 ? '1 公里內' : `${observed.km.toFixed(1)} 公里`} · ${at}`;
+      obsForecast.textContent = `${signedTemp(current.temperature)}°`;
+    }
+    descEl.hidden = !current.description;
+    descEl.textContent = current.description || '';
+    comfortEl.textContent = current.comfort || '';
+    if (data.source === 'cwa') sourceEl.textContent = `天氣：交通部中央氣象署（${data.town}）· Open-Meteo 備援`;
+    else if (result.fallback) sourceEl.textContent = '氣象署暫時連不上，改用 Open-Meteo（CC BY 4.0）';
+    else sourceEl.textContent = '天氣資料：Open-Meteo（CC BY 4.0）';
+    sourceEl.classList.toggle('is-fallback', !!result.fallback);
     apparentOdo.set(current.apparent);
-    humidityOdo.set(current.humidity);
+    humidityOdo.set(observed && observed.humidity !== null ? observed.humidity : current.humidity);
     popOdo.set(current.pop ?? 0);
     const uv = current.uv ?? (today ? today.uv : null);
     uvOdo.set(uv ?? 0);
@@ -586,22 +614,22 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
     renderQuip(data);
     renderAlerts(location, alerts);
     if (intro && !MotionSettings.reduced) {
-      const glyphMotion = createMotion({ s: 0 }, { response: 0.55, damping: 0.5, restDelta: 0.001 });
-      glyphMotion.onUpdate(({ s }) => {
+      const glyphPop = createMotion({ s: 0 }, { response: 0.55, damping: 0.5, restDelta: 0.001 });
+      glyphPop.onUpdate(({ s }) => {
         const t = clamp01(s);
         glyphEl.style.opacity = t > 0.999 ? '' : String(t);
         glyphEl.style.transform = Math.abs(s - 1) < 0.001 ? '' : `scale(${0.6 + 0.4 * s}) rotate(${(1 - s) * -12}deg)`;
         glyphEl.style.filter = blur(t, 6);
       });
-      glyphMotion.set({ s: 0 });
-      later(() => glyphMotion.to({ s: 1 }, { response: 0.55, damping: 0.5 }), 60);
+      glyphPop.set({ s: 0 });
+      later(() => glyphPop.to({ s: 1 }, { response: 0.55, damping: 0.5 }), 60);
       Array.from(root.querySelectorAll('.wx-stat')).forEach((stat, i) => rise(stat, { delay: 140 + i * 45, y: 10 }));
       rise(condEl, { delay: 90, y: 8 });
       rise(rangeEl, { delay: 120, y: 8 });
       rise(sunEl, { delay: 200, y: 12 });
       rise(quipEl, { delay: 380, y: 10 });
     }
-    if (onData) onData({ location, current, today });
+    if (onData) onData({ location, current, today, temperature: shown });
   }
 
   async function refresh({ force = false, intro = false } = {}) {
@@ -615,8 +643,14 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
     }
     renderPlace(location);
     setLoading(true);
-    const next = await loadWeather({ force });
-    setLoading(false);
+    let next;
+    try {
+      next = await loadWeather({ force });
+    } catch (err) {
+      next = { status: 'error', location, error: err };
+    } finally {
+      setLoading(false);
+    }
     if (next.status === 'setup') {
       show('setup');
       return;

@@ -448,6 +448,50 @@
   line-height: 1;
 }
 
+.wx-obs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.5rem;
+  margin: -0.1rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.64rem;
+}
+
+.wx-obs[hidden],
+.wx-desc[hidden] {
+  display: none;
+}
+
+.wx-obs__tag {
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.wx-obs__fc {
+  color: var(--ink-2);
+}
+
+.wx-obs__fc b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.wx-desc {
+  margin: 0.15rem 0 0;
+  color: var(--ink-2);
+  font-size: 0.74rem;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.wx-foot .is-fallback {
+  color: var(--danger);
+}
+
 .wx-cond {
   margin: 0.1rem 0 0;
   font-size: 1.15rem;

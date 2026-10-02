@@ -82,10 +82,12 @@ by the owner of this repository.
 
 ## Central Weather Administration open data
 
-- Used for: weather forecasts and alerts in RingoOS 1.0, and weather alerts for
-  places in Taiwan in RingoOS 2.0 when the user supplies their own
-  authorization key; fetched at runtime; no weather data or key is stored in
-  this repository
+- Used for: weather forecasts and alerts in RingoOS 1.0; in RingoOS 2.0, for
+  places in Taiwan when the user supplies their own authorization key:
+  township forecasts, weather station observations (O-A0001-001, O-A0003-001)
+  and weather alerts; fetched at runtime; no key is stored in this repository.
+  The test fixtures in `tests/fixtures/cwa-*.json` are trimmed copies of public
+  responses from this open data
 - Provider: 交通部中央氣象署 (Central Weather Administration, Ministry of
   Transportation and Communications, Taiwan)
 - License: 政府資料開放授權條款－第1版 (Open Government Data License, Taiwan,

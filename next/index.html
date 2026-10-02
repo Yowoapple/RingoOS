@@ -364,10 +364,12 @@
               <span class="wx-now__glyph" data-wx="glyph"></span>
               <span class="wx-temp"><span class="wx-temp__num" data-wx="temp"></span><span class="wx-temp__deg">°</span></span>
             </div>
+            <p class="wx-obs" data-wx="obs" hidden><span class="wx-obs__tag">實測</span><span data-wx="obs-where"></span><span class="wx-obs__fc">預報 <b class="mono" data-wx="obs-forecast"></b></span></p>
             <p class="wx-cond" data-wx="cond"></p>
             <p class="wx-range" data-wx="range"></p>
+            <p class="wx-desc" data-wx="desc" hidden></p>
             <div class="wx-stats">
-              <div class="wx-stat"><span class="wx-stat__label">體感</span><span class="wx-stat__value mono" data-wx="apparent"></span></div>
+              <div class="wx-stat"><span class="wx-stat__label">體感</span><span class="wx-stat__value"><span class="mono" data-wx="apparent"></span><span class="wx-stat__note" data-wx="comfort"></span></span></div>
               <div class="wx-stat"><span class="wx-stat__label">濕度</span><span class="wx-stat__value mono" data-wx="humidity"></span></div>
               <div class="wx-stat"><span class="wx-stat__label">降雨機率</span><span class="wx-stat__value mono" data-wx="pop"></span></div>
               <div class="wx-stat" data-wx="uv-cell"><span class="wx-stat__label">紫外線</span><span class="wx-stat__value"><span class="mono" data-wx="uv"></span><span class="wx-stat__note" data-wx="uv-text"></span></span></div>
@@ -387,7 +389,7 @@
             <div class="wx-quip" data-wx="quip" hidden><img class="wx-quip__art" data-wx="quip-art" alt="" width="64" height="64"><p class="wx-quip__text" data-wx="quip-text"></p></div>
           </section>
           <footer class="wx-foot">
-            <span>天氣資料：Open-Meteo（CC BY 4.0）</span>
+            <span data-wx="source">天氣資料：Open-Meteo（CC BY 4.0）</span>
             <span class="wx-foot__cwa" data-wx="cwa-wrap" hidden>臺灣特報：<button type="button" class="wx-link" data-wx="cwa"></button></span>
           </footer>
         </div>

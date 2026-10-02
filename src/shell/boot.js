@@ -242,8 +242,8 @@ function start() {
         if (icon) icon.replaceWith(holder.firstElementChild);
         else mbWeather.prepend(holder.firstElementChild);
       }
-      mbWeather.querySelector('.mb-temp').textContent = `${Math.round(info.current.temperature)}°`;
-      mbWeather.setAttribute('aria-label', `${info.location.name} ${info.current.text} ${Math.round(info.current.temperature)} 度`);
+      mbWeather.querySelector('.mb-temp').textContent = `${Math.round(info.temperature)}°`;
+      mbWeather.setAttribute('aria-label', `${info.location.name} ${info.current.text} ${Math.round(info.temperature)} 度`);
       mbWeather.hidden = false;
     },
     onAlert({ text }) {

@@ -1,5 +1,6 @@
 import { Storage } from '../../core/storage/storage.js';
-import { COUNTIES } from './locations.js';
+import { COUNTIES, findCounty } from './locations.js';
+import { STATION_DATASETS, nearestStation, nearestTown, normalizeCwa, observationFrom } from './cwa.js';
 
 export const LOCATION_KEY = 'yoworingo.v2.weather-location';
 export const CACHE_KEY = 'yoworingo.v2.weather-cache';
@@ -241,14 +242,35 @@ export function parseAlerts(json, countyName) {
   }).filter((alert) => alert.phenomena);
 }
 
+const TIMEOUT_MS = 15000;
+
 async function getJson(url, signal) {
-  const response = await fetch(url, { signal });
-  if (!response.ok) {
-    const error = new Error(`HTTP ${response.status}`);
-    error.status = response.status;
-    throw error;
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(new DOMException('timeout', 'TimeoutError')), TIMEOUT_MS);
+  const forward = () => controller.abort(signal.reason);
+  if (signal) {
+    if (signal.aborted) forward();
+    else signal.addEventListener('abort', forward, { once: true });
   }
-  return response.json();
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      const error = new Error(`HTTP ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+    return await response.json();
+  } catch (err) {
+    if (signal && signal.aborted) {
+      const aborted = new Error('aborted');
+      aborted.name = 'AbortError';
+      throw aborted;
+    }
+    throw err;
+  } finally {
+    window.clearTimeout(timer);
+    if (signal) signal.removeEventListener('abort', forward);
+  }
 }
 
 export async function searchPlaces(query, signal) {
@@ -300,28 +322,86 @@ function readCache(location) {
   return cache;
 }
 
+function cwaUrl(dataset, key, params = {}) {
+  return `${CWA}${dataset}?${new URLSearchParams({ ...params, Authorization: key, format: 'JSON' })}`;
+}
+
+async function resolveCwa(location, key) {
+  if (location.cwa && location.cwa.version === 1) return location.cwa;
+  const county = findCounty(location.county);
+  if (!county) throw new Error('county');
+  const [countyJson, ...stationJsons] = await Promise.all([
+    getJson(cwaUrl(county.shortTermId, key, { ElementName: '溫度' })),
+    ...STATION_DATASETS.map((dataset) => getJson(cwaUrl(dataset, key)).then((json) => ({ json, dataset })).catch(() => null)),
+  ]);
+  const town = nearestTown(countyJson, location.lat, location.lon);
+  if (!town) throw new Error('town');
+  const station = nearestStation(stationJsons.filter(Boolean), location.lat, location.lon);
+  const cwa = {
+    version: 1,
+    town: town.name,
+    station: station ? { id: station.id, name: station.name, dataset: station.dataset } : null,
+  };
+  const stored = getLocation();
+  if (stored && stored.lat === location.lat && stored.lon === location.lon) Storage.set(LOCATION_KEY, { ...stored, cwa });
+  return cwa;
+}
+
+async function loadCwa(location, key) {
+  const county = findCounty(location.county);
+  const cwa = await resolveCwa(location, key);
+  const [shortJson, weekJson, observation, alerts] = await Promise.all([
+    getJson(cwaUrl(county.shortTermId, key, { LocationName: cwa.town })),
+    getJson(cwaUrl(county.weeklyId, key, { LocationName: cwa.town })),
+    cwa.station ? getJson(cwaUrl(cwa.station.dataset, key, { StationId: cwa.station.id })).catch(() => null) : Promise.resolve(null),
+    getJson(cwaUrl(ALERT_DATASET, key)).then((raw) => parseAlerts(raw, location.county)).catch(() => null),
+  ]);
+  const now = Date.now();
+  const data = normalizeCwa(shortJson, weekJson, { now, lat: location.lat, lon: location.lon });
+  if (!data) throw new Error('parse');
+  data.source = 'cwa';
+  data.town = cwa.town;
+  data.observed = observation ? observationFrom(observation, now, location.lat, location.lon) : null;
+  return { data, alerts };
+}
+
+async function loadOpenMeteo(location, key) {
+  const wantsAlerts = location.countryCode === 'TW' && key && location.county;
+  const [json, alerts] = await Promise.all([
+    getJson(forecastUrl(location)),
+    wantsAlerts ? getJson(cwaUrl(ALERT_DATASET, key)).then((raw) => parseAlerts(raw, location.county)).catch(() => null) : Promise.resolve([]),
+  ]);
+  const data = normalizeForecast(json);
+  data.source = 'open-meteo';
+  return { data, alerts };
+}
+
 export async function loadWeather({ force = false } = {}) {
   const location = getLocation();
   if (!location) return { status: 'setup' };
   const cache = readCache(location);
-  if (!force && cache && Date.now() - cache.fetchedAt < REFRESH_MS) {
-    return { status: 'ok', location, data: cache.data, alerts: cache.alerts || [], fetchedAt: cache.fetchedAt, offline: false };
+  const key = getAuthKey();
+  const wantsCwa = location.countryCode === 'TW' && !!key && !!findCounty(location.county);
+  const cacheMatches = cache && (cache.data.source === 'cwa') === wantsCwa;
+  if (!force && cacheMatches && Date.now() - cache.fetchedAt < REFRESH_MS) {
+    return { status: 'ok', location, data: cache.data, alerts: cache.alerts || [], fetchedAt: cache.fetchedAt, offline: false, fallback: !!cache.fallback };
   }
+  let fallback = false;
   try {
-    const key = getAuthKey();
-    const wantsAlerts = location.countryCode === 'TW' && key && location.county;
-    const [json, alerts] = await Promise.all([
-      getJson(forecastUrl(location)),
-      wantsAlerts
-        ? getJson(`${CWA}${ALERT_DATASET}?Authorization=${encodeURIComponent(key)}&format=JSON`).then((raw) => parseAlerts(raw, location.county)).catch(() => null)
-        : Promise.resolve([]),
-    ]);
-    const data = normalizeForecast(json);
+    let loaded = null;
+    if (wantsCwa) {
+      try {
+        loaded = await loadCwa(location, key);
+      } catch (err) {
+        fallback = true;
+      }
+    }
+    if (!loaded) loaded = await loadOpenMeteo(location, key);
     const fetchedAt = Date.now();
-    Storage.set(CACHE_KEY, { version: CACHE_VERSION, lat: location.lat, lon: location.lon, fetchedAt, data, alerts: alerts || [] });
-    return { status: 'ok', location, data, alerts: alerts || [], alertsFailed: alerts === null, fetchedAt, offline: false };
+    Storage.set(CACHE_KEY, { version: CACHE_VERSION, lat: location.lat, lon: location.lon, fetchedAt, data: loaded.data, alerts: loaded.alerts || [], fallback });
+    return { status: 'ok', location: getLocation() || location, data: loaded.data, alerts: loaded.alerts || [], alertsFailed: loaded.alerts === null, fetchedAt, offline: false, fallback };
   } catch (err) {
-    if (cache) return { status: 'ok', location, data: cache.data, alerts: cache.alerts || [], fetchedAt: cache.fetchedAt, offline: true };
+    if (cache) return { status: 'ok', location, data: cache.data, alerts: cache.alerts || [], fetchedAt: cache.fetchedAt, offline: true, fallback: !!cache.fallback };
     return { status: 'error', location, error: err };
   }
 }
