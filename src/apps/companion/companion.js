@@ -586,6 +586,49 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   let drag = null;
   let pat = { dir: 0, flips: 0, since: 0, cool: 0 };
 
+  const hint = (() => {
+    const node = document.createElement('span');
+    node.className = 'pet-hint';
+    node.setAttribute('aria-hidden', 'true');
+    node.innerHTML = '<svg viewBox="0 0 32 32"><path d="M11 16V7.5a2 2 0 0 1 4 0V15m0-6.5a2 2 0 0 1 4 0V15m0-5a2 2 0 0 1 4 0v6.5m0-3.5a2 2 0 0 1 4 0V20c0 5-3.6 9-8.5 9h-1.6c-2.6 0-4.6-1.1-6.2-3.2l-4.3-5.9a2 2 0 0 1 3-2.6L11 19.5" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    node.hidden = true;
+    desk.append(node);
+    const motion = createMotion({ x: 0, o: 0 }, { response: 0.34, damping: 0.7, restDelta: { x: 0.002, o: 0.002 } });
+    let token = 0;
+    motion.onUpdate(({ x, o }) => {
+      const left = shownX() + size * 0.5 - 16 + x * size * 0.18;
+      const top = pos.get('y') + size * 0.3;
+      node.style.transform = `translate3d(${left.toFixed(2)}px, ${top.toFixed(2)}px, 0) rotate(${(x * 12).toFixed(2)}deg)`;
+      node.style.opacity = String(clamp(o, 0, 1));
+    });
+    return {
+      async show() {
+        const mine = ++token;
+        node.hidden = false;
+        motion.set({ x: 0, o: 0 });
+        await motion.to({ o: 1 }, { response: 0.26, damping: 1 });
+        for (let i = 0; i < 4 && mine === token; i += 1) {
+          await motion.to({ x: i % 2 ? -1 : 1 }, MotionSettings.reduced ? { response: 0.3, damping: 1 } : { response: 0.32, damping: 0.72 });
+        }
+        if (mine !== token) return;
+        await motion.to({ x: 0, o: 0 }, { response: 0.3, damping: 1 });
+        if (mine === token) node.hidden = true;
+      },
+      hide() {
+        token += 1;
+        motion.to({ o: 0 }, { response: 0.2, damping: 1 }).then(() => {
+          node.hidden = true;
+        });
+      },
+    };
+  })();
+
+  function teachPat() {
+    closeCard();
+    say(`把游標放在 ${life.name} 身上，不用按，左右輕輕滑幾下就好～`);
+    window.setTimeout(() => hint.show(), 350);
+  }
+
   el.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return;
     lastInput = Date.now();
@@ -704,17 +747,29 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
 
   function detectPat(event) {
     const r = el.getBoundingClientRect();
-    if (event.clientY > r.top + r.height * 0.45 || (mode !== 'free' && mode !== 'perch')) return;
+    if (event.clientY > r.top + r.height * 0.85 || (mode !== 'free' && mode !== 'perch')) return;
     const now = performance.now();
-    const dir = Math.sign(event.movementX || 0);
-    if (!dir) return;
-    if (now - pat.since > 1400) pat = { ...pat, flips: 0, since: now, dir };
-    if (dir !== pat.dir) {
-      pat.flips += 1;
-      pat.dir = dir;
+    if (pat.lastX === undefined || now - pat.lastT > 400) {
+      pat = { ...pat, lastX: event.clientX, lastT: now };
+      return;
     }
-    if (pat.flips >= 4 && now > pat.cool) {
-      pat = { dir: 0, flips: 0, since: 0, cool: now + 4000 };
+    const delta = event.clientX - pat.lastX;
+    if (Math.abs(delta) < 3) return;
+    const dir = Math.sign(delta);
+    pat.lastX = event.clientX;
+    pat.lastT = now;
+    if (now - pat.since > 1600) pat = { ...pat, flips: 0, since: now, dir };
+    if (dir === pat.dir) return;
+    pat.flips += 1;
+    pat.dir = dir;
+    if (now <= pat.cool) return;
+    if (!MotionSettings.reduced) {
+      fx.set({ tilt: fx.get('tilt') + dir * 3 });
+      fx.to({ tilt: 0 }, { response: 0.36, damping: 0.4 });
+    }
+    if (pat.flips >= 3) {
+      pat = { ...pat, flips: 0, since: 0, cool: now + 4000 };
+      hint.hide();
       react(REACTIONS.pat);
       changeLife(nudgeMood(countLife(life, today(), 'pats'), 4));
       if (prefs.chatty !== 'off') say(['嘿嘿', '再摸一下', '好舒服'][Math.floor(Math.random() * 3)]);
@@ -883,10 +938,16 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     goalsBox.setAttribute('role', 'list');
     goalsBox.setAttribute('aria-label', '今日小目標');
     const goals = goalsFor(today(), lifeCtx()).map((id) => {
-      const node = document.createElement('div');
-      node.className = 'pet-goal';
-      node.setAttribute('role', 'listitem');
-      node.innerHTML = '<i aria-hidden="true"></i><span></span>';
+      const teach = id === 'pat';
+      const node = document.createElement(teach ? 'button' : 'div');
+      node.className = `pet-goal${teach ? ' is-teach' : ''}`;
+      if (teach) {
+        node.type = 'button';
+        node.addEventListener('click', teachPat);
+      } else {
+        node.setAttribute('role', 'listitem');
+      }
+      node.innerHTML = teach ? '<i aria-hidden="true"></i><span></span><em>怎麼摸？</em>' : '<i aria-hidden="true"></i><span></span>';
       node.querySelector('span').textContent = GOALS[id].label;
       goalsBox.append(node);
       return { id, node };
