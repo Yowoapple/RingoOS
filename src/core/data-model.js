@@ -126,9 +126,8 @@ function addIncomeEntry(dateKey, { amount, category, note }) {
   dispatchEntryEvent('yoworingo:entry-added', 'income');
 }
 
-function addExpenseEntry(dateKey, { amount, category, note, recurring, necessity }) {
-  const day = ensureDay(dateKey);
-  day.expenses.push({
+function buildExpense({ amount, category, note, recurring, necessity, recurringId }) {
+  const entry = {
     id: generateId(),
     amount,
     category,
@@ -136,9 +135,18 @@ function addExpenseEntry(dateKey, { amount, category, note, recurring, necessity
     recurring: !!recurring,
     necessity: necessity || null,
     createdAt: Date.now(),
-  });
+  };
+  if (recurringId) entry.recurringId = recurringId;
+  return entry;
+}
+
+function addExpenseEntry(dateKey, fields) {
+  const day = ensureDay(dateKey);
+  const entry = buildExpense(fields);
+  day.expenses.push(entry);
   notify();
   dispatchEntryEvent('yoworingo:entry-added', 'expense');
+  return entry.id;
 }
 
 function removeEntry(dateKey, type, entryId) {
@@ -168,6 +176,7 @@ function shapeEntry(type, entry) {
   if (type === 'expense') {
     base.recurring = !!entry.recurring;
     base.necessity = entry.necessity || null;
+    if (entry.recurringId) base.recurringId = entry.recurringId;
   }
   return base;
 }
@@ -219,21 +228,82 @@ function getDayEntries(dateKey) {
   return state.days[dateKey] || { income: [], expenses: [], tasks: [] };
 }
 
-function setMonthlyBudget(monthKey, category, amount) {
-  if (!state.settings.monthlyBudgets[monthKey]) {
-    state.settings.monthlyBudgets[monthKey] = {};
-  }
-  state.settings.monthlyBudgets[monthKey][category] = amount;
-  notify();
+function plans() {
+  if (!Array.isArray(state.settings.budgetPlans)) state.settings.budgetPlans = [];
+  return state.settings.budgetPlans;
+}
+
+function planFor(monthKey) {
+  let found = null;
+  plans().forEach((plan) => {
+    if (plan.since <= monthKey && (!found || plan.since > found.since)) found = plan;
+  });
+  return found;
+}
+
+function getBudgetPlan(monthKey) {
+  const plan = planFor(monthKey);
+  return plan ? { ...plan.amounts } : {};
+}
+
+function getBudgetOverrides(monthKey) {
+  return { ...(state.settings.monthlyBudgets[monthKey] || {}) };
 }
 
 function getMonthlyBudgets(monthKey) {
-  return state.settings.monthlyBudgets[monthKey] || {};
+  const merged = { ...getBudgetPlan(monthKey), ...getBudgetOverrides(monthKey) };
+  const out = {};
+  Object.entries(merged).forEach(([category, amount]) => {
+    if (Number(amount) > 0) out[category] = Number(amount);
+  });
+  return out;
+}
+
+function isMonthAdjusted(monthKey) {
+  return !!planFor(monthKey) && Object.keys(getBudgetOverrides(monthKey)).length > 0;
+}
+
+function setMonthlyBudget(monthKey, category, amount) {
+  const value = Math.max(0, Number(amount) || 0);
+  const planValue = getBudgetPlan(monthKey)[category] || 0;
+  const overrides = state.settings.monthlyBudgets[monthKey] || {};
+  if (value === planValue) delete overrides[category];
+  else overrides[category] = value;
+  if (Object.keys(overrides).length) state.settings.monthlyBudgets[monthKey] = overrides;
+  else delete state.settings.monthlyBudgets[monthKey];
+  notify();
+}
+
+function setBudgetTemplate(category, amount, fromMonthKey) {
+  const from = fromMonthKey || toMonthKey(toDateKey(new Date()));
+  const value = Math.max(0, Number(amount) || 0);
+  let plan = plans().find((p) => p.since === from);
+  if (!plan) {
+    plan = { since: from, amounts: getBudgetPlan(from) };
+    plans().push(plan);
+    plans().sort((a, b) => a.since.localeCompare(b.since));
+  }
+  if (value > 0) plan.amounts[category] = value;
+  else delete plan.amounts[category];
+  Object.entries(state.settings.monthlyBudgets).forEach(([monthKey, overrides]) => {
+    if (monthKey < from || !(category in overrides)) return;
+    delete overrides[category];
+    if (!Object.keys(overrides).length) delete state.settings.monthlyBudgets[monthKey];
+  });
+  notify();
+}
+
+function resetMonthToTemplate(monthKey) {
+  if (!state.settings.monthlyBudgets[monthKey]) return false;
+  delete state.settings.monthlyBudgets[monthKey];
+  notify();
+  return true;
 }
 
 function addSavingsGoal({ title, targetAmount, deadline }) {
+  const id = generateId();
   state.settings.savingsGoals.push({
-    id: generateId(),
+    id,
     title,
     targetAmount,
     currentAmount: 0,
@@ -243,6 +313,7 @@ function addSavingsGoal({ title, targetAmount, deadline }) {
     deposits: [],
   });
   notify();
+  return id;
 }
 
 function updateSavingsGoalAmount(goalId, currentAmount) {
@@ -253,14 +324,75 @@ function updateSavingsGoalAmount(goalId, currentAmount) {
   }
 }
 
-function depositToGoal(goalId, amount) {
-  const goal = state.settings.savingsGoals.find((g) => g.id === goalId);
-  if (!goal || !amount || amount <= 0) return;
-  goal.currentAmount += amount;
+function findGoal(goalId) {
+  return state.settings.savingsGoals.find((g) => g.id === goalId) || null;
+}
+
+function transferSign(transfer) {
+  return transfer.type === 'withdraw' ? -1 : 1;
+}
+
+function pushTransfer(goal, { amount, type, dateKey, monthKey = null }) {
   if (!goal.deposits) goal.deposits = [];
-  goal.deposits.push({ date: new Date().toISOString(), amount, type: 'manual', monthKey: null });
+  const transfer = { id: generateId(), date: new Date().toISOString(), dateKey: dateKey || toDateKey(new Date()), amount, type, monthKey };
+  goal.deposits.push(transfer);
+  goal.currentAmount += transferSign(transfer) * amount;
+  return transfer;
+}
+
+function depositToGoal(goalId, amount, { dateKey } = {}) {
+  const goal = findGoal(goalId);
+  if (!goal || !amount || amount <= 0) return null;
+  const transfer = pushTransfer(goal, { amount, type: 'manual', dateKey });
   notify();
   dispatchEntryEvent('yoworingo:goal-deposit', 'manual');
+  return transfer.id;
+}
+
+function withdrawFromGoal(goalId, amount, { dateKey } = {}) {
+  const goal = findGoal(goalId);
+  if (!goal || !amount || amount <= 0 || amount > goal.currentAmount) return null;
+  const transfer = pushTransfer(goal, { amount, type: 'withdraw', dateKey });
+  notify();
+  dispatchEntryEvent('yoworingo:goal-withdraw', 'withdraw');
+  return transfer.id;
+}
+
+function getTransfers(dateKeys) {
+  const wanted = dateKeys ? new Set(dateKeys) : null;
+  const out = [];
+  state.settings.savingsGoals.forEach((goal) => {
+    (goal.deposits || []).forEach((transfer, index) => {
+      if (wanted && !wanted.has(transfer.dateKey)) return;
+      out.push({ ...transfer, goalId: goal.id, goalTitle: goal.title, index, signed: transferSign(transfer) * transfer.amount });
+    });
+  });
+  return out;
+}
+
+function removeGoalTransfer(goalId, transferId) {
+  const goal = findGoal(goalId);
+  if (!goal || !goal.deposits) return null;
+  const index = goal.deposits.findIndex((t) => t.id === transferId);
+  if (index === -1) return null;
+  const candidate = goal.deposits[index];
+  if (goal.currentAmount - transferSign(candidate) * candidate.amount < 0) return { blocked: true, goalId, transferId };
+  const [transfer] = goal.deposits.splice(index, 1);
+  goal.currentAmount -= transferSign(transfer) * transfer.amount;
+  notify();
+  return { goalId, transfer, index };
+}
+
+function restoreGoalTransfer(snapshot) {
+  if (!snapshot) return false;
+  const goal = findGoal(snapshot.goalId);
+  if (!goal) return false;
+  if (!goal.deposits) goal.deposits = [];
+  if (goal.deposits.some((t) => t.id === snapshot.transfer.id)) return false;
+  goal.deposits.splice(Math.max(0, Math.min(goal.deposits.length, snapshot.index)), 0, { ...snapshot.transfer });
+  goal.currentAmount += transferSign(snapshot.transfer) * snapshot.transfer.amount;
+  notify();
+  return true;
 }
 
 function setGoalAutoSavePercent(goalId, percent) {
@@ -280,9 +412,7 @@ function applyMonthlyAutoSavings(monthKey, netAmount) {
     if (netAmount > 0) {
       const amount = Math.round((netAmount * goal.autoSavePercent) / 100);
       if (amount > 0) {
-        goal.currentAmount += amount;
-        if (!goal.deposits) goal.deposits = [];
-        goal.deposits.push({ date: new Date().toISOString(), amount, type: 'auto', monthKey });
+        pushTransfer(goal, { amount, type: 'auto', monthKey });
         deposited = true;
       }
     }
@@ -436,16 +566,32 @@ function removeCategory(type, category) {
   });
 
   const budgets = {};
-  Object.entries(state.settings.monthlyBudgets).forEach(([monthKey, monthBudgets]) => {
-    if (category in monthBudgets) {
-      budgets[monthKey] = monthBudgets[category];
-      delete monthBudgets[category];
-    }
-  });
+  const planBudgets = {};
+  const recurringMoved = [];
+  if (type === 'expense') {
+    Object.entries(state.settings.monthlyBudgets).forEach(([monthKey, monthBudgets]) => {
+      if (category in monthBudgets) {
+        budgets[monthKey] = monthBudgets[category];
+        delete monthBudgets[category];
+      }
+    });
+    plans().forEach((plan) => {
+      if (category in plan.amounts) {
+        planBudgets[plan.since] = plan.amounts[category];
+        delete plan.amounts[category];
+      }
+    });
+    recurringList().forEach((t) => {
+      if (t.category === category) {
+        t.category = fallback;
+        recurringMoved.push(t.id);
+      }
+    });
+  }
 
   list.splice(idx, 1);
   notify();
-  return { ok: true, snapshot: { type, name: category, index: idx, moved, budgets } };
+  return { ok: true, snapshot: { type, name: category, index: idx, moved, budgets, planBudgets, recurringMoved } };
 }
 
 function restoreCategory(snapshot) {
@@ -461,9 +607,17 @@ function restoreCategory(snapshot) {
     const entry = entryList.find((item) => item.id === id);
     if (entry && entry.category === fallback) entry.category = snapshot.name;
   });
-  Object.entries(snapshot.budgets).forEach(([monthKey, amount]) => {
+  Object.entries(snapshot.budgets || {}).forEach(([monthKey, amount]) => {
     if (!state.settings.monthlyBudgets[monthKey]) state.settings.monthlyBudgets[monthKey] = {};
     state.settings.monthlyBudgets[monthKey][snapshot.name] = amount;
+  });
+  Object.entries(snapshot.planBudgets || {}).forEach(([since, amount]) => {
+    const plan = plans().find((p) => p.since === since);
+    if (plan) plan.amounts[snapshot.name] = amount;
+  });
+  (snapshot.recurringMoved || []).forEach((id) => {
+    const t = recurringList().find((item) => item.id === id);
+    if (t && t.category === fallback) t.category = snapshot.name;
   });
   notify();
   return true;
@@ -488,11 +642,22 @@ function renameCategory(type, from, to) {
       }
     });
   });
-  Object.values(state.settings.monthlyBudgets).forEach((monthBudgets) => {
-    if (from in monthBudgets) {
-      monthBudgets[name] = monthBudgets[from];
-      delete monthBudgets[from];
-    }
+  if (type === 'expense') {
+    Object.values(state.settings.monthlyBudgets).forEach((monthBudgets) => {
+      if (from in monthBudgets) {
+        monthBudgets[name] = monthBudgets[from];
+        delete monthBudgets[from];
+      }
+    });
+    plans().forEach((plan) => {
+      if (from in plan.amounts) {
+        plan.amounts[name] = plan.amounts[from];
+        delete plan.amounts[from];
+      }
+    });
+  }
+  recurringList().forEach((t) => {
+    if (t.category === from && type === 'expense') t.category = name;
   });
   list[idx] = name;
   notify();
@@ -525,6 +690,135 @@ function copyMonthlyBudgets(fromMonthKey, toMonthKey, { overwrite = false } = {}
     notify();
   }
   return count;
+}
+
+function recurringList() {
+  if (!Array.isArray(state.settings.recurring)) state.settings.recurring = [];
+  return state.settings.recurring;
+}
+
+function daysIn(monthKey) {
+  const [y, m] = monthKey.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+
+function nextMonthKey(monthKey) {
+  const [y, m] = monthKey.split('-').map(Number);
+  const d = new Date(y, m, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function dueDateKey(template, monthKey) {
+  const day = Math.min(Math.max(1, template.day), daysIn(monthKey));
+  return `${monthKey}-${String(day).padStart(2, '0')}`;
+}
+
+function getRecurring() {
+  return recurringList().map((t) => ({ ...t, posted: { ...t.posted } }));
+}
+
+function getRecurringTemplate(id) {
+  const t = recurringList().find((item) => item.id === id);
+  return t ? { ...t, posted: { ...t.posted } } : null;
+}
+
+function addRecurring({ name, amount, category, day, necessity = null, since, until = null, postedEntry = null }, today = toDateKey(new Date())) {
+  const cleanDay = Math.min(31, Math.max(1, Math.round(Number(day) || 1)));
+  const thisMonth = toMonthKey(today);
+  let start = since;
+  const coversThisMonth = postedEntry && postedEntry.monthKey === thisMonth;
+  if (!start) start = dueDateKey({ day: cleanDay }, thisMonth) >= today || coversThisMonth ? thisMonth : nextMonthKey(thisMonth);
+  const template = {
+    id: generateId(),
+    name: String(name || '').trim() || category,
+    amount: Number(amount) || 0,
+    category,
+    day: cleanDay,
+    necessity,
+    since: start,
+    until,
+    active: true,
+    posted: {},
+    createdAt: Date.now(),
+  };
+  if (postedEntry) {
+    template.posted[postedEntry.monthKey] = postedEntry.entryId;
+    const day0 = state.days[postedEntry.dateKey];
+    const entry = day0 && day0.expenses.find((e) => e.id === postedEntry.entryId);
+    if (entry) {
+      entry.recurring = true;
+      entry.recurringId = template.id;
+    }
+  }
+  recurringList().push(template);
+  notify();
+  return template.id;
+}
+
+function updateRecurring(id, patch) {
+  const t = recurringList().find((item) => item.id === id);
+  if (!t) return false;
+  ['name', 'amount', 'category', 'day', 'necessity', 'until', 'active'].forEach((key) => {
+    if (key in patch) t[key] = patch[key];
+  });
+  if ('day' in patch) t.day = Math.min(31, Math.max(1, Math.round(Number(patch.day) || 1)));
+  notify();
+  return true;
+}
+
+function removeRecurring(id) {
+  const list = recurringList();
+  const index = list.findIndex((item) => item.id === id);
+  if (index === -1) return null;
+  const [template] = list.splice(index, 1);
+  notify();
+  return { template, index };
+}
+
+function restoreRecurring(snapshot) {
+  if (!snapshot || recurringList().some((t) => t.id === snapshot.template.id)) return false;
+  const list = recurringList();
+  list.splice(Math.max(0, Math.min(list.length, snapshot.index)), 0, snapshot.template);
+  notify();
+  return true;
+}
+
+function hasDueRecurring(today = toDateKey(new Date())) {
+  return postDueRecurring(today, { dry: true }).length > 0;
+}
+
+function postDueRecurring(today = toDateKey(new Date()), { dry = false } = {}) {
+  const thisMonth = toMonthKey(today);
+  const posted = [];
+  recurringList().forEach((t) => {
+    if (!t.active || !(t.amount > 0)) return;
+    if (!t.posted && !dry) t.posted = {};
+    const done = t.posted || {};
+    const [ty, tm] = thisMonth.split('-').map(Number);
+    const floorDate = new Date(ty, tm - 13, 1);
+    const floor = `${floorDate.getFullYear()}-${String(floorDate.getMonth() + 1).padStart(2, '0')}`;
+    let monthKey = t.since > floor ? t.since : floor;
+    while (monthKey <= thisMonth) {
+      if (t.until && monthKey > t.until) break;
+      if (!done[monthKey]) {
+        const dateKey = dueDateKey(t, monthKey);
+        if (dateKey <= today && dry) {
+          posted.push({ templateId: t.id, dateKey });
+        } else if (dateKey <= today) {
+          const entry = buildExpense({ amount: t.amount, category: t.category, note: t.name, recurring: true, necessity: t.necessity, recurringId: t.id });
+          ensureDay(dateKey).expenses.push(entry);
+          t.posted[monthKey] = entry.id;
+          posted.push({ templateId: t.id, dateKey, entryId: entry.id, name: t.name, amount: t.amount, category: t.category });
+        }
+      }
+      monthKey = nextMonthKey(monthKey);
+    }
+  });
+  if (posted.length && !dry) {
+    notify();
+    dispatchEntryEvent('yoworingo:entry-added', 'expense');
+  }
+  return posted;
 }
 
 function restoreSavingsGoal(goal, index) {
@@ -576,9 +870,26 @@ export const Data = {
   setTaskReminderLookaheadDays,
   setMonthlyBudget,
   getMonthlyBudgets,
+  getBudgetPlan,
+  getBudgetOverrides,
+  isMonthAdjusted,
+  setBudgetTemplate,
+  resetMonthToTemplate,
+  getRecurring,
+  getRecurringTemplate,
+  addRecurring,
+  updateRecurring,
+  removeRecurring,
+  restoreRecurring,
+  postDueRecurring,
+  hasDueRecurring,
   addSavingsGoal,
   updateSavingsGoalAmount,
   depositToGoal,
+  withdrawFromGoal,
+  getTransfers,
+  removeGoalTransfer,
+  restoreGoalTransfer,
   setGoalAutoSavePercent,
   applyMonthlyAutoSavings,
   removeSavingsGoal,

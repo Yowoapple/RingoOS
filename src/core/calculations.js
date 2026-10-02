@@ -65,10 +65,13 @@ function summarizeDateKeys(dateKeys) {
     });
   });
 
+  const saved = Data.getTransfers(dateKeys).reduce((sum, t) => sum + t.signed, 0);
+
   return {
     income,
     expense,
     net: income - expense,
+    saved,
     incomeByCategory,
     expenseByCategory,
   };
@@ -258,8 +261,8 @@ function getGoalProjection(goal) {
 
   const byMonth = {};
   deposits.forEach((dep) => {
-    const monthKey = dep.monthKey || Data.toMonthKey(Data.toDateKey(new Date(dep.date)));
-    byMonth[monthKey] = (byMonth[monthKey] || 0) + dep.amount;
+    const monthKey = dep.monthKey || (dep.dateKey ? Data.toMonthKey(dep.dateKey) : Data.toMonthKey(Data.toDateKey(new Date(dep.date))));
+    byMonth[monthKey] = (byMonth[monthKey] || 0) + (dep.type === 'withdraw' ? -dep.amount : dep.amount);
   });
   const monthlyAmounts = Object.values(byMonth);
   const avgMonthly = monthlyAmounts.reduce((sum, v) => sum + v, 0) / monthlyAmounts.length;

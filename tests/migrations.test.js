@@ -62,7 +62,9 @@ describe('migrateLedger', () => {
     const result = migrateLedger(legacyLedger());
     expect(result.days['2026-09-01'].tasks).toEqual([]);
     expect(result.settings.expenseCategories).toEqual(['餐飲', '寵物', '其他']);
-    expect(result.settings.monthlyBudgets).toEqual({ '2026-09': { 餐飲: 6000 } });
+    expect(result.settings.monthlyBudgets).toEqual({});
+    expect(result.settings.budgetPlans).toEqual([{ since: '2026-09', amounts: { 餐飲: 6000 } }]);
+    expect(result.settings.recurring).toEqual([]);
     expect(result.settings.taskReminderLookaheadDays).toBe(1);
     expect(result.settings.savingsGoals[0]).toEqual({
       id: 'g1', title: '旅行', targetAmount: 30000, currentAmount: 500, deadline: null,

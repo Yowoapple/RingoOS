@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA = 2;
+export const CURRENT_SCHEMA = 3;
 export const CREATED_WITH = 'RingoOS by YoWoRingo';
 
 export const DEFAULT_INCOME_CATEGORIES = ['薪資', '獎金', '投資', '其他收入'];
@@ -80,8 +80,63 @@ function toSchema2(doc) {
   };
 }
 
+function localDateKey(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function positiveAmounts(source) {
+  const out = {};
+  Object.entries(source || {}).forEach(([category, amount]) => {
+    if (Number(amount) > 0) out[category] = Number(amount);
+  });
+  return out;
+}
+
+function toSchema3(doc) {
+  const settings = doc.settings;
+  const monthlyBudgets = {};
+  Object.entries(settings.monthlyBudgets || {}).forEach(([monthKey, value]) => {
+    if (value && typeof value === 'object') monthlyBudgets[monthKey] = { ...value };
+  });
+  const latest = Object.keys(monthlyBudgets).filter((monthKey) => Object.keys(positiveAmounts(monthlyBudgets[monthKey])).length).sort().pop();
+  const budgetPlans = [];
+  if (latest) {
+    const amounts = positiveAmounts(monthlyBudgets[latest]);
+    budgetPlans.push({ since: latest, amounts });
+    const rest = {};
+    Object.entries(monthlyBudgets[latest]).forEach(([category, amount]) => {
+      if (amounts[category] !== Number(amount)) rest[category] = Number(amount) || 0;
+    });
+    if (Object.keys(rest).length) monthlyBudgets[latest] = rest;
+    else delete monthlyBudgets[latest];
+  }
+  const savingsGoals = asArray(settings.savingsGoals).map((goal) => ({
+    ...goal,
+    deposits: asArray(goal.deposits).map((dep, i) => ({
+      ...dep,
+      id: dep.id || `tr-${goal.id || 'goal'}-${i}`,
+      dateKey: dep.dateKey || localDateKey(dep.date),
+      type: dep.type || 'manual',
+    })),
+  }));
+  return {
+    ...doc,
+    meta: { ...doc.meta, schema: 3 },
+    settings: {
+      ...settings,
+      monthlyBudgets,
+      budgetPlans,
+      recurring: asArray(settings.recurring),
+      savingsGoals,
+    },
+  };
+}
+
 const steps = {
   1: toSchema2,
+  2: toSchema3,
 };
 
 export function migrateLedger(input) {
@@ -105,6 +160,8 @@ export function createDefaultLedger() {
       incomeCategories: [...DEFAULT_INCOME_CATEGORIES],
       expenseCategories: [...DEFAULT_EXPENSE_CATEGORIES],
       monthlyBudgets: {},
+      budgetPlans: [],
+      recurring: [],
       savingsGoals: [],
       taskReminderLookaheadDays: 1,
     },
