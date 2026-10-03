@@ -180,7 +180,7 @@ export function categoriesPage(ctx) {
       }
       chip.dataset.name = next;
       chip.querySelector('.st-chip__name').textContent = next;
-      island.toast({ text: `已改名為「${next}」`, note: result.count ? `${result.count} 筆紀錄` : '', duration: 2400 });
+      island.toast({ text: `已改名為「${next}」`, duration: 2400 });
       render();
     });
   }

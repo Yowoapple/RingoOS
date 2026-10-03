@@ -52,7 +52,7 @@ export function radioPage(ctx) {
     const remove = button('刪除', 'btn--ghost st-mini', () => {
       const removed = lists.removeList(list.id);
       if (!removed) return;
-      island.toast({ text: `已刪除「${removed.list.name}」`, action: '復原', duration: 5000, onAction: () => lists.restoreList(removed.list, removed.index) });
+      island.toast({ text: `已刪除「${removed.list.name.length > 8 ? `${removed.list.name.slice(0, 8)}…` : removed.list.name}」`, action: '復原', duration: 5000, onAction: () => lists.restoreList(removed.list, removed.index) });
     });
     name.addEventListener('click', () => {
       const input = h('input', 'st-listrow__input');

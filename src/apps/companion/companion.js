@@ -99,7 +99,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier, on
       pumpAchievements();
       return;
     }
-    island.toast({ text: `成就解鎖 · ${item.title}`, note: `${item.desc} · 點心 +1`, action: '看看', onAction: () => openRoom('achievements'), duration: 3800 });
+    island.toast({ text: `成就解鎖 · ${item.title}`, action: '看看', onAction: () => openRoom('achievements'), duration: 3800 });
     Sound.play('achievement');
     react(REACTIONS.levelUp);
     achTimer = window.setTimeout(() => {
@@ -123,7 +123,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier, on
     if (!life.achInit) {
       life = { ...next, achInit: true };
       window.setTimeout(() => {
-        island.toast({ text: `解鎖了 ${ids.length} 個成就`, note: '以前的紀錄也算進去了', action: '看看', onAction: () => openRoom('achievements'), duration: 5200 });
+        island.toast({ text: `解鎖了 ${ids.length} 個成就`, action: '看看', onAction: () => openRoom('achievements'), duration: 5200 });
         Sound.play('achievement');
       }, 3200);
       return;
@@ -378,7 +378,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier, on
       react(REACTIONS.levelUp);
       Sound.play('achievement');
       say(eventLine('level', voice(), { ...vars, title: event.title }, event.level));
-      island.toast({ text: `${life.name} 升到 Lv${event.level}`, note: event.title, duration: 3600 });
+      island.toast({ text: `${life.name} 升到 Lv${event.level} · ${event.title}`, duration: 3600 });
     }
   }
 

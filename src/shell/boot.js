@@ -406,7 +406,7 @@ function start() {
     fileInput.value = '';
     if (!file) return;
     appearance.setPhoto(file).catch((err) => {
-      island.toast({ text: '桌布沒有換成功', note: err.message, duration: 4200 });
+      island.toast({ text: '桌布沒有換成功', duration: 3200 });
     });
   });
 
@@ -536,7 +536,6 @@ function start() {
     Sound.set({ asked: true });
     island.toast({
       text: '要開啟系統音效嗎？',
-      note: '之後可以在設定 › 聲音調整',
       action: '開啟',
       duration: 9000,
       onAction() {

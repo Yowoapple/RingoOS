@@ -542,7 +542,7 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
       if (snapshot.blocked) {
         restoring.add(item.id);
         run();
-        island.toast({ text: `${item.category} 的錢已經取出一部分，先取消那筆取出`, duration: 3600 });
+        island.toast({ text: '要先取消後來的取出', duration: 3200 });
         return;
       }
       island.toast({ text: `${item.signed < 0 ? '已取消取出' : '已取消存入'} · ${item.category}`, amount: item.amount, income: item.signed < 0, action: '復原', onAction: () => { restoring.add(item.id); Data.restoreGoalTransfer(snapshot); } });

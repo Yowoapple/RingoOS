@@ -133,7 +133,7 @@ export function aboutPage(ctx) {
     taps += 1;
     const until = developerUntil();
     if (until) {
-      if (taps === 1) island.toast({ text: '你已經是開發者了', note: `${untilText(until)}自動關閉 · 再點 7 下關閉`, duration: 2400 });
+      if (taps === 1) island.toast({ text: `開發者模式 · ${untilText(until).trim()}關閉`, duration: 2400 });
       if (taps >= 4 && taps < 7) island.toast({ text: `再點 ${7 - taps} 下關閉`, duration: 1200 });
       if (taps === 7) {
         taps = 0;
@@ -146,7 +146,7 @@ export function aboutPage(ctx) {
     if (taps === 7) {
       taps = 0;
       Storage.set(DEV_KEY, { until: Date.now() + DEV_DAY });
-      island.toast({ text: '開發者模式已開啟', note: '一天後自動關閉 · Tweaks 之後解鎖', duration: 3200 });
+      island.toast({ text: '開發者模式已開啟', duration: 2600 });
     }
   });
 

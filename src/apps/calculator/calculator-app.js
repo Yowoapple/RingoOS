@@ -259,7 +259,6 @@ export function createCalculatorApp({ root, island, dialogs, isActive, onRecord 
       syncTape();
       island.toast({
         text: '已刪除紀錄',
-        note: formatNumber(removed.result),
         action: '復原',
         onAction() {
           history.splice(Math.min(at, history.length), 0, removed);
@@ -352,7 +351,7 @@ export function createCalculatorApp({ root, island, dialogs, isActive, onRecord 
     const raw = view.result !== null ? String(view.result) : view.display.replace(/,/g, '').replace('−', '-');
     try {
       await navigator.clipboard.writeText(raw);
-      island.toast({ text: '已複製', note: view.display, duration: 2200 });
+      island.toast({ text: '已複製結果', duration: 2000 });
     } catch (err) {
       island.toast({ text: '沒辦法複製，請手動選取', duration: 2600 });
     }

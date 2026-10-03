@@ -305,8 +305,9 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
     toastSign = income ? '+' : '−';
     if (amount !== null) toastOdometer.set(amount, { from: amount });
     const undoable = !!action;
-    undoBadge.hidden = !undoable;
-    undoBadge.disabled = !undoable;
+    const isUndo = action === '復原';
+    undoBadge.hidden = !isUndo;
+    undoBadge.disabled = !isUndo;
     toastAction.textContent = action || '';
     toastAction.hidden = !undoable;
     toastHandler = onAction || null;

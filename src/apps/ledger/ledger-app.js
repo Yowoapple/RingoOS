@@ -336,7 +336,7 @@ export function createLedgerApp({ root, dateTag, todayButton, findButton, host, 
       if (snapshot.blocked) {
         restoring.add(row.id);
         reconcile();
-        island.toast({ text: `${row.goalTitle} 的錢已經取出一部分，先取消那筆取出`, duration: 3600 });
+        island.toast({ text: '要先取消後來的取出', duration: 3200 });
         return;
       }
       island.toast({

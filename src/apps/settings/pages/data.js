@@ -171,7 +171,7 @@ export function dataPage(ctx) {
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    island.toast({ text: photo ? '已匯出備份與桌布' : '已匯出備份', note: 'JSON', duration: 2400 });
+    island.toast({ text: photo ? '已匯出備份與桌布' : '已匯出備份', duration: 2400 });
   });
 
   const wallToggle = toggle(false, (on) => { withWall = on; }, '匯出時包含桌布');
@@ -221,7 +221,7 @@ export function dataPage(ctx) {
       return;
     }
     if (!doc || typeof doc !== 'object' || !isLedgerShape(doc)) {
-      island.toast({ text: '這不是 RingoOS 或 1.0 的備份檔', duration: 3200 });
+      island.toast({ text: '這不是 RingoOS 的備份檔', duration: 3200 });
       return;
     }
     const incoming = summarize(doc);

@@ -321,7 +321,7 @@ export function createRadioApp({ root, area, island, dialogs, store, wm, menubar
       filter = 'all';
       renderChips();
       renderStations();
-      island.toast({ text: '已匯入電台', note: `${count} 台`, duration: 2600 });
+      island.toast({ text: `已匯入 ${count} 台電台`, duration: 2600 });
       return count;
     } catch (err) {
       island.toast({ text: err.message || '匯入失敗', duration: 4200 });
@@ -420,7 +420,7 @@ export function createRadioApp({ root, area, island, dialogs, store, wm, menubar
       player = instance;
     })).catch((err) => {
       playerReady = null;
-      island.toast({ text: '連不上 YouTube，檢查一下網路再試', duration: 4200 });
+      island.toast({ text: '連不上 YouTube', duration: 3200 });
       throw err;
     });
     return playerReady;
@@ -534,7 +534,7 @@ export function createRadioApp({ root, area, island, dialogs, store, wm, menubar
 
   function handleError(code) {
     const blocked = code === 101 || code === 150;
-    island.toast({ text: blocked ? '這支影片不允許在其他網站播放' : '這支影片沒辦法播放', note: '跳到下一首', duration: 3600 });
+    island.toast({ text: blocked ? '影片不允許外部播放，換下一首' : '影片沒辦法播放，換下一首', duration: 3200 });
     const list = items();
     const item = currentItem();
     const index = item ? list.indexOf(item) : -1;
@@ -835,7 +835,7 @@ export function createRadioApp({ root, area, island, dialogs, store, wm, menubar
     if (!ok) return;
     if (current && current.listId === list.id) stopYt();
     const removed = lists.removeList(list.id);
-    if (removed) island.toast({ text: '已刪除清單', note: removed.list.name, action: '復原', onAction: () => lists.restoreList(removed.list, removed.index) });
+    if (removed) island.toast({ text: '已刪除清單', action: '復原', onAction: () => lists.restoreList(removed.list, removed.index) });
   });
 
   function renderQueueRow(row) {
@@ -872,7 +872,7 @@ export function createRadioApp({ root, area, island, dialogs, store, wm, menubar
       seen.delete(row.id);
       if (!removed) return;
       if (current && current.itemId === row.id) stopYt();
-      island.toast({ text: '已移出清單', note: (removed.item.title || '').slice(0, 14), action: '復原', onAction: () => lists.restoreItem(removed) });
+      island.toast({ text: '已移出清單', action: '復原', onAction: () => lists.restoreItem(removed) });
     },
   });
 

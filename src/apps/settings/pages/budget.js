@@ -265,7 +265,7 @@ export function budgetPage(ctx) {
         onClick: () => {
           const snapshot = Data.removeRecurring(template.id);
           dialogs.close(true);
-          if (snapshot) island.toast({ text: `已刪除固定支出 · ${template.name}`, action: '復原', duration: 5000, onAction: () => Data.restoreRecurring(snapshot) });
+          if (snapshot) island.toast({ text: `已刪除「${template.name.length > 8 ? `${template.name.slice(0, 8)}…` : template.name}」`, action: '復原', duration: 5000, onAction: () => Data.restoreRecurring(snapshot) });
         },
       });
     }
@@ -384,7 +384,7 @@ export function budgetPage(ctx) {
     if (index < 0) return;
     const goal = JSON.parse(JSON.stringify(goals[index]));
     Data.removeSavingsGoal(goalId);
-    island.toast({ text: `已刪除「${goal.title}」`, action: '復原', duration: 5000, onAction: () => Data.restoreSavingsGoal(goal, index) });
+    island.toast({ text: `已刪除「${goal.title.length > 8 ? `${goal.title.slice(0, 8)}…` : goal.title}」`, action: '復原', duration: 5000, onAction: () => Data.restoreSavingsGoal(goal, index) });
   }
 
   function openNewGoal(source) {

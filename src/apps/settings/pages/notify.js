@@ -92,7 +92,7 @@ export function notifyPage(ctx) {
   const clear = button('清除通知紀錄', 'btn--ghost', () => {
     const count = notifier.history.length;
     notifier.clear();
-    island.toast({ text: count ? '已清除通知紀錄' : '沒有通知紀錄', note: count ? `${count} 則` : '', duration: 2400 });
+    island.toast({ text: count ? `已清除 ${count} 則通知` : '沒有通知紀錄', duration: 2400 });
   });
   const actions = h('div', 'st-actions');
   actions.append(test, clear);
