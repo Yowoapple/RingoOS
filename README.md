@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/og.png" alt="RingoOS — a web desktop for everyday life and money" width="100%">
+  <img src="docs/media/hero.webp" alt="RingoOS — a web desktop for everyday life and money" width="100%">
 </p>
 
 <p align="center">
