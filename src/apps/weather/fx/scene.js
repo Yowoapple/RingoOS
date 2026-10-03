@@ -10,6 +10,8 @@ const MAX_PIXELS = 2400000;
 const FADE = 0.45;
 const TEXT_SELECTORS = ['[data-wx="glyph"]', '[data-wx="temp"]', '[data-wx="obs"]', '[data-wx="cond"]', '[data-wx="range"]', '[data-wx="desc"]', '.wx-alert', '.wx-sun', '.wx-hours', '.wx-chart', '.wx-days', '.wx-quip', '.wx-foot', '.wx-setup', '.wx-error'];
 const CARD_SELECTORS = ['.wx-stat'];
+const OVER_TITLEBAR = new Set(['rain', 'storm']);
+const TITLE_FADE = 22;
 
 const FACTORY = {
   rain: (env) => createRain(env),
@@ -23,6 +25,7 @@ const FACTORY = {
 
 export function createWeatherFx({ win, store, content, appId = 'weather', tempTarget = null }) {
   const frame = win.querySelector('.wm-window__frame');
+  const titlebar = win.querySelector('.wm-titlebar');
   const scroller = content ? content.closest('.wm-window__body') : null;
   const canvas = document.createElement('canvas');
   canvas.className = 'wx-fx';
@@ -163,12 +166,29 @@ export function createWeatherFx({ win, store, content, appId = 'weather', tempTa
     ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
     const animate = canAnimate({ tier: Fx.tier, phone: phone(), reduced: MotionSettings.reduced });
     const k = 1 - Math.exp(-dt / FADE);
-    layers.forEach((layer) => {
+    const run = (layer) => {
       layer.alpha += (layer.target - layer.alpha) * (animate ? k : 1);
       if (!animate && layer.fx.staticSkip) return;
       if (animate) layer.fx.update(dt);
       if (layer.alpha > 0.004) layer.fx.draw(ctx, Math.min(1, layer.alpha));
-    });
+    };
+    const under = layers.filter((layer) => !OVER_TITLEBAR.has(layer.kind));
+    const over = layers.filter((layer) => OVER_TITLEBAR.has(layer.kind));
+    under.forEach(run);
+    const top = titlebar ? titlebar.offsetHeight : 0;
+    if (top && under.length) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, size.w, top);
+      const fade = ctx.createLinearGradient(0, top, 0, top + TITLE_FADE);
+      fade.addColorStop(0, 'rgba(0, 0, 0, 1)');
+      fade.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = fade;
+      ctx.fillRect(0, top, size.w, TITLE_FADE);
+      ctx.restore();
+    }
+    over.forEach(run);
     layers = layers.filter((layer) => layer.target > 0 || layer.alpha > 0.01);
     if (mask.width === canvas.width && mask.height === canvas.height && (regions.text.length || regions.cards.length)) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);

@@ -81,15 +81,6 @@
   position: relative;
   z-index: 1;
 }
-
-:root[data-theme="dark"] .wm-window[data-app-id="weather"]:has(.wx[data-mood="clear"]) .wm-titlebar {
-  text-shadow: 0 1px 8px rgba(40, 20, 0, 0.55);
-}
-
-:root[data-theme="dark"] .wm-window[data-app-id="weather"]:has(.wx[data-mood="clear"]) .wm-titlebar .wx-refresh {
-  filter: drop-shadow(0 1px 5px rgba(40, 20, 0, 0.6));
-}
-
 .wx-fx-toggle {
   margin-left: auto;
 }
