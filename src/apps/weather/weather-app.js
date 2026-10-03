@@ -7,6 +7,8 @@ import { monotonePath } from '../../ui/curve.js';
 import { Persona } from '../reminder/persona.js';
 import { glyph } from './glyphs.js';
 import { pickQuip } from './quips.js';
+import { createWeatherFx } from './fx/scene.js';
+import { onFxPrefs, readFxPrefs, setFxPrefs } from './fx/prefs.js';
 import { AUTH_KEY, LOCATION_KEY, REFRESH_MS, getAuthKey, getLocation, loadWeather, searchPlaces, setAuthKey, setLocation, testAuthKey, uvLevel } from './provider.js';
 
 const WIDE_REM = 34;
@@ -214,8 +216,20 @@ function createPlaceSearch(host, { onPick, autofocus = false, compact = false })
   };
 }
 
-export function createWeatherApp({ root, host, island, dialogs, placeButton, refreshButton, updatedTag, onData, onAlert }) {
+export function createWeatherApp({ root, host, island, dialogs, store, placeButton, refreshButton, updatedTag, onData, onAlert }) {
   const win = root.closest('.wm-window');
+  const scene = win && store ? createWeatherFx({ win, store, tempTarget: root.querySelector('[data-wx="temp"]') }) : null;
+  const fxToggle = root.querySelector('[data-wx="fx"]');
+  function paintFxToggle(prefs = readFxPrefs()) {
+    if (!fxToggle) return;
+    fxToggle.textContent = prefs.enabled ? '天氣特效：開' : '天氣特效：關';
+    fxToggle.setAttribute('aria-pressed', String(prefs.enabled));
+  }
+  if (fxToggle) {
+    paintFxToggle();
+    fxToggle.addEventListener('click', () => paintFxToggle(setFxPrefs({ enabled: !readFxPrefs().enabled })));
+    onFxPrefs(paintFxToggle);
+  }
   const $ = (name) => root.querySelector(`[data-wx="${name}"]`);
   const views = { setup: $('setup'), main: $('main'), error: $('error') };
   const glyphEl = $('glyph');
@@ -276,6 +290,7 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
     });
     placeButton.hidden = name === 'setup';
     refreshButton.hidden = name === 'setup';
+    if (scene && name !== 'main') scene.set(null);
     updatedTag.hidden = name !== 'main';
     if (previous && animate && !MotionSettings.reduced) {
       const out = createMotion({ e: 1 }, { response: 0.2, damping: 1, restDelta: 0.002 });
@@ -553,6 +568,11 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
     const timeZone = data.timezone;
     const today = data.daily[0];
     root.dataset.mood = current.mood;
+    const shownTemp = data.observed ? data.observed.temperature : current.temperature;
+    const heat = current.mood === 'clear' ? (shownTemp >= 35 ? 2 : shownTemp >= 30 ? 1 : 0) : 0;
+    if (heat) root.dataset.heat = String(heat);
+    else delete root.dataset.heat;
+    if (scene) scene.set({ mood: current.mood, glyph: current.glyph, wind: current.wind, temperature: shownTemp });
     renderPlace(location);
     renderUpdated();
     swapGlyph(current.glyph);
@@ -786,6 +806,7 @@ export function createWeatherApp({ root, host, island, dialogs, placeButton, ref
     refresh,
     openPlacePicker,
     openCwa,
+    fx: scene,
   };
 }
 

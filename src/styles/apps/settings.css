@@ -1535,3 +1535,9 @@
     transition: none;
   }
 }
+
+.st-row.is-off {
+  opacity: 0.42;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+}

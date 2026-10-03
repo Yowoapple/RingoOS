@@ -268,6 +268,7 @@ function start() {
     host: $('desk'),
     island,
     dialogs,
+    store,
     placeButton: $('weather-place'),
     refreshButton: $('weather-refresh'),
     updatedTag: $('weather-updated'),

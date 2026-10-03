@@ -68,6 +68,36 @@
   display: none;
 }
 
+.wx-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.wm-window[data-app-id="weather"] .wm-titlebar {
+  position: relative;
+  z-index: 1;
+}
+
+:root[data-theme="dark"] .wm-window[data-app-id="weather"]:has(.wx[data-mood="clear"]) .wm-titlebar {
+  text-shadow: 0 1px 8px rgba(40, 20, 0, 0.55);
+}
+
+:root[data-theme="dark"] .wm-window[data-app-id="weather"]:has(.wx[data-mood="clear"]) .wm-titlebar .wx-refresh {
+  filter: drop-shadow(0 1px 5px rgba(40, 20, 0, 0.6));
+}
+
+.wx-fx-toggle {
+  margin-left: auto;
+}
+
+.wx-fx-toggle[aria-pressed="false"] {
+  color: var(--ink-3);
+}
+
 .wx {
   --wx-tint: rgba(0, 0, 0, 0);
   position: relative;
@@ -78,6 +108,8 @@
 }
 
 .wx[data-mood="clear"] { --wx-tint: rgba(255, 176, 64, 0.16); }
+.wx[data-mood="clear"][data-heat="1"] { --wx-tint: rgba(255, 150, 50, 0.24); }
+.wx[data-mood="clear"][data-heat="2"] { --wx-tint: rgba(255, 120, 40, 0.32); }
 .wx[data-mood="night"] { --wx-tint: rgba(86, 100, 220, 0.18); }
 .wx[data-mood="cloudy"] { --wx-tint: rgba(140, 150, 166, 0.16); }
 .wx[data-mood="rain"] { --wx-tint: rgba(64, 120, 196, 0.17); }
