@@ -169,8 +169,12 @@ export function mountDemo(ctx) {
     return new Promise((resolve, reject) => {
       button.addEventListener('click', async () => {
         try {
-          stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude' });
-          grabber = new ImageCapture(stream.getVideoTracks()[0]);
+          stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30, cursor: 'never' }, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude' });
+          grabber = document.createElement('video');
+          grabber.muted = true;
+          grabber.playsInline = true;
+          grabber.srcObject = stream;
+          await grabber.play();
           button.remove();
           resolve('recording ready');
         } catch (err) {
@@ -181,37 +185,44 @@ export function mountDemo(ctx) {
     });
   }
 
-  async function capture(clip, run, { width = 1280, fps = 25 } = {}) {
+  async function capture(clip, run, { width = 1200, fps = 30 } = {}) {
     if (!grabber) throw new Error('press the record button first');
     let active = true;
     let index = 0;
+    let inflight = 0;
+    let last = -1;
+    const pending = [];
     const canvas = document.createElement('canvas');
-    const g = canvas.getContext('2d');
+    canvas.width = width;
+    canvas.height = Math.round((grabber.videoHeight / grabber.videoWidth) * width);
+    const g = canvas.getContext('2d', { alpha: false });
     const t0 = performance.now();
-    const loop = (async () => {
-      while (active) {
-        const started = performance.now();
-        try {
-          const frame = await grabber.grabFrame();
-          canvas.width = width;
-          canvas.height = Math.round((frame.height / frame.width) * width);
-          g.drawImage(frame, 0, 0, canvas.width, canvas.height);
-          frame.close();
-          const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
-          fetch(`/frame?clip=${clip}&i=${index}&t=${started - t0}`, { method: 'POST', body: blob });
-          index += 1;
-        } catch (err) {
-          await wait(10);
-        }
-        const spare = 1000 / fps - (performance.now() - started);
-        if (spare > 0) await wait(spare);
+    const onFrame = (now) => {
+      if (!active) return;
+      if (now - last >= 1000 / fps - 2 && inflight < 6) {
+        last = now;
+        g.drawImage(grabber, 0, 0, canvas.width, canvas.height);
+        const i = index;
+        const t = now - t0;
+        index += 1;
+        inflight += 1;
+        pending.push(new Promise((resolve) => {
+          canvas.toBlob((blob) => {
+            fetch(`/frame?clip=${clip}&i=${i}&t=${t}`, { method: 'POST', body: blob }).finally(() => {
+              inflight -= 1;
+              resolve();
+            });
+          }, 'image/jpeg', 0.92);
+        }));
       }
-    })();
+      grabber.requestVideoFrameCallback(onFrame);
+    };
+    grabber.requestVideoFrameCallback(onFrame);
     try {
       await run();
     } finally {
       active = false;
-      await loop;
+      await Promise.all(pending);
     }
     return `${clip}: ${index} frames`;
   }
