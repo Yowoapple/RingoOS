@@ -1541,3 +1541,9 @@
   pointer-events: none;
   transition: opacity 220ms ease;
 }
+
+.st-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}

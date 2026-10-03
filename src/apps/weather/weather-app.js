@@ -8,7 +8,8 @@ import { Persona } from '../reminder/persona.js';
 import { glyph } from './glyphs.js';
 import { pickQuip } from './quips.js';
 import { createWeatherFx } from './fx/scene.js';
-import { onFxPrefs, readFxPrefs, setFxPrefs } from './fx/prefs.js';
+import { getFxPreview, onFxPrefs, onFxPreview, readFxPrefs, setFxPrefs } from './fx/prefs.js';
+import { PREVIEWS } from './fx/plan.js';
 import { AUTH_KEY, LOCATION_KEY, REFRESH_MS, getAuthKey, getLocation, loadWeather, searchPlaces, setAuthKey, setLocation, testAuthKey, uvLevel } from './provider.js';
 
 const WIDE_REM = 34;
@@ -218,7 +219,21 @@ function createPlaceSearch(host, { onPick, autofocus = false, compact = false })
 
 export function createWeatherApp({ root, host, island, dialogs, store, placeButton, refreshButton, updatedTag, onData, onAlert }) {
   const win = root.closest('.wm-window');
-  const scene = win && store ? createWeatherFx({ win, store, tempTarget: root.querySelector('[data-wx="temp"]') }) : null;
+  const scene = win && store ? createWeatherFx({ win, store, content: root, tempTarget: root.querySelector('[data-wx="temp"]') }) : null;
+  let realScene = null;
+  function applyScene() {
+    if (!scene) return;
+    const id = getFxPreview();
+    const item = id ? PREVIEWS.find((p) => p.id === id) : null;
+    const target = item ? item.weather : realScene;
+    if (!target) return;
+    root.dataset.mood = target.mood;
+    scene.set(target);
+    scene.relayout();
+  }
+  onFxPreview(() => {
+    if (view === 'main') applyScene();
+  });
   const fxToggle = root.querySelector('[data-wx="fx"]');
   function paintFxToggle(prefs = readFxPrefs()) {
     if (!fxToggle) return;
@@ -569,10 +584,8 @@ export function createWeatherApp({ root, host, island, dialogs, store, placeButt
     const today = data.daily[0];
     root.dataset.mood = current.mood;
     const shownTemp = data.observed ? data.observed.temperature : current.temperature;
-    const heat = current.mood === 'clear' ? (shownTemp >= 35 ? 2 : shownTemp >= 30 ? 1 : 0) : 0;
-    if (heat) root.dataset.heat = String(heat);
-    else delete root.dataset.heat;
-    if (scene) scene.set({ mood: current.mood, glyph: current.glyph, wind: current.wind, temperature: shownTemp });
+    realScene = { mood: current.mood, glyph: current.glyph, wind: current.wind, temperature: shownTemp };
+    applyScene();
     renderPlace(location);
     renderUpdated();
     swapGlyph(current.glyph);

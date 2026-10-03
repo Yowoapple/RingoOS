@@ -23,6 +23,7 @@ import { createCalendarApp } from '../apps/calendar/calendar-app.js';
 import { createDialogHost } from '../ui/dialog.js';
 import { createWeatherApp } from '../apps/weather/weather-app.js';
 import { glyph } from '../apps/weather/glyphs.js';
+import { setFxPreview } from '../apps/weather/fx/prefs.js';
 import { createCalculatorApp } from '../apps/calculator/calculator-app.js';
 import { createRadioApp } from '../apps/radio/radio-app.js';
 import { createSettingsApp } from '../apps/settings/settings-app.js';
@@ -438,6 +439,9 @@ function start() {
       radio,
       menuHost: $('desk'),
       pickPhoto: () => fileInput.click(),
+      ensureWeather() {
+        if (!wm.isOpen('weather')) wm.open('weather');
+      },
       setMotionPreset(value) {
         const next = value === 'ios' ? 'ios' : 'hyperos';
         usePreset(next);
@@ -461,6 +465,7 @@ function start() {
     }
     if ((type === 'open' || type === 'restore') && id === 'calendar') calendar.intro();
     if ((type === 'open' || type === 'restore') && id === 'companion') room.intro();
+    if ((type === 'close' || type === 'minimize') && id === 'settings') setFxPreview(null);
     if ((type === 'open' || type === 'restore') && id === 'weather') weather.intro();
     if ((type === 'open' || type === 'restore') && id === 'calculator') calculator.intro();
     if ((type === 'open' || type === 'restore') && id === 'radio') {

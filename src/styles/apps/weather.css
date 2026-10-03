@@ -107,10 +107,7 @@
   transition: --wx-tint 900ms ease;
 }
 
-.wx[data-mood="clear"] { --wx-tint: rgba(255, 176, 64, 0.16); }
-.wx[data-mood="clear"][data-heat="1"] { --wx-tint: rgba(255, 150, 50, 0.24); }
-.wx[data-mood="clear"][data-heat="2"] { --wx-tint: rgba(255, 120, 40, 0.32); }
-.wx[data-mood="night"] { --wx-tint: rgba(86, 100, 220, 0.18); }
+.wx[data-mood="clear"] { --wx-tint: rgba(255, 176, 64, 0.16); }.wx[data-mood="night"] { --wx-tint: rgba(86, 100, 220, 0.18); }
 .wx[data-mood="cloudy"] { --wx-tint: rgba(140, 150, 166, 0.16); }
 .wx[data-mood="rain"] { --wx-tint: rgba(64, 120, 196, 0.17); }
 .wx[data-mood="storm"] { --wx-tint: rgba(118, 84, 182, 0.2); }

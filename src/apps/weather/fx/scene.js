@@ -8,6 +8,8 @@ import { createCloud, createFog, createNight, createSun } from './sky.js';
 
 const MAX_PIXELS = 2400000;
 const FADE = 0.45;
+const TEXT_SELECTORS = ['[data-wx="glyph"]', '[data-wx="temp"]', '[data-wx="obs"]', '[data-wx="cond"]', '[data-wx="range"]', '[data-wx="desc"]', '.wx-alert', '.wx-sun', '.wx-hours', '.wx-chart', '.wx-days', '.wx-quip', '.wx-foot', '.wx-setup', '.wx-error'];
+const CARD_SELECTORS = ['.wx-stat'];
 
 const FACTORY = {
   rain: (env) => createRain(env),
@@ -19,13 +21,16 @@ const FACTORY = {
   fog: (env) => createFog(env),
 };
 
-export function createWeatherFx({ win, store, appId = 'weather', tempTarget = null }) {
+export function createWeatherFx({ win, store, content, appId = 'weather', tempTarget = null }) {
   const frame = win.querySelector('.wm-window__frame');
+  const scroller = content ? content.closest('.wm-window__body') : null;
   const canvas = document.createElement('canvas');
   canvas.className = 'wx-fx';
   canvas.setAttribute('aria-hidden', 'true');
   frame.prepend(canvas);
   const ctx = canvas.getContext('2d');
+  const mask = document.createElement('canvas');
+  const maskCtx = mask.getContext('2d');
 
   let prefs = readFxPrefs();
   let effect = null;
@@ -35,10 +40,64 @@ export function createWeatherFx({ win, store, appId = 'weather', tempTarget = nu
   let last = 0;
   let covered = false;
   let coverTimer = 0;
+  let regions = { text: [], cards: [] };
+  let relayoutTimer = 0;
   const pointer = { x: 0, y: 0, active: false };
 
   function phone() {
     return window.innerWidth < 768;
+  }
+
+  function frameBox() {
+    const b = frame.getBoundingClientRect();
+    return { b, scale: b.width / Math.max(1, frame.clientWidth) };
+  }
+
+  function local(rect, box) {
+    return { left: (rect.left - box.b.left) / box.scale, top: (rect.top - box.b.top) / box.scale, width: rect.width / box.scale, height: rect.height / box.scale };
+  }
+
+  function tempRect() {
+    if (!tempTarget) return null;
+    const a = tempTarget.getBoundingClientRect();
+    if (!a.width) return null;
+    return local(a, frameBox());
+  }
+
+  function measureRegions() {
+    if (!content) return;
+    const box = frameBox();
+    if (!box.b.width) return;
+    const collect = (selectors) => selectors.flatMap((sel) => Array.from(content.querySelectorAll(sel)))
+      .filter((el) => el.offsetParent !== null)
+      .map((el) => local(el.getBoundingClientRect(), box))
+      .filter((r) => r.width > 0 && r.height > 0 && r.top < size.h && r.top + r.height > 0);
+    regions = { text: collect(TEXT_SELECTORS), cards: collect(CARD_SELECTORS) };
+    paintMask();
+    layers.forEach((layer) => layer.fx.configure(env(layer.spec)));
+  }
+
+  function paintMask() {
+    mask.width = canvas.width;
+    mask.height = canvas.height;
+    if (!mask.width || !mask.height) return;
+    const d = size.dpr;
+    maskCtx.setTransform(1, 0, 0, 1, 0, 0);
+    maskCtx.clearRect(0, 0, mask.width, mask.height);
+    maskCtx.setTransform(d, 0, 0, d, 0, 0);
+    maskCtx.filter = 'blur(12px)';
+    const draw = (list, strength, pad) => {
+      maskCtx.fillStyle = `rgba(0, 0, 0, ${strength})`;
+      list.forEach((r) => {
+        maskCtx.beginPath();
+        if (maskCtx.roundRect) maskCtx.roundRect(r.left - pad, r.top - pad, r.width + pad * 2, r.height + pad * 2, 14);
+        else maskCtx.rect(r.left - pad, r.top - pad, r.width + pad * 2, r.height + pad * 2);
+        maskCtx.fill();
+      });
+    };
+    draw(regions.text, 0.78, 8);
+    draw(regions.cards, 0.55, -2);
+    maskCtx.filter = 'none';
   }
 
   function env(base = effect) {
@@ -57,16 +116,8 @@ export function createWeatherFx({ win, store, appId = 'weather', tempTarget = nu
       animate: canAnimate({ tier, phone: phone(), reduced: MotionSettings.reduced }),
       pointer,
       tempRect,
+      regions,
     };
-  }
-
-  function tempRect() {
-    if (!tempTarget) return null;
-    const a = tempTarget.getBoundingClientRect();
-    const b = frame.getBoundingClientRect();
-    if (!a.width || !b.width) return null;
-    const scale = b.width / Math.max(1, frame.clientWidth);
-    return { left: (a.left - b.left) / scale, top: (a.top - b.top) / scale, width: a.width / scale, height: a.height / scale };
   }
 
   function resize() {
@@ -79,7 +130,7 @@ export function createWeatherFx({ win, store, appId = 'weather', tempTarget = nu
     size = { w, h, dpr };
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
-    layers.forEach((layer) => layer.fx.configure(env(layer.spec)));
+    measureRegions();
     return true;
   }
 
@@ -119,6 +170,12 @@ export function createWeatherFx({ win, store, appId = 'weather', tempTarget = nu
       if (layer.alpha > 0.004) layer.fx.draw(ctx, Math.min(1, layer.alpha));
     });
     layers = layers.filter((layer) => layer.target > 0 || layer.alpha > 0.01);
+    if (mask.width === canvas.width && mask.height === canvas.height && (regions.text.length || regions.cards.length)) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.drawImage(mask, 0, 0);
+      ctx.globalCompositeOperation = 'source-over';
+    }
   }
 
   function frameStep(now) {
@@ -207,12 +264,31 @@ export function createWeatherFx({ win, store, appId = 'weather', tempTarget = nu
     refresh();
   }
 
+  function relayout() {
+    measureRegions();
+    window.clearTimeout(relayoutTimer);
+    relayoutTimer = window.setTimeout(measureRegions, 700);
+    if (!raf) schedule();
+  }
+
   new ResizeObserver(() => {
     resize();
-    if (!raf) schedule();
+    relayout();
   }).observe(frame);
+  if (content) new ResizeObserver(relayout).observe(content);
+  let scrollRaf = 0;
+  if (scroller) {
+    scroller.addEventListener('scroll', () => {
+      if (scrollRaf) return;
+      scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = 0;
+        measureRegions();
+        if (!raf) schedule();
+      });
+    }, { passive: true });
+  }
   store.subscribe(({ id }) => {
-    if (id === appId) window.setTimeout(refresh, 0);
+    if (id === appId) window.setTimeout(() => { relayout(); refresh(); }, 0);
     else if (isOpen()) {
       checkCovered();
       refresh();
@@ -235,8 +311,7 @@ export function createWeatherFx({ win, store, appId = 'weather', tempTarget = nu
   }, 1000);
 
   win.addEventListener('pointermove', (event) => {
-    const b = frame.getBoundingClientRect();
-    const scale = b.width / Math.max(1, frame.clientWidth);
+    const { b, scale } = frameBox();
     pointer.x = (event.clientX - b.left) / scale;
     pointer.y = (event.clientY - b.top) / scale;
     pointer.active = true;
@@ -246,7 +321,9 @@ export function createWeatherFx({ win, store, appId = 'weather', tempTarget = nu
   return {
     set,
     refresh,
+    relayout,
     get running() { return !!raf; },
+    get regions() { return regions; },
     step(dt = 1 / 60) {
       if (!resize()) return;
       paint(dt);

@@ -21,6 +21,25 @@ export function setFxPrefs(patch) {
   return next;
 }
 
+let preview = null;
+const previewListeners = new Set();
+
+export function getFxPreview() {
+  return preview;
+}
+
+export function setFxPreview(id) {
+  const next = id || null;
+  if (next === preview) return;
+  preview = next;
+  previewListeners.forEach((fn) => fn(preview));
+}
+
+export function onFxPreview(fn) {
+  previewListeners.add(fn);
+  return () => previewListeners.delete(fn);
+}
+
 export function onFxPrefs(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);
