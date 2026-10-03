@@ -1,69 +1,10 @@
 import { hasDetail, inside, levelAlpha, particleCount } from './plan.js';
 
-export function createSun(env) {
-  let cfg = env;
-  let time = Math.random() * 10;
-  const rays = Array.from({ length: 6 }, (_, i) => ({
-    angle: Math.PI * (0.58 + (i / 5) * 0.32) + (Math.random() - 0.5) * 0.05,
-    length: 1.1 + Math.random() * 0.5,
-    width: 0.07 + Math.random() * 0.05,
-    speed: 0.25 + Math.random() * 0.4,
-    phase: Math.random() * Math.PI * 2,
-  }));
-
+export function createSun() {
   return {
-    configure(next) {
-      cfg = next;
-    },
-    update(dt) {
-      time += dt;
-    },
-    draw(ctx, alpha) {
-      const { w, h, dark, level, animate } = cfg;
-      const heat = cfg.intensity;
-      const base = Math.min(w, h);
-      const R = base * (0.5 + heat * 0.09) * (level === 'rich' ? 1.12 : level === 'soft' ? 0.85 : 1);
-      const cx = w - base * 0.04;
-      const cy = -base * 0.06;
-      const a = alpha * levelAlpha(level) * (1 + heat * 0.18);
-      const breathe = animate ? 1 + Math.sin(time * 0.5) * 0.04 : 1;
-      ctx.save();
-      ctx.globalCompositeOperation = dark ? 'lighter' : 'source-over';
-      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * breathe);
-      if (dark) {
-        glow.addColorStop(0, `rgba(255, 246, 214, ${Math.min(0.9, 0.62 * a).toFixed(3)})`);
-        glow.addColorStop(0.18, `rgba(255, 214, 128, ${Math.min(0.6, 0.34 * a).toFixed(3)})`);
-        glow.addColorStop(0.45, `rgba(255, 168, 70, ${(0.1 * a).toFixed(3)})`);
-        glow.addColorStop(1, 'rgba(255, 150, 60, 0)');
-      } else {
-        glow.addColorStop(0, `rgba(255, 238, 190, ${Math.min(0.95, 0.75 * a).toFixed(3)})`);
-        glow.addColorStop(0.2, `rgba(255, 210, 120, ${Math.min(0.6, 0.32 * a).toFixed(3)})`);
-        glow.addColorStop(0.5, `rgba(255, 180, 90, ${(0.08 * a).toFixed(3)})`);
-        glow.addColorStop(1, 'rgba(255, 180, 90, 0)');
-      }
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, 0, w, h);
-      if (hasDetail(level, 'rays')) {
-        const count = hasDetail(level, 'moreRays') ? 6 : 4;
-        rays.slice(0, count).forEach((ray) => {
-          const flick = animate ? 0.6 + 0.4 * Math.sin(time * ray.speed + ray.phase) : 0.8;
-          const len = R * ray.length * 1.6;
-          const ang = ray.angle + (animate ? Math.sin(time * 0.08 + ray.phase) * 0.03 : 0);
-          const g = ctx.createLinearGradient(cx, cy, cx + Math.cos(ang) * len, cy + Math.sin(ang) * len);
-          g.addColorStop(0, 'rgba(255, 230, 170, 0)');
-          g.addColorStop(0.2, `rgba(255, 230, 170, ${((dark ? 0.07 : 0.1) * flick * a).toFixed(3)})`);
-          g.addColorStop(1, 'rgba(255, 230, 170, 0)');
-          ctx.fillStyle = g;
-          ctx.beginPath();
-          ctx.moveTo(cx, cy);
-          ctx.lineTo(cx + Math.cos(ang - ray.width) * len, cy + Math.sin(ang - ray.width) * len);
-          ctx.lineTo(cx + Math.cos(ang + ray.width) * len, cy + Math.sin(ang + ray.width) * len);
-          ctx.closePath();
-          ctx.fill();
-        });
-      }
-      ctx.restore();
-    },
+    configure() {},
+    update() {},
+    draw() {},
   };
 }
 

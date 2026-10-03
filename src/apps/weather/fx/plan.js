@@ -19,10 +19,19 @@ export function levelAlpha(level) {
 export function hasDetail(level, detail) {
   const table = {
     soft: [],
-    normal: ['splash', 'rays', 'meteor', 'bolt'],
-    rich: ['splash', 'rays', 'meteor', 'bolt', 'beads', 'settle', 'moreRays'],
+    normal: ['splash', 'meteor', 'bolt', 'sheen'],
+    rich: ['splash', 'meteor', 'bolt', 'sheen', 'beads', 'settle', 'shimmer'],
   };
   return (table[level] || table.normal).includes(detail);
+}
+
+export function glowFor(weather, { enabled = true, level = 'normal', animate = true } = {}) {
+  if (!enabled || !weather || weather.mood !== 'clear') return null;
+  const t = Number(weather.temperature);
+  const heat = Number.isFinite(t) ? (t >= 35 ? 3 : t >= 30 ? 2 : 1) : 1;
+  const sheen = animate && hasDetail(level, 'sheen') ? (level === 'rich' ? 'rich' : 'normal') : 'off';
+  const shimmer = animate && ((level === 'rich' && heat >= 2) || (level === 'normal' && heat === 3));
+  return { heat, sheen, shimmer };
 }
 
 export function effectFor(weather) {

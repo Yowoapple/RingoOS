@@ -9,7 +9,7 @@ import { glyph } from './glyphs.js';
 import { pickQuip } from './quips.js';
 import { createWeatherFx } from './fx/scene.js';
 import { getFxPreview, onFxPrefs, onFxPreview, readFxPrefs, setFxPrefs } from './fx/prefs.js';
-import { PREVIEWS } from './fx/plan.js';
+import { PREVIEWS, glowFor } from './fx/plan.js';
 import { AUTH_KEY, LOCATION_KEY, REFRESH_MS, getAuthKey, getLocation, loadWeather, searchPlaces, setAuthKey, setLocation, testAuthKey, uvLevel } from './provider.js';
 
 const WIDE_REM = 34;
@@ -230,10 +230,31 @@ export function createWeatherApp({ root, host, island, dialogs, store, placeButt
     root.dataset.mood = target.mood;
     scene.set(target);
     scene.relayout();
+    applyGlow(target);
+  }
+  function applyGlow(target) {
+    const prefs = readFxPrefs();
+    const glow = glowFor(target, { enabled: prefs.enabled, level: prefs.level, animate: !MotionSettings.reduced && Fx.tier !== 'solid' });
+    if (!glow) {
+      delete root.dataset.glow;
+      delete root.dataset.sheen;
+      delete root.dataset.shimmer;
+      return;
+    }
+    root.dataset.glow = String(glow.heat);
+    root.dataset.sheen = glow.sheen;
+    if (glow.shimmer) root.dataset.shimmer = '';
+    else delete root.dataset.shimmer;
   }
   onFxPreview(() => {
     if (view === 'main') applyScene();
   });
+  const reglow = () => {
+    if (view === 'main') applyScene();
+  };
+  onFxPrefs(reglow);
+  MotionSettings.subscribe(reglow);
+  if (typeof Fx.subscribe === 'function') Fx.subscribe(reglow);
   const fxToggle = root.querySelector('[data-wx="fx"]');
   function paintFxToggle(prefs = readFxPrefs()) {
     if (!fxToggle) return;
@@ -305,7 +326,10 @@ export function createWeatherApp({ root, host, island, dialogs, store, placeButt
     });
     placeButton.hidden = name === 'setup';
     refreshButton.hidden = name === 'setup';
-    if (scene && name !== 'main') scene.set(null);
+    if (scene && name !== 'main') {
+      scene.set(null);
+      delete root.dataset.glow;
+    }
     updatedTag.hidden = name !== 'main';
     if (previous && animate && !MotionSettings.reduced) {
       const out = createMotion({ e: 1 }, { response: 0.2, damping: 1, restDelta: 0.002 });

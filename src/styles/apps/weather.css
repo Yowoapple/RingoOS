@@ -471,6 +471,78 @@
   margin-left: -0.07em;
 }
 
+.wx[data-glow="1"] { --glow-a: #fff2cf; --glow-b: #ffcf7a; }
+.wx[data-glow="2"] { --glow-a: #ffe6a6; --glow-b: #ffa64a; }
+.wx[data-glow="3"] { --glow-a: #ffd98a; --glow-b: #ff7638; }
+:root[data-theme="light"] .wx[data-glow="1"] { --glow-a: #e39a2a; --glow-b: #c96f14; }
+:root[data-theme="light"] .wx[data-glow="2"] { --glow-a: #e7861f; --glow-b: #cf5a10; }
+:root[data-theme="light"] .wx[data-glow="3"] { --glow-a: #ea6f1c; --glow-b: #c8400c; }
+
+.wx {
+  --glow-sheen: linear-gradient(100deg, transparent 42%, rgba(255, 255, 255, 0.92) 50%, transparent 58%);
+}
+
+:root[data-theme="light"] .wx {
+  --glow-sheen: linear-gradient(100deg, transparent 42%, rgba(255, 236, 190, 0.95) 50%, transparent 58%);
+}
+
+.wx[data-glow] .wx-temp__num :is(.odo__still, .odo__strip > span) {
+  background-image: linear-gradient(transparent, transparent), linear-gradient(180deg, var(--glow-a), var(--glow-b));
+  background-size: 260% 100%, 100% 100%;
+  background-position: 130% 0, 0 0;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.wx[data-glow]:is([data-sheen="normal"], [data-sheen="rich"]) .wx-temp__num :is(.odo__still, .odo__strip > span) {
+  background-image: var(--glow-sheen), linear-gradient(180deg, var(--glow-a), var(--glow-b));
+  animation: wx-sheen 7s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+
+.wx[data-glow][data-sheen="rich"] .wx-temp__num :is(.odo__still, .odo__strip > span) {
+  animation-duration: 4.4s;
+}
+
+.wx[data-glow] .wx-temp__num > :nth-child(2) :is(.odo__still, .odo__strip > span) {
+  animation-delay: 0.12s;
+}
+
+.wx[data-glow] .wx-temp__num > :nth-child(3) :is(.odo__still, .odo__strip > span) {
+  animation-delay: 0.24s;
+}
+
+.wx[data-glow] .wx-temp__deg {
+  color: var(--glow-b);
+  opacity: 0.8;
+}
+
+.wx[data-shimmer] .wx-temp__num {
+  transform-origin: 50% 100%;
+  animation: wx-shimmer 2.8s ease-in-out infinite;
+}
+
+@keyframes wx-sheen {
+  0% { background-position: 130% 0, 0 0; }
+  24% { background-position: -30% 0, 0 0; }
+  100% { background-position: -30% 0, 0 0; }
+}
+
+@keyframes wx-shimmer {
+  0%, 100% { transform: none; }
+  33% { transform: skewX(-0.7deg) translateY(-0.5px); }
+  66% { transform: skewX(0.5deg) translateY(0.3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wx[data-glow] .wx-temp__num :is(.odo__still, .odo__strip > span),
+  .wx[data-shimmer] .wx-temp__num {
+    animation: none;
+  }
+}
+
 .wx-temp__deg {
   margin: 0.25rem 0 0 0.1rem;
   color: var(--ink-3);

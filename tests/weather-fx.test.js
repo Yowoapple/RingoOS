@@ -1,5 +1,36 @@
 import { describe, expect, it } from 'vitest';
-import { canAnimate, effectFor, particleCount, shouldRun } from '../src/apps/weather/fx/plan.js';
+import { PREVIEWS, canAnimate, effectFor, glowFor, hasDetail, inside, particleCount, shouldRun } from '../src/apps/weather/fx/plan.js';
+
+describe('sunny glow and levels', () => {
+  it('only glows on clear days and warms up with the heat', () => {
+    expect(glowFor({ mood: 'rain', temperature: 36 })).toBe(null);
+    expect(glowFor({ mood: 'night', temperature: 36 })).toBe(null);
+    expect(glowFor({ mood: 'clear', temperature: 25 }).heat).toBe(1);
+    expect(glowFor({ mood: 'clear', temperature: 31 }).heat).toBe(2);
+    expect(glowFor({ mood: 'clear', temperature: 35 }).heat).toBe(3);
+    expect(glowFor({ mood: 'clear', temperature: 36 }, { enabled: false })).toBe(null);
+  });
+
+  it('gives each strength a visibly different set of details', () => {
+    const hot = { mood: 'clear', temperature: 36 };
+    expect(glowFor(hot, { level: 'soft' })).toEqual({ heat: 3, sheen: 'off', shimmer: false });
+    expect(glowFor(hot, { level: 'normal' })).toEqual({ heat: 3, sheen: 'normal', shimmer: true });
+    expect(glowFor({ mood: 'clear', temperature: 31 }, { level: 'normal' }).shimmer).toBe(false);
+    expect(glowFor({ mood: 'clear', temperature: 31 }, { level: 'rich' })).toEqual({ heat: 2, sheen: 'rich', shimmer: true });
+    expect(glowFor(hot, { level: 'rich', animate: false })).toEqual({ heat: 3, sheen: 'off', shimmer: false });
+    expect(hasDetail('soft', 'splash')).toBe(false);
+    expect(hasDetail('normal', 'splash')).toBe(true);
+    expect(hasDetail('normal', 'settle')).toBe(false);
+    expect(hasDetail('rich', 'settle')).toBe(true);
+  });
+
+  it('has a preview for every kind of effect', () => {
+    const kinds = new Set(PREVIEWS.map((p) => effectFor(p.weather).kind));
+    ['sun', 'rain', 'storm', 'snow', 'night', 'cloud', 'fog'].forEach((k) => expect(kinds.has(k)).toBe(true));
+    expect(inside(5, 5, [{ left: 0, top: 0, width: 10, height: 10 }])).toBe(true);
+    expect(inside(15, 5, [{ left: 0, top: 0, width: 10, height: 10 }], 4)).toBe(false);
+  });
+});
 
 describe('weather fx plan', () => {
   it('maps weather to an effect and its strength', () => {
