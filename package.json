@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "assets:characters": "node scripts/convert-characters.mjs",
-    "assets:fonts": "node scripts/convert-fonts.mjs"
+    "assets:fonts": "node scripts/convert-fonts.mjs",
+    "assets:icons": "node scripts/build-icons.mjs"
   },
   "devDependencies": {
     "sharp": "^0.35.5",
