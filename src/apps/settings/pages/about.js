@@ -9,6 +9,28 @@ import { h, text } from '../kit.js';
 
 const BUILD = typeof __RINGO_BUILD__ !== 'undefined' ? __RINGO_BUILD__ : { version: '26.0.0', codename: 'Fuji', commit: '', date: '' };
 const DEV_KEY = 'yoworingo.v2.developer';
+const DEV_DAY = 24 * 60 * 60 * 1000;
+
+export function developerUntil(now = Date.now()) {
+  const value = Storage.get(DEV_KEY, null);
+  if (!value) return 0;
+  if (value === true) {
+    const until = now + DEV_DAY;
+    Storage.set(DEV_KEY, { until });
+    return until;
+  }
+  if (typeof value.until === 'number' && value.until > now) return value.until;
+  Storage.remove(DEV_KEY);
+  return 0;
+}
+
+function untilText(until) {
+  const d = new Date(until);
+  const today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${sameDay ? '今天' : '明天'} ${time} `;
+}
 const ARROW = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const FX_NAMES = { full: '完整', lite: '精簡', solid: '實色' };
 
@@ -109,15 +131,22 @@ export function aboutPage(ctx) {
     window.clearTimeout(tapTimer);
     tapTimer = window.setTimeout(() => { taps = 0; }, 1600);
     taps += 1;
-    if (Storage.get(DEV_KEY, false)) {
-      if (taps === 1) island.toast({ text: '你已經是開發者了', duration: 2000 });
+    const until = developerUntil();
+    if (until) {
+      if (taps === 1) island.toast({ text: '你已經是開發者了', note: `${untilText(until)}自動關閉 · 再點 7 下關閉`, duration: 2400 });
+      if (taps >= 4 && taps < 7) island.toast({ text: `再點 ${7 - taps} 下關閉`, duration: 1200 });
+      if (taps === 7) {
+        taps = 0;
+        Storage.remove(DEV_KEY);
+        island.toast({ text: '開發者模式已關閉', duration: 2400 });
+      }
       return;
     }
     if (taps >= 4 && taps < 7) island.toast({ text: `再點 ${7 - taps} 下`, duration: 1200 });
     if (taps === 7) {
       taps = 0;
-      Storage.set(DEV_KEY, true);
-      island.toast({ text: '開發者模式已開啟', note: 'Tweaks 之後解鎖', duration: 3200 });
+      Storage.set(DEV_KEY, { until: Date.now() + DEV_DAY });
+      island.toast({ text: '開發者模式已開啟', note: '一天後自動關閉 · Tweaks 之後解鎖', duration: 3200 });
     }
   });
 
