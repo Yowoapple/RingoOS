@@ -398,7 +398,7 @@
   gap: 1.3rem;
 }
 
-.wx.is-wide .wx-main {
+.wx.is-wide .wx-main:not([hidden]) {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.25fr);
   gap: 1.1rem 1.9rem;

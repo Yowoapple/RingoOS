@@ -36,7 +36,7 @@ The word "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
 
 ## HarmonyOS Sans
 
-- Used for: the interface typeface (`public/fonts/`)
+- Used for: the interface typeface (`src/assets/fonts/`)
 - Owner: Huawei Device Co., Ltd.
 - License: HarmonyOS Sans Fonts License Agreement
 

@@ -587,6 +587,7 @@ function start() {
 
   console.info('%cRingoOS%c 2.0 by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
   if (new URLSearchParams(window.location.search).has('debug')) {
+    if (query.has('demo')) import('../debug/demo.js').then((m) => m.mountDemo()).catch((err) => console.error('RingoOS: demo tools failed', err));
     window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, ledger, overview, reminder, calendar, weather, calculator, radio, notifier, center, triggers, notices, settings, companion, room, sound: Sound };
   }
 }
