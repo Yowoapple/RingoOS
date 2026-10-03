@@ -1,6 +1,26 @@
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
+import { precacheList, versionOf, walk } from './scripts/precache.mjs';
+
+function serviceWorker() {
+  let outDir = 'dist';
+  return {
+    name: 'ringoos-service-worker',
+    apply: 'build',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    closeBundle() {
+      const files = precacheList(walk(outDir));
+      const template = readFileSync(resolve(import.meta.dirname, 'src/sw/template.js'), 'utf8');
+      const code = template
+        .replace("'__VERSION__'", JSON.stringify(versionOf(outDir, files)))
+        .replace('__PRECACHE__', JSON.stringify(files));
+      writeFileSync(resolve(outDir, 'sw.js'), code);
+    },
+  };
+}
 
 const VERSION = '26.0.0';
 const CODENAME = 'Fuji';
@@ -28,6 +48,7 @@ function buildDate() {
 
 export default defineConfig({
   base: './',
+  plugins: [serviceWorker()],
   define: {
     __RINGO_BUILD__: JSON.stringify({ version: VERSION, codename: CODENAME, commit: gitCommit(import.meta.dirname), date: buildDate() }),
   },

@@ -1,0 +1,12 @@
+{
+  "name": "RingoOS",
+  "short_name": "RingoOS",
+  "description": "A web desktop for everyday life and money.",
+  "lang": "zh-Hant-TW",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0e0e10",
+  "theme_color": "#0e0e10",
+  "icons": []
+}

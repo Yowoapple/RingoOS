@@ -549,6 +549,38 @@ function start() {
   };
   window.addEventListener('pointerdown', () => window.setTimeout(askSound, 3500), { once: true, capture: true });
 
+  const local = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  if ('serviceWorker' in navigator && (!local || query.has('sw'))) {
+    let updating = false;
+    const offerUpdate = (worker) => {
+      island.toast({
+        text: '有新版本',
+        action: '更新',
+        duration: 15000,
+        onAction() {
+          updating = true;
+          worker.postMessage('skip-waiting');
+        },
+      });
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (updating) window.location.reload();
+    });
+    navigator.serviceWorker.register('./sw.js').then((registration) => {
+      if (registration.waiting && navigator.serviceWorker.controller) offerUpdate(registration.waiting);
+      registration.addEventListener('updatefound', () => {
+        const worker = registration.installing;
+        if (!worker) return;
+        worker.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(worker);
+        });
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') registration.update().catch(() => {});
+      });
+    }).catch((err) => console.warn('RingoOS: offline mode is unavailable', err));
+  }
+
   if (Storage.getMode() === 'memory') {
     notices.push({ app: 'settings', title: '資料庫暫時打不開', body: '這次的變更不會被儲存，請關掉其他 RingoOS 分頁後重新整理', meta: '系統' });
   }
