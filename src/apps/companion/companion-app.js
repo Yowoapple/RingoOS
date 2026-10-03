@@ -100,7 +100,7 @@ export function createCompanionApp({ root, companion, dialogs }) {
   root.innerHTML = `
     <aside class="pal__rail">
       <nav class="pal__nav" aria-label="夥伴"><span class="pal__platter" aria-hidden="true"></span></nav>
-      <div class="pal__mini" aria-hidden="true"><img class="pal__mini-img" alt=""><span class="pal__mini-name"></span></div>
+      <div class="pal__mini" aria-hidden="true"><span class="pal__mini-face"><img class="pal__mini-img" alt=""></span><span class="pal__mini-name"></span></div>
     </aside>
     <div class="pal__main"><div class="pal__scroll"></div></div>`;
   const nav = root.querySelector('.pal__nav');
@@ -512,10 +512,15 @@ export function createCompanionApp({ root, companion, dialogs }) {
       const live = card.querySelector('img');
       const startLive = () => {
         if (!card.classList.contains('is-seen')) return;
-        live.src = `${BASE}${item.file}`;
+        live.onload = () => {
+          if (!live.hidden) card.classList.add('is-live');
+        };
         live.hidden = false;
+        live.src = `${BASE}${item.file}`;
       };
       const stopLive = () => {
+        card.classList.remove('is-live');
+        live.onload = null;
         live.hidden = true;
         live.removeAttribute('src');
       };

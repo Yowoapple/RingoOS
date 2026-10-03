@@ -232,10 +232,37 @@
   display: none;
 }
 
+.pal__mini-face {
+  position: relative;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  overflow: hidden;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--ink) 8%, transparent);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
 .pal__mini-img {
-  width: 2.4rem;
-  height: 2.4rem;
+  position: absolute;
+  left: 50%;
+  bottom: -18%;
+  width: 165%;
+  height: 165%;
   object-fit: contain;
+  object-position: 50% 100%;
+  transform: translateX(-50%);
+}
+
+.pal__mini-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pal__main {
@@ -670,6 +697,11 @@
 
 .pal-card.is-painted .pal-card__thumb canvas {
   opacity: 1;
+}
+
+.pal-card.is-live .pal-card__thumb canvas {
+  opacity: 0;
+  transition: none;
 }
 
 .pal-card:not(.is-seen).is-painted .pal-card__thumb canvas {
