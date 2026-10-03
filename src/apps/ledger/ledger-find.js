@@ -50,21 +50,29 @@ function signature(item) {
   return JSON.stringify([item.kind, item.dateKey, item.amount, item.category, item.note, item.recurring, item.necessity, item.signed]);
 }
 
+const rises = new WeakMap();
+
 function rise(el, { delay = 0, distance = 10 } = {}) {
-  const motion = createMotion({ e: 0 }, { response: 0.44, damping: 0.72, restDelta: 0.002 });
-  motion.onUpdate(({ e }) => {
-    const t = clamp01(e);
-    el.style.opacity = t > 0.999 ? '' : String(t);
-    el.style.transform = t > 0.999 && e <= 1.001 ? '' : `translate3d(0, ${((1 - e) * distance).toFixed(2)}px, 0)`;
-    el.style.filter = blur(t, 5);
-  });
-  if (MotionSettings.reduced) {
-    motion.set({ e: 1 });
-    return motion;
+  let entry = rises.get(el);
+  if (!entry) {
+    const motion = createMotion({ e: 1 }, { response: 0.44, damping: 0.72, restDelta: 0.002 });
+    motion.onUpdate(({ e }) => {
+      const t = clamp01(e);
+      el.style.opacity = t > 0.999 ? '' : String(t);
+      el.style.transform = t > 0.999 && e <= 1.001 ? '' : `translate3d(0, ${((1 - e) * distance).toFixed(2)}px, 0)`;
+      el.style.filter = blur(t, 5);
+    });
+    entry = { motion, timer: 0 };
+    rises.set(el, entry);
   }
-  motion.set({ e: 0 });
-  window.setTimeout(() => motion.to({ e: 1 }, { response: 0.44, damping: 0.72 }), delay);
-  return motion;
+  window.clearTimeout(entry.timer);
+  if (MotionSettings.reduced) {
+    entry.motion.set({ e: 1 });
+    return entry.motion;
+  }
+  entry.motion.set({ e: 0 });
+  entry.timer = window.setTimeout(() => entry.motion.to({ e: 1 }, { response: 0.44, damping: 0.72 }), delay);
+  return entry.motion;
 }
 
 export function createLedgerFind({ ledgerRoot, button, host, island, onToggle }) {
@@ -86,8 +94,7 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
 
   let filters = emptyFilters();
   let limit = PAGE;
-  let isOpen = false;
-  let busy = false;
+  let phase = 'closed';
   let timer = 0;
   const groups = new Map();
   const seen = new Map();
@@ -105,109 +112,113 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
     });
   });
 
-  const pill = document.createElement('div');
-  pill.className = 'lg-pill';
-  pill.hidden = true;
-  pill.setAttribute('aria-hidden', 'true');
-  pill.innerHTML = '<svg class="lg-pill__glass" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 10.4 13.6 13.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="lg-pill__text"></span><span class="lg-pill__done">完成</span>';
-  host.appendChild(pill);
-  const pillText = pill.querySelector('.lg-pill__text');
-  const pillParts = [pillText, pill.querySelector('.lg-pill__done')];
-  const across = createMotion({ x: 0, w: 0 }, { response: 0.42, damping: 0.56, restDelta: 0.3 });
-  const down = createMotion({ y: 0, h: 0 }, { response: 0.5, damping: 0.62, restDelta: 0.3 });
-  const partMotions = pillParts.map((el) => {
-    const motion = createMotion({ e: 0 }, { response: 0.3, damping: 0.78, restDelta: 0.002 });
-    motion.onUpdate(({ e }) => {
-      const t = clamp01(e);
-      el.style.opacity = String(t);
-      el.style.transform = `translate3d(0, ${((1 - t) * 6).toFixed(2)}px, 0) scale(${(0.9 + 0.1 * t).toFixed(4)})`;
+  const body = section.querySelector('.lg-find__body');
+  const glass = bar.querySelector('.lg-find__glass');
+  const barParts = [input, clearBtn, doneBtn];
+  const across = createMotion({ l: 0 }, { response: 0.42, damping: 0.56, restDelta: 0.3 });
+  const down = createMotion({ y: 0, r: 0 }, { response: 0.5, damping: 0.62, restDelta: 0.3 });
+  const contents = createMotion({ c: 1 }, { response: 0.3, damping: 0.78, restDelta: 0.002 });
+  const bodyMotion = createMotion({ e: 1 }, { response: 0.3, damping: 0.9, restDelta: 0.002 });
+  const OPEN_ACROSS = { response: 0.42, damping: 0.56 };
+  const OPEN_DOWN = { response: 0.5, damping: 0.62 };
+  const CLOSE_ACROSS = { response: 0.38, damping: 0.68 };
+  const CLOSE_DOWN = { response: 0.32, damping: 0.72 };
+  let W = 0;
+  let H = 0;
+  let glassC = 0;
+  let acrossTimer = 0;
+  let downTimer = 0;
+  let contentTimer = 0;
+  let acrossPending = false;
+  let downPending = false;
+
+  function measure() {
+    W = bar.offsetWidth;
+    H = bar.offsetHeight;
+    glassC = parseFloat(getComputedStyle(bar).paddingLeft) + glass.offsetWidth / 2;
+  }
+
+  function seedShape() {
+    const d = H * 0.62;
+    return { l: W - H / 2 - d / 2, y: (H - d) / 2, r: H / 2 - d / 2 };
+  }
+
+  function pointShape() {
+    return { l: W - H / 2, y: H / 2, r: H / 2 };
+  }
+
+  function clearBarStyles() {
+    bar.style.clipPath = '';
+    bar.style.transform = '';
+    glass.style.transform = '';
+  }
+
+  function paintBar() {
+    if (phase === 'closed' || phase === 'fading' || !W) return;
+    const { l } = across.values;
+    const { y, r } = down.values;
+    const visW = W - l - r;
+    const stretch = Math.min(0.14, Math.abs(across.velocity('l')) / Math.max(1, Math.max(visW, H) * 9));
+    const top = y + (stretch * Math.max(0, H - 2 * y)) / 2;
+    const visH = H - 2 * top;
+    if (phase === 'closing' && (visW <= 0.5 || visH <= 0.5)) {
+      finishClose();
+      return;
+    }
+    const left = Math.max(0, l);
+    const width = W - left - r;
+    const radius = Math.max(0, Math.min(width, visH) / 2);
+    const over = Math.min(0.045, (Math.max(0, -l) / W) * 0.5);
+    bar.style.transform = over > 0.0005 ? `scaleX(${(1 + over).toFixed(4)})` : '';
+    bar.style.clipPath = `inset(${top.toFixed(2)}px ${r.toFixed(2)}px ${top.toFixed(2)}px ${left.toFixed(2)}px round ${radius.toFixed(2)}px)`;
+    const shift = left + Math.min(glassC, Math.max(0, width) / 2) - glassC;
+    glass.style.transform = Math.abs(shift) < 0.05 ? '' : `translate3d(${shift.toFixed(2)}px, 0, 0)`;
+  }
+  across.onUpdate(paintBar);
+  down.onUpdate(paintBar);
+
+  contents.onUpdate(({ c }) => {
+    const t = clamp01(c);
+    barParts.forEach((el) => {
+      el.style.opacity = t > 0.999 ? '' : String(t);
+      el.style.transform = t > 0.999 ? '' : `translate3d(${((1 - t) * 8).toFixed(2)}px, 0, 0)`;
       el.style.filter = blur(t, 5);
     });
-    return motion;
   });
 
-  function paintPill() {
-    const { x, w } = across.values;
-    const { y, h } = down.values;
-    const width = Math.max(4, w);
-    const height = Math.max(4, h);
-    const stretch = Math.min(0.14, Math.abs(across.velocity('w')) / Math.max(1, width * 9));
-    pill.style.left = `${x.toFixed(2)}px`;
-    pill.style.top = `${y.toFixed(2)}px`;
-    pill.style.width = `${width.toFixed(2)}px`;
-    pill.style.height = `${height.toFixed(2)}px`;
-    pill.style.borderRadius = `${(Math.min(width, height) / 2).toFixed(2)}px`;
-    pill.style.paddingLeft = `${Math.max(0, Math.min(0.85 * pillRem, (Math.min(width, height) - 0.95 * pillRem) / 2)).toFixed(2)}px`;
-    pill.style.transform = stretch > 0.004 ? `scaleY(${(1 - stretch).toFixed(4)})` : '';
-  }
-  across.onUpdate(paintPill);
-  down.onUpdate(paintPill);
+  bodyMotion.onUpdate(({ e }) => {
+    const t = clamp01(e);
+    body.style.opacity = t > 0.999 ? '' : String(t);
+    body.style.filter = blur(t, 4);
+  });
 
-  function rectOf(el) {
-    const r = el.getBoundingClientRect();
-    return { x: r.left, y: r.top, w: r.width, h: r.height };
-  }
-
-  function predictBar() {
-    const r = ledgerRoot.getBoundingClientRect();
-    const cs = getComputedStyle(ledgerRoot);
-    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    const left = r.left + parseFloat(cs.paddingLeft);
-    const scroller = ledgerRoot.closest('.wm-window__body');
-    const top = r.top + parseFloat(cs.paddingTop) + (scroller ? scroller.scrollTop : 0);
-    return { x: left, y: top, w: r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), h: 2.5 * rem };
-  }
-
-  let pillTarget = null;
-  let downStarted = false;
-  let onSettled = null;
-  const ACROSS = { response: 0.42, damping: 0.56 };
-  const DOWN = { response: 0.5, damping: 0.62 };
-
-  function checkSettled() {
-    if (!onSettled || !downStarted || across.isAnimating || down.isAnimating) return;
-    const run = onSettled;
-    onSettled = null;
-    run();
-  }
-
-  function startDown(config = DOWN) {
-    downStarted = true;
-    down.to({ y: pillTarget.y, h: pillTarget.h }, config).then(checkSettled);
-  }
-
-  let shapeToken = 0;
-  let pillRem = 16;
-
-  function shapePill(from, to, { across: a = ACROSS, down: d = DOWN, lag = 40, settled }) {
-    pillRem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    pill.hidden = false;
-    pillTarget = to;
-    downStarted = false;
-    onSettled = settled;
-    shapeToken += 1;
-    const token = shapeToken;
-    if (from) {
-      across.set({ x: from.x, w: from.w });
-      down.set({ y: from.y, h: from.h });
-      paintPill();
+  function settle() {
+    if (acrossPending || downPending || across.isAnimating || down.isAnimating) return;
+    if (phase === 'opening') {
+      phase = 'open';
+      clearBarStyles();
+    } else if (phase === 'closing') {
+      finishClose();
     }
-    across.to({ x: to.x, w: to.w }, a).then(checkSettled);
-    window.setTimeout(() => { if (!downStarted && token === shapeToken) startDown(d); }, lag);
   }
 
-  function retarget(to) {
-    pillTarget = to;
-    across.to({ x: to.x, w: to.w }, ACROSS).then(checkSettled);
-    if (downStarted) startDown();
-  }
-
-  function growPill(from, to, settled) {
-    pillText.textContent = filters.q || input.placeholder;
-    pillText.classList.toggle('is-value', !!filters.q);
-    partMotions.forEach((m) => m.set({ e: 0 }));
-    shapePill(from, to, { settled });
-    partMotions.forEach((m, i) => window.setTimeout(() => m.to({ e: 1 }, { response: 0.3, damping: 0.78 }), 60 + i * 28));
+  function shapeTo(target, a, d, { delay = 0, lag = 0 } = {}) {
+    window.clearTimeout(acrossTimer);
+    window.clearTimeout(downTimer);
+    acrossPending = true;
+    downPending = true;
+    const goAcross = () => {
+      acrossPending = false;
+      across.to({ l: target.l }, a).then(settle);
+    };
+    const goDown = () => {
+      downPending = false;
+      down.to({ y: target.y, r: target.r }, d).then(settle);
+    };
+    if (delay > 0) acrossTimer = window.setTimeout(goAcross, delay);
+    else goAcross();
+    if (delay + lag > 0) downTimer = window.setTimeout(goDown, delay + lag);
+    else goDown();
   }
 
   function filterSection(title, key, options, { multi = false } = {}) {
@@ -603,7 +614,7 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
     if (group.leaving) return;
     group.leaving = true;
     groups.delete(group.monthKey);
-    if (MotionSettings.reduced || !isOpen) {
+    if (MotionSettings.reduced || phase !== 'open') {
       group.el.remove();
       return;
     }
@@ -621,7 +632,7 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
 
   function run() {
     window.clearTimeout(timer);
-    if (!isOpen) return;
+    if (section.hidden) return;
     const today = Data.toDateKey(new Date());
     const items = collect(Data.getState(), Data.getTransfers());
     const out = search(items, filters, today);
@@ -643,7 +654,7 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
       const group = groupFor(g.monthKey);
       const before = groupsEl.children[i];
       if (before !== group.el) groupsEl.insertBefore(group.el, before || null);
-      if (fresh && isOpen && !busy) rise(group.el, { delay: i * 30 });
+      if (fresh && phase === 'open') rise(group.el, { delay: i * 30 });
       group.meta.textContent = `${g.total} 筆`;
       group.sumEl.textContent = signedText(g.sum);
       if (fresh) {
@@ -688,139 +699,140 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
     parts.forEach((el, i) => rise(el, { delay: 110 + i * 40 }));
   }
 
+  function isActive() {
+    return phase === 'fading' || phase === 'opening' || phase === 'open';
+  }
+
+  function resetParts() {
+    across.stop();
+    down.stop();
+    contents.stop();
+    bodyMotion.stop();
+    window.clearTimeout(acrossTimer);
+    window.clearTimeout(downTimer);
+    window.clearTimeout(contentTimer);
+    acrossPending = false;
+    downPending = false;
+    clearBarStyles();
+    barParts.forEach((el) => {
+      el.style.opacity = '';
+      el.style.transform = '';
+      el.style.filter = '';
+    });
+    body.style.opacity = '';
+    body.style.filter = '';
+  }
+
+  function showLayout() {
+    const scroller = ledgerRoot.closest('.wm-window__body');
+    paintFilters();
+    ledgerRoot.classList.add('is-finding');
+    section.hidden = false;
+    if (scroller) scroller.scrollTop = 0;
+    run();
+  }
+
+  function grow(fresh) {
+    window.clearTimeout(contentTimer);
+    shapeTo({ l: 0, y: 0, r: 0 }, OPEN_ACROSS, OPEN_DOWN, { lag: fresh ? 40 : 0 });
+    const reveal = () => contents.to({ c: 1 }, { response: 0.3, damping: 0.78 });
+    if (fresh) contentTimer = window.setTimeout(reveal, 90);
+    else reveal();
+    if (!fresh) bodyMotion.to({ e: 1 }, { response: 0.32, damping: 0.86 });
+    input.focus({ preventScroll: true });
+  }
+
+  function finishClose() {
+    if (phase !== 'closing') return;
+    phase = 'closed';
+    resetParts();
+    section.hidden = true;
+    ledgerRoot.classList.remove('is-finding');
+    groups.forEach((group) => group.el.remove());
+    groups.clear();
+    seen.clear();
+    if (MotionSettings.reduced) {
+      swapMotion.set({ e: 1 });
+      return;
+    }
+    swapMotion.set({ e: 0 });
+    swapMotion.to({ e: 1 }, { response: 0.42, damping: 0.72 });
+  }
+
   function open(next = null) {
     if (next) {
       filters = { ...emptyFilters(), ...next };
       if (filters.range) filters.period = 'range';
       limit = PAGE;
     }
-    if (isOpen) {
+    if (phase === 'open' || phase === 'opening') {
       paintFilters();
       run();
       input.focus({ preventScroll: true });
       return;
     }
-    if (busy) return;
-    isOpen = true;
-    busy = true;
+    if (phase === 'fading') return;
     onToggle(true);
     button.setAttribute('aria-pressed', 'true');
-    paintFilters();
-    const scroller = ledgerRoot.closest('.wm-window__body');
-    const reduced = MotionSettings.reduced;
-    const layout = () => {
-      const body = section.querySelector('.lg-find__body');
-      body.style.opacity = '';
-      body.style.filter = '';
-      ledgerRoot.classList.add('is-finding');
-      section.hidden = false;
-      if (scroller) scroller.scrollTop = 0;
+    if (phase === 'closing') {
+      phase = 'opening';
+      paintFilters();
       run();
-    };
-    if (reduced) {
-      layout();
-      busy = false;
+      measure();
+      grow(false);
+      return;
+    }
+    if (MotionSettings.reduced) {
+      phase = 'open';
+      resetParts();
       swapMotion.set({ e: 1 });
+      showLayout();
       input.focus({ preventScroll: true });
       return;
     }
-    if (scroller) scroller.scrollTop = 0;
-    bar.style.opacity = '0';
-    button.classList.add('is-morphing');
-    const finalize = () => {
-      if (!isOpen) return;
-      pill.hidden = true;
-      bar.style.opacity = '';
-      button.classList.remove('is-morphing');
-      input.focus({ preventScroll: true });
-    };
-    growPill(pill.hidden ? rectOf(button) : null, predictBar(), null);
-    swapMotion.to({ e: 0 }, { response: 0.12, damping: 1 }).then(() => {
-      layout();
+    phase = 'fading';
+    swapMotion.to({ e: 0 }, { response: 0.12, damping: 1 }).then((done) => {
+      if (!done || phase !== 'fading') return;
+      resetParts();
       swapMotion.set({ e: 1 });
-      onSettled = finalize;
-      retarget(rectOf(bar));
+      showLayout();
+      phase = 'opening';
+      measure();
+      const seed = seedShape();
+      contents.set({ c: 0 });
+      bodyMotion.set({ e: 1 });
+      across.set({ l: seed.l });
+      down.set({ y: seed.y, r: seed.r });
       staggerIn();
-      busy = false;
-      checkSettled();
+      grow(true);
     });
   }
 
   function close() {
-    if (!isOpen || busy) return;
-    busy = true;
-    collapse(true);
-    window.clearTimeout(timer);
-    const reduced = MotionSettings.reduced;
-    const restore = () => {
-      section.hidden = true;
-      ledgerRoot.classList.remove('is-finding');
-      isOpen = false;
-      busy = false;
-      button.setAttribute('aria-pressed', 'false');
-      onToggle(false);
-      groups.forEach((group) => group.el.remove());
-      groups.clear();
-      seen.clear();
-      if (reduced) {
-        swapMotion.set({ e: 1 });
-        return;
-      }
-      swapMotion.set({ e: 0 });
+    if (!isActive()) return;
+    onToggle(false);
+    button.setAttribute('aria-pressed', 'false');
+    if (phase === 'fading') {
+      phase = 'closed';
       swapMotion.to({ e: 1 }, { response: 0.42, damping: 0.72 });
-    };
-    if (reduced) {
-      restore();
-      button.focus({ preventScroll: true });
       return;
     }
-    const outMotion = createMotion({ e: 1 }, { response: 0.16, damping: 1, restDelta: 0.002 });
-    const body = section.querySelector('.lg-find__body');
-    outMotion.onUpdate(({ e }) => {
-      const t = clamp01(e);
-      body.style.opacity = t > 0.999 ? '' : String(t);
-      body.style.filter = blur(t, 4);
-    });
-    pillText.textContent = input.value || input.placeholder;
-    pillText.classList.toggle('is-value', !!input.value);
-    partMotions.forEach((m) => m.set({ e: 1 }));
-    const barRect = rectOf(bar);
-    across.set({ x: barRect.x, w: barRect.w });
-    down.set({ y: barRect.y, h: barRect.h });
-    paintPill();
-    pill.hidden = false;
-    bar.style.opacity = '0';
-    button.classList.add('is-morphing');
-    outMotion.to({ e: 0 }, { response: 0.16, damping: 1 });
-    partMotions.forEach((m) => m.to({ e: 0 }, { response: 0.16, damping: 1 }));
-    let restored = false;
-    const bringBack = () => {
-      if (restored) return;
-      restored = true;
-      outMotion.stop();
-      bar.style.opacity = '';
-      body.style.opacity = '';
-      body.style.filter = '';
-      restore();
-    };
-    window.setTimeout(() => {
-      shapePill(null, rectOf(button), {
-        across: { response: 0.38, damping: 0.68 },
-        down: { response: 0.32, damping: 0.72 },
-        lag: 0,
-        settled: () => {
-          bringBack();
-          if (isOpen) return;
-          pill.hidden = true;
-          button.classList.remove('is-morphing');
-          button.focus({ preventScroll: true });
-        },
-      });
-      window.setTimeout(bringBack, 170);
-    }, 60);
+    collapse(true);
+    window.clearTimeout(timer);
+    if (section.contains(document.activeElement)) button.focus({ preventScroll: true });
+    phase = 'closing';
+    if (MotionSettings.reduced) {
+      finishClose();
+      return;
+    }
+    measure();
+    window.clearTimeout(contentTimer);
+    contents.to({ c: 0 }, { response: 0.16, damping: 1 });
+    bodyMotion.to({ e: 0 }, { response: 0.16, damping: 1 });
+    shapeTo(pointShape(), CLOSE_ACROSS, CLOSE_DOWN, { delay: 60 });
   }
 
-  button.addEventListener('click', () => (isOpen ? close() : open()));
+  button.addEventListener('click', () => (isActive() ? close() : open()));
   section.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && event.target !== input) {
       event.preventDefault();
@@ -830,13 +842,13 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
   });
 
   Data.subscribe(() => {
-    if (!isOpen) return;
+    if (section.hidden) return;
     window.clearTimeout(timer);
     timer = window.setTimeout(run, 60);
   });
 
   return {
-    get isOpen() { return isOpen; },
+    get isOpen() { return isActive(); },
     open,
     close,
   };
