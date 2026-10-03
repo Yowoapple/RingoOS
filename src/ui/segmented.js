@@ -2,6 +2,7 @@ import { createMotion } from '../motion/animator.js';
 import { MotionSettings } from '../motion/presets.js';
 import { rubberband } from '../wm/geometry.js';
 import { createGlass } from './glass.js';
+import { Sound } from '../audio/sound.js';
 
 const LEAD = { response: 0.26, damping: 0.6 };
 const TRAIL = { response: 0.46, damping: 0.72 };
@@ -63,13 +64,14 @@ export function createSegmented(root, { onChange, onLayout } = {}) {
     if (onLayout) onLayout(lens);
   }
 
-  function commit(target) {
+  function commit(target, user = false) {
     buttons.forEach((el, i) => {
       el.setAttribute('aria-selected', String(i === target));
       el.tabIndex = i === target ? 0 : -1;
     });
     if (target === index) return false;
     index = target;
+    if (user) Sound.play('switch');
     if (onChange) onChange(target);
     return true;
   }
@@ -84,10 +86,10 @@ export function createSegmented(root, { onChange, onLayout } = {}) {
     if (!reduced) pop.to({ p: 0 }, { response: 0.38, damping: 0.42, velocity: { p: 9 } });
   }
 
-  function select(next, focus = false) {
+  function select(next, focus = false, user = false) {
     const target = Math.max(0, Math.min(last, next));
     if (focus) buttons[target].focus();
-    if (commit(target)) flow(target);
+    if (commit(target, user)) flow(target);
   }
 
   function pointerToIndex(clientX) {
@@ -125,7 +127,7 @@ export function createSegmented(root, { onChange, onLayout } = {}) {
     try { root.releasePointerCapture(event.pointerId); } catch (err) {}
     glass.to({ g: 0 }, { response: 0.4, damping: 0.85 });
     if (!state.moved) {
-      if (state.hit >= 0) select(state.hit);
+      if (state.hit >= 0) select(state.hit, false, true);
       return;
     }
     const samples = state.samples;
@@ -134,7 +136,7 @@ export function createSegmented(root, { onChange, onLayout } = {}) {
     const dt = Math.max(0.016, (end.t - first.t) / 1000);
     const velocity = samples.length > 1 ? (end.x - first.x) / dt : 0;
     const target = Math.max(0, Math.min(last, Math.round(end.x + velocity * 0.12)));
-    commit(target);
+    commit(target, true);
     flow(target, velocity);
   }
 
@@ -147,11 +149,11 @@ export function createSegmented(root, { onChange, onLayout } = {}) {
   buttons.forEach((el, i) => {
     el.tabIndex = i === index ? 0 : -1;
     el.addEventListener('click', (event) => {
-      if (event.detail === 0) select(i);
+      if (event.detail === 0) select(i, false, true);
     });
     el.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowRight') select(index + 1, true);
-      else if (event.key === 'ArrowLeft') select(index - 1, true);
+      if (event.key === 'ArrowRight') select(index + 1, true, true);
+      else if (event.key === 'ArrowLeft') select(index - 1, true, true);
       else return;
       event.preventDefault();
     });
@@ -169,7 +171,7 @@ export function createSegmented(root, { onChange, onLayout } = {}) {
 
   return {
     get index() { return index; },
-    select,
+    select: (next, focus = false) => select(next, focus, false),
     measure,
     lens,
     refreshGlass() {

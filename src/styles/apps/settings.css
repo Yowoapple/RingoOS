@@ -1547,3 +1547,22 @@
   flex-wrap: wrap;
   gap: 0.35rem;
 }
+
+.st-sound-try {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.st-sound-try__line {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.st-sound-try__kind {
+  font-size: 0.66rem;
+  color: var(--ink-3);
+}

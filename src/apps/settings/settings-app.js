@@ -6,6 +6,7 @@ import { appearancePage } from './pages/appearance.js';
 import { motionPage } from './pages/motion.js';
 import { desktopPage } from './pages/desktop.js';
 import { notifyPage } from './pages/notify.js';
+import { soundPage } from './pages/sound.js';
 import { categoriesPage } from './pages/categories.js';
 import { budgetPage } from './pages/budget.js';
 import { reminderPage } from './pages/reminder.js';
@@ -14,7 +15,7 @@ import { radioPage } from './pages/radio.js';
 import { dataPage } from './pages/data.js';
 import { aboutPage } from './pages/about.js';
 
-const GROUPS = [['appearance', 'motion', 'desktop'], ['notify', 'data'], ['categories', 'budget', 'reminder', 'weather', 'radio']];
+const GROUPS = [['appearance', 'motion', 'desktop'], ['notify', 'sound', 'data'], ['categories', 'budget', 'reminder', 'weather', 'radio']];
 const LEAD = { response: 0.26, damping: 0.6 };
 const TRAIL = { response: 0.46, damping: 0.72 };
 const NARROW_REM = 32;
@@ -48,6 +49,7 @@ export function createSettingsApp({ root, ctx }) {
     motionPage(full),
     desktopPage(full),
     notifyPage(full),
+    soundPage(full),
     dataPage(full),
     categoriesPage(full),
     budgetPage(full),

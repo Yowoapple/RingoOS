@@ -157,6 +157,7 @@ export function pulse(el) {
 }
 
 export const ICONS = {
+  sound: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.6 6.2h2.2L8 3.4v9.2L4.8 9.8H2.6z" fill="currentColor"/><path d="M10.4 5.6a3.4 3.4 0 0 1 0 4.8M12.2 3.8a6 6 0 0 1 0 8.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
   appearance: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2z" fill="currentColor"/></svg>',
   motion: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.8 10.5c1.6 0 1.9-5 3.6-5s2 5 3.6 5 1.9-5 3.6-5c.8 0 1.2.6 1.6 1.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
   desktop: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="2.6" width="12.4" height="9" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="4.6" y="12.6" width="6.8" height="1.6" rx=".8" fill="currentColor"/></svg>',

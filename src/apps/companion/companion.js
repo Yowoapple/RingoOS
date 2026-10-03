@@ -11,6 +11,7 @@ import { GOALS, TREAT_CAP, addFresh, clearFresh as clearFreshTags, count as coun
 import { eventLine, stateLine } from './pet-lines.js';
 import { achievement, collectStats, newlyUnlocked } from './achievements.js';
 import { festivalLine, festivalOn } from './festivals.js';
+import { Sound } from '../../audio/sound.js';
 
 const BASE = '/characters/coffeebean/';
 const STATE_KEY = 'yoworingo.v2.pet';
@@ -99,6 +100,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier, on
       return;
     }
     island.toast({ text: `成就解鎖 · ${item.title}`, note: `${item.desc} · 點心 +1`, action: '看看', onAction: () => openRoom('achievements'), duration: 3800 });
+    Sound.play('achievement');
     react(REACTIONS.levelUp);
     achTimer = window.setTimeout(() => {
       achTimer = 0;
@@ -122,6 +124,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier, on
       life = { ...next, achInit: true };
       window.setTimeout(() => {
         island.toast({ text: `解鎖了 ${ids.length} 個成就`, note: '以前的紀錄也算進去了', action: '看看', onAction: () => openRoom('achievements'), duration: 5200 });
+        Sound.play('achievement');
       }, 3200);
       return;
     }
@@ -366,12 +369,14 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier, on
     const vars = lifeVars();
     if (event.type === 'checkin') {
       react(REACTIONS.checkin);
+      Sound.play('checkin');
       const milestone = [100, 30, 7].find((n) => event.streak === n);
       say(eventLine(milestone ? `streak${milestone}` : 'checkin', voice(), vars, event.streak));
     } else if (event.type === 'goal') {
       say(eventLine('goal', voice(), vars, Date.now()));
     } else if (event.type === 'level') {
       react(REACTIONS.levelUp);
+      Sound.play('achievement');
       say(eventLine('level', voice(), { ...vars, title: event.title }, event.level));
       island.toast({ text: `${life.name} 升到 Lv${event.level}`, note: event.title, duration: 3600 });
     }
@@ -821,6 +826,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier, on
   function pickAnEgg() {
     const egg = pickEgg(Math.random(), lastEgg);
     lastEgg = egg.file;
+    Sound.play('chirp');
     return egg;
   }
 
@@ -850,6 +856,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier, on
       pat = { ...pat, flips: 0, since: 0, cool: now + 4000 };
       hint.hide();
       react(REACTIONS.pat);
+      Sound.play('pat');
       changeLife(nudgeMood(countLife(life, today(), 'pats'), 4));
       if (prefs.chatty !== 'off') say(['嘿嘿', '再摸一下', '好舒服'][Math.floor(Math.random() * 3)]);
     }
@@ -1000,6 +1007,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier, on
     evaluateAchievements();
     saveLife();
     react(REACTIONS.eat);
+    Sound.play('treat');
     if (out.levelUp) handleLifeEvent({ type: 'level', ...out.levelUp });
     updateStats();
     refreshIdle();

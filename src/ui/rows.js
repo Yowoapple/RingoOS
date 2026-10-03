@@ -1,6 +1,7 @@
 import { createMotion } from '../motion/animator.js';
 import { MotionSettings } from '../motion/presets.js';
 import { rubberband } from '../wm/geometry.js';
+import { Sound } from '../audio/sound.js';
 
 const DRAG_THRESHOLD = 6;
 const COMMIT_SHARE = 0.5;
@@ -69,6 +70,7 @@ export function createRowList(container, { render, onDelete, onSelect }) {
   function remove(entry, { fling = false, silent = false, report = true } = {}) {
     if (entry.leaving) return Promise.resolve();
     entry.leaving = true;
+    if (report && !silent) Sound.play('remove');
     const index = entries.indexOf(entry);
     const width = entry.el.offsetWidth;
     entry.natural = entry.el.offsetHeight;

@@ -4,6 +4,7 @@ import { rubberband } from '../wm/geometry.js';
 import { createOdometer } from './odometer.js';
 import { Fx } from './fx-tier.js';
 import { createGlass } from './glass.js';
+import { Sound } from '../audio/sound.js';
 
 const PRESS = { response: 0.14, damping: 1 };
 const RELEASE = { response: 0.38, damping: 0.42 };
@@ -61,8 +62,9 @@ export function createToggle(el, { checked = false, onChange } = {}) {
     el.style.setProperty('--fill', clamp(f, 0, 1).toFixed(3));
   }
 
-  function commit(next) {
+  function commit(next, user = true) {
     const changed = next !== state;
+    if (changed && user) Sound.play(next ? 'toggleOn' : 'toggleOff');
     state = next;
     el.setAttribute('aria-checked', String(state));
     motion.to({ x: state ? 1 : 0 }, soft(TRAVEL));
@@ -117,7 +119,7 @@ export function createToggle(el, { checked = false, onChange } = {}) {
 
   return {
     get checked() { return state; },
-    set(next) { if (next !== state) commit(next); },
+    set(next) { if (next !== state) commit(next, false); },
   };
 }
 

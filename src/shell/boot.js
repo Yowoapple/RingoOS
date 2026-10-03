@@ -24,6 +24,8 @@ import { createDialogHost } from '../ui/dialog.js';
 import { createWeatherApp } from '../apps/weather/weather-app.js';
 import { glyph } from '../apps/weather/glyphs.js';
 import { setFxPreview } from '../apps/weather/fx/prefs.js';
+import { Sound } from '../audio/sound.js';
+import { panFor } from '../audio/catalog.js';
 import { createCalculatorApp } from '../apps/calculator/calculator-app.js';
 import { createRadioApp } from '../apps/radio/radio-app.js';
 import { createSettingsApp } from '../apps/settings/settings-app.js';
@@ -150,6 +152,7 @@ function start() {
         return;
       }
       notices.push({ app: item.app, title: item.title, body: item.body, meta: titles.get(item.app) || '系統', onClick: () => notifier.activate(item.id) });
+      Sound.play('notify');
     },
     onActivate: (item) => activateItem(item),
   });
@@ -164,6 +167,7 @@ function start() {
   notifier.subscribe(syncUnread);
   syncUnread();
   const triggers = startTriggers(notifier);
+  Sound.init({ isQuiet: () => !!notifier.quiet });
 
   const island = createIsland({
     root: $('island'),
@@ -197,6 +201,7 @@ function start() {
     const input = $('island-amount');
     const amount = Number(String(input.value).replace(/[^\d]/g, ''));
     if (!Number.isFinite(amount) || amount <= 0) {
+      Sound.play('error');
       shake(input.closest('.island__amount'));
       input.focus();
       return;
@@ -456,6 +461,7 @@ function start() {
 
   settingsRef = settings;
 
+  let booted = false;
   store.subscribe(({ type, id }) => {
     if ((type === 'open' || type === 'restore') && id === 'settings') settings.intro();
     if ((type === 'open' || type === 'restore') && id === 'daily-entry') ledger.refreshGlass();
@@ -466,6 +472,12 @@ function start() {
     if ((type === 'open' || type === 'restore') && id === 'calendar') calendar.intro();
     if ((type === 'open' || type === 'restore') && id === 'companion') room.intro();
     if ((type === 'close' || type === 'minimize') && id === 'settings') setFxPreview(null);
+    const soundFor = { open: 'open', restore: 'open', close: 'close', minimize: 'minimize' }[type];
+    if (soundFor && booted) {
+      const record = store.get(id);
+      const frame = record && record.frame;
+      Sound.play(soundFor, { pan: frame ? panFor(frame.x, frame.w, window.innerWidth) : 0 });
+    }
     if ((type === 'open' || type === 'restore') && id === 'weather') weather.intro();
     if ((type === 'open' || type === 'restore') && id === 'calculator') calculator.intro();
     if ((type === 'open' || type === 'restore') && id === 'radio') {
@@ -485,6 +497,7 @@ function start() {
     Storage.set(SESSION_KEY, serializeSession(store));
   };
   wm.restoreSession(sanitizeSession(Storage.get(SESSION_KEY, null), APPS.map((app) => app.id)));
+  window.setTimeout(() => { booted = true; }, 800);
   store.subscribe(() => {
     window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(saveSession, SAVE_DELAY);
@@ -496,13 +509,51 @@ function start() {
 
   document.querySelectorAll('[data-press]').forEach(pressable);
 
+  const TAP_TARGETS = 'button, [role="button"], a[href]';
+  const TAP_SKIP = '.tgl, .seg__btn, .calc-key, .wm-control, .dock__item';
+  document.addEventListener('click', (event) => {
+    const target = event.target.closest(TAP_TARGETS);
+    if (!target || target.disabled || target.closest(TAP_SKIP)) return;
+    Sound.play('tap');
+  }, true);
+
+  const radioWidget = $('menubar').querySelector('.mb-radio');
+  if (radioWidget) {
+    const syncDuck = () => Sound.setDuck(radioWidget.classList.contains('is-playing'));
+    new MutationObserver(syncDuck).observe(radioWidget, { attributes: true, attributeFilter: ['class'] });
+    syncDuck();
+  }
+
+  let askTries = 0;
+  const askSound = () => {
+    const prefs = Sound.prefs;
+    if (prefs.asked || prefs.enabled) return;
+    if (island.mode !== 'idle' || document.visibilityState !== 'visible') {
+      askTries += 1;
+      if (askTries < 8) window.setTimeout(askSound, 5000);
+      return;
+    }
+    Sound.set({ asked: true });
+    island.toast({
+      text: '要開啟系統音效嗎？',
+      note: '之後可以在設定 › 聲音調整',
+      action: '開啟',
+      duration: 9000,
+      onAction() {
+        Sound.set({ enabled: true });
+        Sound.play('success', { force: true });
+      },
+    });
+  };
+  window.addEventListener('pointerdown', () => window.setTimeout(askSound, 3500), { once: true, capture: true });
+
   if (Storage.getMode() === 'memory') {
     notices.push({ app: 'settings', title: '資料庫暫時打不開', body: '這次的變更不會被儲存，請關掉其他 RingoOS 分頁後重新整理', meta: '系統' });
   }
 
   console.info('%cRingoOS%c 2.0 by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
   if (new URLSearchParams(window.location.search).has('debug')) {
-    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, ledger, overview, reminder, calendar, weather, calculator, radio, notifier, center, triggers, notices, settings, companion, room };
+    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, ledger, overview, reminder, calendar, weather, calculator, radio, notifier, center, triggers, notices, settings, companion, room, sound: Sound };
   }
 }
 

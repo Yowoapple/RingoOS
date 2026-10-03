@@ -2,6 +2,7 @@ import { createMotion } from '../motion/animator.js';
 import { MotionSettings } from '../motion/presets.js';
 import { Fx } from './fx-tier.js';
 import { createOdometer, formatAmount } from './odometer.js';
+import { Sound } from '../audio/sound.js';
 
 const OPEN_W = { response: 0.42, damping: 0.6 };
 const OPEN_H = { response: 0.5, damping: 0.64 };
@@ -329,6 +330,7 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
   }
 
   function celebrate({ label: message, amount, income }) {
+    Sound.play('success');
     clearTimers();
     measure();
     const from = mode;
@@ -394,6 +396,7 @@ export function createIsland({ root, pill, label, panel, activity, onOpen }) {
   const runUndo = () => {
     const handler = toastHandler;
     toastHandler = null;
+    if (handler) Sound.play(toastAction.textContent === '復原' ? 'undo' : 'tap');
     collapse();
     if (handler) handler();
   };

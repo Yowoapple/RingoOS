@@ -7,6 +7,7 @@ import { createRowList } from '../../ui/rows.js';
 import { createStage } from '../../ui/stage.js';
 import { Fx } from '../../ui/fx-tier.js';
 import { createCalculator, formatNumber } from './engine.js';
+import { Sound } from '../../audio/sound.js';
 
 const HISTORY_KEY = 'yoworingo.v2.calc-history';
 const HISTORY_LIMIT = 50;
@@ -70,6 +71,7 @@ export function createCalculatorApp({ root, island, dialogs, isActive, onRecord 
   });
 
   function press(name) {
+    Sound.play('key');
     const motion = pressMotions.get(name);
     if (!motion || MotionSettings.reduced) return;
     motion.to({ s: 0.9 }, { response: 0.12, damping: 1 });
