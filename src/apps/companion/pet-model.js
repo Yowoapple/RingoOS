@@ -32,6 +32,34 @@ function hash(text) {
   return value;
 }
 
+const TOTAL_KEYS = { pats: 'pats', deposits: 'deposits', tasksDone: 'tasks' };
+
+function keyOf(time) {
+  const d = new Date(time);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function totalsFrom(raw) {
+  const base = { pats: 0, feeds: 0, deposits: 0, tasks: 0 };
+  if (raw && raw.totals && typeof raw.totals === 'object') {
+    Object.keys(base).forEach((key) => { base[key] = Math.max(0, Math.floor(Number(raw.totals[key]) || 0)); });
+    return base;
+  }
+  Object.values((raw && raw.days) || {}).forEach((day) => {
+    base.pats += day.pats || 0;
+    base.feeds += day.feeds || 0;
+    base.deposits += day.deposits || 0;
+    base.tasks += day.tasksDone || 0;
+  });
+  return base;
+}
+
+function validBirthday(value) {
+  if (typeof value !== 'string' || !/^\d{2}-\d{2}$/.test(value)) return null;
+  const [m, d] = value.split('-').map(Number);
+  return m >= 1 && m <= 12 && d >= 1 && d <= new Date(2024, m, 0).getDate() ? value : null;
+}
+
 export function defaultLife(now = Date.now()) {
   return {
     name: DEFAULT_NAME,
@@ -43,12 +71,21 @@ export function defaultLife(now = Date.now()) {
     streak: { count: 0, last: null },
     days: {},
     seen: [],
+    firstSeen: keyOf(now),
+    totals: { pats: 0, feeds: 0, deposits: 0, tasks: 0 },
+    unlocked: {},
+    achInit: false,
+    fresh: [],
+    flags: {},
+    birthday: null,
   };
 }
 
 export function normalize(raw, now = Date.now()) {
   const base = defaultLife(now);
   if (!raw || typeof raw !== 'object') return base;
+  const days = raw.days && typeof raw.days === 'object' ? raw.days : {};
+  const earliest = Object.keys(days).sort()[0];
   return {
     ...base,
     ...raw,
@@ -58,10 +95,19 @@ export function normalize(raw, now = Date.now()) {
     bond: Math.max(0, Number(raw.bond) || 0),
     treats: clamp(Math.floor(Number(raw.treats) || 0), 0, TREAT_CAP),
     streak: raw.streak && typeof raw.streak === 'object' ? { count: raw.streak.count || 0, last: raw.streak.last || null } : base.streak,
-    days: raw.days && typeof raw.days === 'object' ? raw.days : {},
+    days,
     seen: Array.isArray(raw.seen) ? raw.seen.slice(0, 64) : [],
+    firstSeen: typeof raw.firstSeen === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.firstSeen) ? raw.firstSeen : earliest || base.firstSeen,
+    totals: totalsFrom(raw),
+    unlocked: raw.unlocked && typeof raw.unlocked === 'object' ? raw.unlocked : {},
+    achInit: !!raw.achInit,
+    fresh: Array.isArray(raw.fresh) ? raw.fresh.filter((v) => typeof v === 'string').slice(0, 80) : [],
+    flags: raw.flags && typeof raw.flags === 'object' ? raw.flags : {},
+    birthday: validBirthday(raw.birthday),
   };
 }
+
+export { validBirthday };
 
 export function levelOf(bond) {
   let level = 1;
@@ -176,7 +222,19 @@ export function sync(life, dateKey, ctx) {
 export function count(life, dateKey, key, amount = 1) {
   const day = { ...dayOf(life, dateKey) };
   day[key] = (day[key] || 0) + amount;
-  return { ...life, days: { ...life.days, [dateKey]: day } };
+  const total = TOTAL_KEYS[key];
+  const totals = total ? { ...life.totals, [total]: (life.totals[total] || 0) + amount } : life.totals;
+  return { ...life, totals, days: { ...life.days, [dateKey]: day } };
+}
+
+export function addFresh(life, tag) {
+  if (life.fresh.includes(tag)) return life;
+  return { ...life, fresh: [...life.fresh, tag].slice(-80) };
+}
+
+export function clearFresh(life, prefix) {
+  const fresh = life.fresh.filter((tag) => !tag.startsWith(prefix));
+  return fresh.length === life.fresh.length ? life : { ...life, fresh };
 }
 
 export function nudgeMood(life, amount) {
@@ -195,6 +253,7 @@ export function feed(life, dateKey) {
     fullness: clamp(life.fullness + 15, 0, 100),
     mood: clamp(life.mood + 10, MOOD_FLOOR, 100),
     bond: life.bond + 1,
+    totals: { ...life.totals, feeds: (life.totals.feeds || 0) + 1 },
     days: { ...life.days, [dateKey]: day },
   };
   const after = levelOf(next.bond).level;
@@ -210,5 +269,5 @@ export function stateOf(life) {
 
 export function markSeen(life, file) {
   if (!file || life.seen.includes(file)) return life;
-  return { ...life, seen: [...life.seen, file] };
+  return addFresh({ ...life, seen: [...life.seen, file] }, `dex:${file}`);
 }

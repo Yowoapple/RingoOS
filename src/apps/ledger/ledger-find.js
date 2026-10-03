@@ -773,6 +773,7 @@ export function createLedgerFind({ ledgerRoot, button, host, island, onToggle })
     }
     if (phase === 'fading') return;
     onToggle(true);
+    window.dispatchEvent(new CustomEvent('yoworingo:ledger-find'));
     button.setAttribute('aria-pressed', 'true');
     if (phase === 'closing') {
       phase = 'opening';

@@ -7,8 +7,10 @@ import { Fx } from '../../ui/fx-tier.js';
 import { buildInsight } from '../reminder/insight.js';
 import { Persona } from '../reminder/persona.js';
 import { REACTIONS, SIZES, clampInto, findPerch, pickEgg, pickIdle, project, reactionForNotice, restUntil, stashSide } from './behavior.js';
-import { GOALS, count as countLife, decay, dayOf, feed, goalsFor, levelOf, markSeen, normalize, nudgeMood, stateOf, sync as syncDay } from './pet-model.js';
+import { GOALS, TREAT_CAP, addFresh, clearFresh as clearFreshTags, count as countLife, decay, dayOf, feed, goalsFor, levelOf, markSeen, normalize, nudgeMood, stateOf, sync as syncDay, validBirthday } from './pet-model.js';
 import { eventLine, stateLine } from './pet-lines.js';
+import { achievement, collectStats, newlyUnlocked } from './achievements.js';
+import { festivalLine, festivalOn } from './festivals.js';
 
 const BASE = '/characters/coffeebean/';
 const STATE_KEY = 'yoworingo.v2.pet';
@@ -37,7 +39,7 @@ function today() {
   return Data.toDateKey(new Date());
 }
 
-export function createCompanion({ desk, menubar, store, wm, island, notifier }) {
+export function createCompanion({ desk, menubar, store, wm, island, notifier, onBadge = () => {}, openRoom = () => {} }) {
   let prefs = { ...DEFAULT_PREFS, ...(Storage.get(PREFS_KEY, null) || {}) };
   let saved = Storage.get(STATE_KEY, null) || {};
   let mode = 'free';
@@ -63,6 +65,18 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   let seat = null;
   let life = normalize(Storage.get(LIFE_KEY, null));
   let lifeTimer = 0;
+  let currentFile = '';
+  const lifeListeners = new Set();
+  const spriteListeners = new Set();
+  let achQueue = [];
+  let achTimer = 0;
+
+  function emitLife() {
+    onBadge(life.fresh.length);
+    lifeListeners.forEach((fn) => {
+      try { fn(); } catch (err) { console.error('RingoOS: companion listener failed', err); }
+    });
+  }
 
   function saveLife() {
     window.clearTimeout(lifeTimer);
@@ -70,6 +84,65 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
       lifeTimer = 0;
       Storage.set(LIFE_KEY, JSON.parse(JSON.stringify(life)));
     }, 300);
+    emitLife();
+  }
+
+  function stats() {
+    return collectStats(Data.getState(), life, today(), { budgetsFor: (month) => Data.getMonthlyBudgets(month) });
+  }
+
+  function pumpAchievements() {
+    if (achTimer || !achQueue.length) return;
+    const item = achievement(achQueue.shift());
+    if (!item) {
+      pumpAchievements();
+      return;
+    }
+    island.toast({ text: `成就解鎖 · ${item.title}`, note: `${item.desc} · 點心 +1`, action: '看看', onAction: () => openRoom('achievements'), duration: 3800 });
+    react(REACTIONS.levelUp);
+    achTimer = window.setTimeout(() => {
+      achTimer = 0;
+      pumpAchievements();
+    }, 4400);
+  }
+
+  function evaluateAchievements() {
+    const ids = newlyUnlocked(stats(), life.unlocked);
+    if (!ids.length) {
+      if (!life.achInit) life = { ...life, achInit: true };
+      return;
+    }
+    const now = Date.now();
+    let next = { ...life, unlocked: { ...life.unlocked } };
+    ids.forEach((id) => {
+      next.unlocked[id] = now;
+      next = addFresh(next, `ach:${id}`);
+    });
+    if (!life.achInit) {
+      life = { ...next, achInit: true };
+      window.setTimeout(() => {
+        island.toast({ text: `解鎖了 ${ids.length} 個成就`, note: '以前的紀錄也算進去了', action: '看看', onAction: () => openRoom('achievements'), duration: 5200 });
+      }, 3200);
+      return;
+    }
+    life = { ...next, treats: Math.min(TREAT_CAP, next.treats + ids.length) };
+    achQueue.push(...ids);
+    window.setTimeout(pumpAchievements, 600);
+  }
+
+  function festival() {
+    return festivalOn(today(), life.birthday);
+  }
+
+  function festivalGreeting() {
+    const fest = festival();
+    if (!fest) return '';
+    const key = today();
+    const day = dayOf(life, key);
+    if (day.fest) return '';
+    life = { ...life, days: { ...life.days, [key]: { ...day, fest: true } } };
+    saveLife();
+    return festivalLine(fest.id, voice(), { name: life.name });
   }
 
   function lifeVars() {
@@ -237,6 +310,8 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   let wanted = '';
   function sprite(file) {
     wanted = file;
+    currentFile = file;
+    spriteListeners.forEach((fn) => fn(file));
     if (!life.seen.includes(file)) {
       life = markSeen(life, file);
       saveLife();
@@ -278,6 +353,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     life = decay(life, now);
     const out = syncDay(life, today(), lifeCtx());
     life = out.life;
+    evaluateAchievements();
     saveLife();
     out.events.forEach((event, i) => {
       window.setTimeout(() => handleLifeEvent(event), i * 1400);
@@ -921,6 +997,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
       return;
     }
     life = out.life;
+    evaluateAchievements();
     saveLife();
     react(REACTIONS.eat);
     if (out.levelUp) handleLifeEvent({ type: 'level', ...out.levelUp });
@@ -933,8 +1010,19 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
     syncLife();
     const head = document.createElement('div');
     head.className = 'pet-card__head';
-    head.innerHTML = '<p class="pet-card__name"></p><p class="pet-card__meta"><span></span><span class="mono"></span></p>';
+    head.innerHTML = '<div class="pet-card__top"><p class="pet-card__name"></p><button type="button" class="pet-card__room">她的房間<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.8 7.8 6l-3.3 3.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><p class="pet-card__meta"><span></span><span class="mono"></span></p>';
     head.querySelector('.pet-card__name').textContent = life.name;
+    const fest = festival();
+    if (fest) {
+      const tag = document.createElement('span');
+      tag.className = 'pet-card__fest';
+      tag.textContent = fest.id === 'birthday' ? '你的生日' : fest.name;
+      head.querySelector('.pet-card__name').append(tag);
+    }
+    head.querySelector('.pet-card__room').addEventListener('click', () => {
+      closeCard();
+      openRoom();
+    });
     const stats = document.createElement('div');
     stats.className = 'pet-card__stats';
     const rings = { full: stat('飽足', 'full'), mood: stat('心情', 'mood'), bond: stat('親密', 'bond') };
@@ -1098,6 +1186,8 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
   bubble.addEventListener('click', () => openCard());
 
   function nextLine() {
+    const greeting = festivalGreeting();
+    if (greeting) return greeting;
     lineIndex += 1;
     const own = stateLine(stateOf(life), voice(), lifeVars(), lineIndex);
     if (lineIndex % 3 !== 0) return own;
@@ -1216,7 +1306,24 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
       fx.to({ show: 1 }, { response: 0.5, damping: 0.55 });
       applyYield();
     }, 900);
+    window.setTimeout(greetFestival, 2800);
   }
+
+  function greetFestival() {
+    if (!prefs.enabled || mode === 'rest' || hidden()) return;
+    const fest = festival();
+    const textValue = festivalGreeting();
+    if (!textValue) return;
+    if (fest && (fest.id === 'birthday' || fest.id === 'spring' || fest.id === 'xmas')) react(REACTIONS.levelUp);
+    say(textValue);
+  }
+
+  window.addEventListener('yoworingo:ledger-find', () => {
+    if (life.flags.search) return;
+    life = { ...life, flags: { ...life.flags, search: true } };
+    evaluateAchievements();
+    saveLife();
+  });
 
   boot();
 
@@ -1229,6 +1336,7 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
           life = normalize(incoming);
           if (stateOf(life) !== before) refreshIdle();
           if (cardOpen) updateStats();
+          emitLife();
         }
       }
       if (keys.includes(PREFS_KEY)) {
@@ -1282,6 +1390,44 @@ export function createCompanion({ desk, menubar, store, wm, island, notifier }) 
       say(`我是 ${name}，請多指教。`);
     },
     get life() { return JSON.parse(JSON.stringify(life)); },
+    get sprite() { return currentFile; },
+    get available() { return prefs.enabled && mode !== 'rest'; },
+    stats,
+    festival,
+    onChange(fn) {
+      lifeListeners.add(fn);
+      return () => lifeListeners.delete(fn);
+    },
+    onSprite(fn) {
+      spriteListeners.add(fn);
+      return () => spriteListeners.delete(fn);
+    },
+    tease() {
+      const egg = pickAnEgg();
+      if (prefs.enabled && mode !== 'rest') {
+        react(egg);
+      } else if (!life.seen.includes(egg.file)) {
+        life = markSeen(life, egg.file);
+        saveLife();
+      }
+      return egg;
+    },
+    clearFresh(prefix) {
+      const next = clearFreshTags(life, prefix);
+      if (next === life) return;
+      life = next;
+      saveLife();
+    },
+    get birthday() { return life.birthday; },
+    isBirthday: (value) => !!validBirthday(value),
+    setBirthday(value) {
+      const next = value ? validBirthday(value) : null;
+      if (value && !next) return false;
+      life = { ...life, birthday: next };
+      evaluateAchievements();
+      saveLife();
+      return true;
+    },
     wake,
     say,
     get mode() { return mode; },

@@ -38,6 +38,9 @@ const GLYPHS = {
     + '<circle class="s-tile" cx="32" cy="32" r="10.5" fill="none" stroke-width="1.2" opacity="0.22"/>'
     + '<circle class="i-acc" cx="32" cy="32" r="6.5"/>'
     + '<circle class="i-tile" cx="32" cy="32" r="1.8"/>',
+  companion: () => '<path class="i-ink" d="M30 50s-16.5-9.8-16.5-21.6A9.3 9.3 0 0 1 30 22.6a9.3 9.3 0 0 1 16.5 5.8C46.5 40.2 30 50 30 50z"/>'
+    + '<path class="i-acc" d="M46.5 11.5c.7 3.6 2.2 5.1 5.8 5.8-3.6.7-5.1 2.2-5.8 5.8-.7-3.6-2.2-5.1-5.8-5.8 3.6-.7 5.1-2.2 5.8-5.8z"/>'
+    + '<circle class="i-tile" cx="24.6" cy="31" r="2.3"/><circle class="i-tile" cx="35.4" cy="31" r="2.3"/>',
   settings: () => '<path class="s-ink" d="M15 21h34M15 32h34M15 43h34" stroke-width="3.5" stroke-linecap="round" fill="none"/>'
     + '<circle class="i-tile s-ink" cx="24.5" cy="21" r="5.2" stroke-width="3.5"/>'
     + '<circle class="i-acc s-tile" cx="40.5" cy="32" r="6.3" stroke-width="3"/>'
@@ -52,6 +55,7 @@ export const APPS = [
   { id: 'weather', title: '天氣' },
   { id: 'calculator', title: '計算機' },
   { id: 'radio', title: '電台' },
+  { id: 'companion', title: '夥伴' },
   { id: 'settings', title: '設定' },
 ];
 

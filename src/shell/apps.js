@@ -8,6 +8,7 @@ export const APPS = [
   { id: 'weather', title: '天氣', size: { w: 500, h: 640 }, min: { w: 340, h: 360 } },
   { id: 'calculator', title: '計算機', size: { w: 320, h: 580 }, min: { w: 280, h: 460 } },
   { id: 'radio', title: '電台', size: { w: 500, h: 640 }, min: { w: 340, h: 420 } },
+  { id: 'companion', title: '夥伴', size: { w: 520, h: 600 }, min: { w: 340, h: 420 } },
   { id: 'settings', title: '設定', size: { w: 680, h: 580 }, min: { w: 360, h: 380 } },
 ];
 

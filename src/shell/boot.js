@@ -27,6 +27,7 @@ import { createCalculatorApp } from '../apps/calculator/calculator-app.js';
 import { createRadioApp } from '../apps/radio/radio-app.js';
 import { createSettingsApp } from '../apps/settings/settings-app.js';
 import { createCompanion } from '../apps/companion/companion.js';
+import { createCompanionApp } from '../apps/companion/companion-app.js';
 import { Calc } from '../core/calculations.js';
 
 const SESSION_KEY = 'yoworingo.v2.windows';
@@ -74,7 +75,7 @@ function collectContent(app) {
   return {
     titlebar: titlebar ? Array.from(titlebar.children) : [],
     body: Array.from(source.children).filter((node) => node !== titlebar),
-    bodyClass: { settings: 'wm-window__body--settings', calendar: 'wm-window__body--calendar', calculator: 'wm-window__body--calculator' }[app.id] || null,
+    bodyClass: { settings: 'wm-window__body--settings', calendar: 'wm-window__body--calendar', calculator: 'wm-window__body--calculator', companion: 'wm-window__body--companion' }[app.id] || null,
   };
 }
 
@@ -119,6 +120,7 @@ function start() {
   sizes.get('calculator').size = { w: Math.round(760 * ratio), h: Math.round(580 * ratio) };
   sizes.get('radio').size = { w: Math.round(920 * ratio), h: Math.round(640 * ratio) };
   sizes.get('settings').size = { w: Math.round(940 * ratio), h: Math.round(700 * ratio) };
+  sizes.get('companion').size = { w: Math.round(900 * ratio), h: Math.round(660 * ratio) };
   const apps = APPS.map((app) => ({
     id: app.id,
     title: app.title,
@@ -401,9 +403,25 @@ function start() {
     });
   });
 
-  const companion = createCompanion({ desk: $('desk'), menubar: $('menubar'), store, wm, island, notifier });
+  let room = null;
+  const openRoom = (page) => {
+    const already = wm.isOpen('companion');
+    wm.summon('companion');
+    if (page) window.setTimeout(() => room && room.show(page), already ? 0 : 60);
+  };
+  const companion = createCompanion({
+    desk: $('desk'),
+    menubar: $('menubar'),
+    store,
+    wm,
+    island,
+    notifier,
+    onBadge: (n) => desktop.setBadge('companion', n),
+    openRoom,
+  });
   companionRef = companion;
   if (lastWeather) companion.setWeather(lastWeather);
+  room = createCompanionApp({ root: $('companion-room'), companion, dialogs });
 
   const settings = createSettingsApp({
     root: $('settings'),
@@ -441,6 +459,7 @@ function start() {
       overview.intro();
     }
     if ((type === 'open' || type === 'restore') && id === 'calendar') calendar.intro();
+    if ((type === 'open' || type === 'restore') && id === 'companion') room.intro();
     if ((type === 'open' || type === 'restore') && id === 'weather') weather.intro();
     if ((type === 'open' || type === 'restore') && id === 'calculator') calculator.intro();
     if ((type === 'open' || type === 'restore') && id === 'radio') {
@@ -477,7 +496,7 @@ function start() {
 
   console.info('%cRingoOS%c 2.0 by YoWoRingo', 'font-weight:700;font-size:14px', 'color:#8b8f9a');
   if (new URLSearchParams(window.location.search).has('debug')) {
-    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, ledger, overview, reminder, calendar, weather, calculator, radio, notifier, center, triggers, notices, settings, companion };
+    window.__ringo = { Animator, MotionSettings, Storage, Data, wm, store, dock, appearance, island, ledger, overview, reminder, calendar, weather, calculator, radio, notifier, center, triggers, notices, settings, companion, room };
   }
 }
 

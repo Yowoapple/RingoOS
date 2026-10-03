@@ -55,11 +55,32 @@ export function desktopPage(ctx) {
     validate: (v) => (String(v).trim().length > 12 ? '最多 12 個字' : ''),
     onCommit: (v) => companion.setName(String(v).trim() || 'SAYA'),
   });
+  const birthdayText = (value) => (value ? value.replace('-', '/') : '');
+  const parseBirthday = (raw) => {
+    const m = String(raw).trim().match(/^(\d{1,2})\s*[/.\-月]\s*(\d{1,2})\s*日?$/);
+    return m ? `${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}` : null;
+  };
+  const birthday = field({
+    value: birthdayText(companion.birthday),
+    placeholder: '例如 03/14',
+    label: '你的生日',
+    validate: (v) => {
+      if (!String(v).trim()) return '';
+      const parsed = parseBirthday(v);
+      return parsed && companion.isBirthday(parsed) ? '' : '請寫成 月/日，例如 03/14';
+    },
+    onCommit: (v) => {
+      const parsed = String(v).trim() ? parseBirthday(v) : null;
+      companion.setBirthday(parsed);
+      birthday.input.value = birthdayText(companion.birthday);
+    },
+  });
 
   el.append(
     group([
       row({ label: '桌寵', hint: '點她打開卡片；拖到螢幕左右邊緣可以先藏起來', control: petOn.el, keywords: '角色 夥伴 coffeebean 寵物' }),
       row({ label: '名字', hint: '卡片和她說的話都會用這個名字', control: petName.el, keywords: '桌寵 名字 SAYA 取名' }),
+      row({ label: '你的生日', hint: '選填，那天她會跟你說生日快樂；只存在這台電腦', control: birthday.el, keywords: '桌寵 生日 節日 birthday' }),
       row({ label: '大小', control: petSize.el, keywords: '桌寵 尺寸' }),
       row({ label: '說話頻率', hint: '勿擾時一律安靜', control: chatty.el, keywords: '桌寵 泡泡 對話' }),
       row({ label: '視窗放大時讓位', hint: '有視窗最大化或貼齊半邊時，她會先躲到邊緣', control: yieldToggle.el, keywords: '桌寵 擋住 讓開' }),
@@ -90,9 +111,12 @@ export function desktopPage(ctx) {
       chatty.api.set(pet.chatty);
       yieldToggle.api.set(pet.yield);
       if (document.activeElement !== petName.input) petName.input.value = companion.name;
+      if (document.activeElement !== birthday.input) birthday.input.value = birthdayText(companion.birthday);
     },
     show() {
       petSize.api.measure();
+      if (document.activeElement !== petName.input) petName.input.value = companion.name;
+      if (document.activeElement !== birthday.input) birthday.input.value = birthdayText(companion.birthday);
     },
     refreshGlass() {
       petSize.api.refreshGlass();
