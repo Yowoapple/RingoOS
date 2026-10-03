@@ -10,7 +10,7 @@ import { TITLES, TREAT_CAP, levelOf, stateOf } from './pet-model.js';
 import { stateLine } from './pet-lines.js';
 import { festivalLine } from './festivals.js';
 
-const BASE = '/characters/coffeebean/';
+const BASE = `${import.meta.env.BASE_URL}characters/coffeebean/`;
 const PAGES = [
   { id: 'she', label: '她' },
   { id: 'dex', label: '圖鑑' },

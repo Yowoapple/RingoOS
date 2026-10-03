@@ -491,9 +491,12 @@ function start() {
   });
 
   let saveTimer = 0;
+  const query = new URLSearchParams(window.location.search);
+  const noSave = query.has('debug') && query.has('nosave');
   const saveSession = () => {
     window.clearTimeout(saveTimer);
     saveTimer = 0;
+    if (noSave) return;
     Storage.set(SESSION_KEY, serializeSession(store));
   };
   wm.restoreSession(sanitizeSession(Storage.get(SESSION_KEY, null), APPS.map((app) => app.id)));

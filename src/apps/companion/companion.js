@@ -13,7 +13,7 @@ import { achievement, collectStats, newlyUnlocked } from './achievements.js';
 import { festivalLine, festivalOn } from './festivals.js';
 import { Sound } from '../../audio/sound.js';
 
-const BASE = '/characters/coffeebean/';
+const BASE = `${import.meta.env.BASE_URL}characters/coffeebean/`;
 const STATE_KEY = 'yoworingo.v2.pet';
 const PREFS_KEY = 'yoworingo.v2.pet-prefs';
 const LIFE_KEY = 'yoworingo.v2.pet-life';

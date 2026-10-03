@@ -1,7 +1,3 @@
-CLAUDE.md
-_archive/
-_kit/
-
 data/*.json
 life-ledger-*.json
 life-ledger-data.json

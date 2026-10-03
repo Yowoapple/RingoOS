@@ -14,7 +14,7 @@ import { AUTH_KEY, LOCATION_KEY, REFRESH_MS, getAuthKey, getLocation, loadWeathe
 
 const WIDE_REM = 34;
 const XL_REM = 52;
-const ART_BASE = '/characters/coffeebean/';
+const ART_BASE = `${import.meta.env.BASE_URL}characters/coffeebean/`;
 const SEARCH_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 10.4l3.2 3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 const LEAD = { response: 0.26, damping: 0.6 };
 const TRAIL = { response: 0.42, damping: 0.74 };

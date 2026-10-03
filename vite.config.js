@@ -46,8 +46,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
-        next: resolve(import.meta.dirname, 'next/index.html'),
-        logo: resolve(import.meta.dirname, 'prototype/logo/index.html'),
       },
     },
   },

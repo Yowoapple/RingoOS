@@ -1,24 +1,24 @@
 @font-face {
   font-family: 'HarmonyOS Sans TC';
-  src: url('/fonts/HarmonyOS_SansTC_Regular.woff2') format('woff2');
+  src: url('../assets/fonts/HarmonyOS_SansTC_Regular.woff2') format('woff2');
   font-weight: 400;
   font-display: swap;
 }
 @font-face {
   font-family: 'HarmonyOS Sans TC';
-  src: url('/fonts/HarmonyOS_SansTC_Medium.woff2') format('woff2');
+  src: url('../assets/fonts/HarmonyOS_SansTC_Medium.woff2') format('woff2');
   font-weight: 500;
   font-display: swap;
 }
 @font-face {
   font-family: 'HarmonyOS Sans TC';
-  src: url('/fonts/HarmonyOS_SansTC_Semibold.woff2') format('woff2');
+  src: url('../assets/fonts/HarmonyOS_SansTC_Semibold.woff2') format('woff2');
   font-weight: 600;
   font-display: swap;
 }
 @font-face {
   font-family: 'HarmonyOS Sans TC';
-  src: url('/fonts/HarmonyOS_SansTC_Bold.woff2') format('woff2');
+  src: url('../assets/fonts/HarmonyOS_SansTC_Bold.woff2') format('woff2');
   font-weight: 700;
   font-display: swap;
 }

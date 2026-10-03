@@ -3,7 +3,7 @@ import path from 'node:path';
 import wawoff2 from 'wawoff2';
 
 const SOURCE_DIR = path.resolve('assets-src/fonts');
-const TARGET_DIR = path.resolve('public/fonts');
+const TARGET_DIR = path.resolve('src/assets/fonts');
 
 await fs.mkdir(TARGET_DIR, { recursive: true });
 const files = (await fs.readdir(SOURCE_DIR)).filter((f) => /\.(ttf|otf)$/i.test(f)).sort();
